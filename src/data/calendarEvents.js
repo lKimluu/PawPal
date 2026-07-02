@@ -98,9 +98,7 @@ export const calendarEvents = [
     type: 'deworming',
     date: '2026-07-25',
     weekday: '四',
-    time: '19:00',
-    location: '家中',
+
     tag: '除蟲',
-    note: '體內外驅蟲',
   },
 ]

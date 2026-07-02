@@ -122,7 +122,7 @@ const handleAdd = () => emit('add', props.date)
                     <span class="w-8 shrink-0 text-brand-gray">寵物</span>
                     <span class="text-brand-darkgray">{{ event.petName }}</span>
                   </div>
-                  <div class="flex gap-4">
+                  <div v-if="event.time" class="flex gap-4">
                     <span class="w-8 shrink-0 text-brand-gray">時間</span>
                     <span class="text-brand-darkgray">{{ event.time }}</span>
                   </div>
