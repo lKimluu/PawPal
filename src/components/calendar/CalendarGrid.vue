@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+const emit = defineEmits(['open-add-modal'])
 import { calendarEvents } from '@/data/calendarEvents.js'
 import CalendarEventItem from './CalendarEventItem.vue'
 
@@ -51,11 +52,15 @@ const calendarCells = computed(() => {
   const daysInPrevMonth = new Date(year, month, 0).getDate()
   const cells = []
 
+  const fmt = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
   for (let i = firstDay - 1; i >= 0; i--) {
     const date = daysInPrevMonth - i
     const d = new Date(year, month - 1, date)
     cells.push({
       date,
+      fullDate: fmt(d),
       isCurrentMonth: false,
       isToday: false,
       isSelected: false,
@@ -74,6 +79,7 @@ const calendarCells = computed(() => {
     const dateStr = `${year}-${mm}-${dd}`
     cells.push({
       date,
+      fullDate: fmt(d),
       isCurrentMonth: true,
       isToday,
       isSelected: false,
@@ -88,6 +94,7 @@ const calendarCells = computed(() => {
     const d = new Date(year, month + 1, date)
     cells.push({
       date,
+      fullDate: fmt(d),
       isCurrentMonth: false,
       isToday: false,
       isSelected: false,
@@ -248,6 +255,7 @@ function selectCell(index) {
             <!-- 新增代辦按鈕（hover顯示，手機隱藏） -->
             <button
               aria-label="新增代辦"
+              @click.stop="emit('open-add-modal', cell.fullDate)"
               class="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full bg-brand-blue text-white hidden lg:flex items-center justify-center cursor-pointer opacity-0 transition-all duration-150 group-hover:opacity-100 hover:scale-110 hover:bg-brand-navy p-1"
             >
               <img src="@/assets/icons/new-item.svg" />
