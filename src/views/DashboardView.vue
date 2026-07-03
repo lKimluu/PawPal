@@ -115,8 +115,8 @@ const closePetProfile = () => {
             :compact="true"
             @add="openAddModal()"
             @edit="openEditModal"
+            @delete="handleDeleteRequest"
           />
-          <EventList :events="calendarEvents" :compact="true" @delete="handleDeleteRequest" />
         </div>
 
         <section class="lg:col-span-2 min-w-0">

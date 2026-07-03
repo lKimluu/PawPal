@@ -8,6 +8,7 @@ function readSource(path) {
 }
 
 const dashboardView = readSource('./src/views/DashboardView.vue')
+const mainSource = readSource('./src/main.js')
 const petCard = readSource('./src/components/pet/PetCard.vue')
 const profileModal = readSource('./src/components/pet/PetProfileModal.vue')
 
@@ -33,4 +34,19 @@ test('PetProfileModal 顯示基本資料並使用共用 BaseButton 關閉', () =
   assert.match(profileModal, /pet\.bloodType/)
   assert.match(profileModal, /pet\.furColor/)
   assert.match(profileModal, /pet\.note/)
+})
+
+test('Dashboard 行程清單只渲染一次並同時接 add edit delete 事件', () => {
+  const compactEventListCount = dashboardView.match(/<EventList[\s\S]*?:compact="true"[\s\S]*?\/>/g)?.length ?? 0
+
+  assert.equal(compactEventListCount, 1)
+  assert.match(dashboardView, /@add="openAddModal\(\)"/)
+  assert.match(dashboardView, /@edit="openEditModal"/)
+  assert.match(dashboardView, /@delete="handleDeleteRequest"/)
+})
+
+test('main.js 只掛載一次 v-calendar plugin', () => {
+  const calendarPluginUseCount = mainSource.match(/app\.use\(SetupCalendar,\s*\{\}\)/g)?.length ?? 0
+
+  assert.equal(calendarPluginUseCount, 1)
 })
