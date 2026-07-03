@@ -123,7 +123,7 @@ const handleDrop = (event) => {
             aria-label="關閉"
             @click="handleClose"
           >
-            ｘ
+            ⨉
           </button>
         </div>
 
