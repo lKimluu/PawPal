@@ -42,7 +42,7 @@ const formatValue = (value) => {
           aria-label="關閉"
           @click="emit('close')"
         >
-          x
+          ⨉
         </button>
 
         <div class="grid gap-7 md:grid-cols-[260px_minmax(0,1fr)] md:items-start">
