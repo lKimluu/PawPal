@@ -86,7 +86,7 @@ const calendarCells = computed(() => {
       hasEvent: false,
       isSunday: d.getDay() === 0,
       isSaturday: d.getDay() === 6,
-      events: calendarEvents.filter((e) => e.date === dateStr),
+      events: calendarEvents.filter((e) => e.eventDate === dateStr),
     })
   }
 

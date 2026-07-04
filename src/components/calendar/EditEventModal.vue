@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { usePetStore } from '@/stores/petStore'
+import { EVENT_TYPE_OPTIONS } from '@/constants/calendarEventTypes.js'
 import TimeWheelPicker from '@/components/common/TimeWheelPicker.vue'
 
 const props = defineProps({
@@ -12,30 +13,20 @@ const emit = defineEmits(['close', 'submit', 'delete'])
 
 const { pets } = usePetStore()
 
-const EVENT_TYPES = [
-  { label: '看診', color: '#ef6b6b' },
-  { label: '疫苗', color: '#67c483' },
-  { label: '美容', color: '#a78bfa' },
-  { label: '餵藥', color: '#ffa002' },
-  { label: '洗澡', color: '#60a5fa' },
-  { label: '訓練', color: '#2dd4bf' },
-  { label: '其他', color: '#94a3b8' },
-]
-
 const form = ref({
   title: '',
   petId: '',
-  date: '',
-  time: '',
+  eventDate: '',
+  eventTime: '',
   location: '',
-  type: '看診',
+  type: 'vet',
   notes: '',
 })
 
 // 將 YYYY-MM-DD 轉換為顯示用的 YYYY / MM / DD
 const displayDate = computed(() => {
-  if (!form.value.date) return ''
-  const [y, m, d] = form.value.date.split('-')
+  if (!form.value.eventDate) return ''
+  const [y, m, d] = form.value.eventDate.split('-')
   return `${y} / ${m} / ${d}`
 })
 
@@ -46,11 +37,11 @@ watch(
     if (!val) return
     form.value = {
       title: val.title ?? '',
-      petId: val.petId ?? val.pet_id ?? '',
-      date: val.date ?? val.event_date ?? '',
-      time: val.time ?? val.event_time ?? '',
+      petId: val.petId ?? '',
+      eventDate: val.eventDate ?? '',
+      eventTime: val.eventTime ?? '',
       location: val.location ?? '',
-      type: val.type ?? '看診',
+      type: val.type ?? 'vet',
       notes: val.notes ?? '',
     }
   },
@@ -136,7 +127,7 @@ const handleSubmit = () => emit('submit', { ...form.value })
                 日期 <span class="font-normal text-red-500">*</span>
               </label>
               <VDatePicker
-                v-model.string="form.date"
+                v-model.string="form.eventDate"
                 :masks="{ modelValue: 'YYYY-MM-DD', input: 'YYYY / MM / DD' }"
                 color="blue"
                 :popover="{ visibility: 'click', placement: 'bottom-start' }"
@@ -164,7 +155,7 @@ const handleSubmit = () => emit('submit', { ...form.value })
               <label class="text-base font-bold text-brand-navy">
                 時間 <span class="text-xs font-normal text-brand-gray/50">（選填）</span>
               </label>
-              <TimeWheelPicker v-model="form.time" />
+              <TimeWheelPicker v-model="form.eventTime" />
             </div>
           </div>
 
@@ -188,25 +179,25 @@ const handleSubmit = () => emit('submit', { ...form.value })
             </label>
             <div class="flex flex-wrap gap-2">
               <button
-                v-for="et in EVENT_TYPES"
-                :key="et.label"
+                v-for="et in EVENT_TYPE_OPTIONS"
+                :key="et.value"
                 type="button"
-                @click="form.type = et.label"
+                @click="form.type = et.value"
                 :style="
-                  form.type === et.label
+                  form.type === et.value
                     ? { borderColor: et.color, backgroundColor: et.color + '1a' }
                     : {}
                 "
                 class="flex cursor-pointer items-center gap-1.5 rounded-full border-2 px-4 py-2 text-xs font-bold transition duration-200 active:scale-95"
                 :class="
-                  form.type === et.label
+                  form.type === et.value
                     ? 'text-brand-navy shadow-sm'
                     : 'border-slate-200 bg-white text-brand-darkgray hover:border-brand-blue hover:bg-brand-blue/5 hover:text-brand-navy'
                 "
               >
                 <span
                   class="h-2 w-2 rounded-full transition duration-200"
-                  :style="{ backgroundColor: form.type === et.label ? et.color : '#cbd5e1' }"
+                  :style="{ backgroundColor: form.type === et.value ? et.color : '#cbd5e1' }"
                 ></span>
                 {{ et.label }}
               </button>

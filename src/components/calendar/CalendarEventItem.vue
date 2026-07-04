@@ -1,21 +1,12 @@
 <script setup>
 import { computed } from 'vue'
+import { getTypeMeta } from '@/constants/calendarEventTypes.js'
 
 const props = defineProps({
   events: { type: Array, default: () => [] },
 })
 
 const MAX = 3
-
-// 這邊暫時以mock data 定義為主，之後會改成真資料
-const colorMap = {
-  checkup: '#EF7C7C',
-  vaccine: '#4CC9A4',
-  medicine: '#FFA94D',
-  grooming: '#A78BFA',
-  deworming: '#60A5FA',
-  other: '#9CA3AF',
-}
 
 const visible = computed(() => props.events.slice(0, MAX))
 const overflow = computed(() => Math.max(0, props.events.length - MAX))
@@ -28,7 +19,7 @@ const overflow = computed(() => Math.max(0, props.events.length - MAX))
       <span
         v-for="e in visible"
         :key="e.id"
-        :style="{ background: colorMap[e.type] ?? colorMap.other }"
+        :style="{ background: getTypeMeta(e.type).color }"
         class="w-1.5 h-1.5 rounded-full shrink-0"
       />
     </div>
@@ -45,7 +36,7 @@ const overflow = computed(() => Math.max(0, props.events.length - MAX))
     <div
       v-for="e in visible"
       :key="e.id"
-      :style="{ background: colorMap[e.type] ?? colorMap.other }"
+      :style="{ background: getTypeMeta(e.type).color }"
       class="block w-full rounded text-white px-1 py-0.5 overflow-hidden whitespace-nowrap text-ellipsis leading-tight text-xs text-center cursor-default select-none"
     >
       {{ e.title }}

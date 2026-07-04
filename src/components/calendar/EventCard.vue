@@ -1,11 +1,7 @@
 <script setup>
 import { computed } from 'vue'
-import checkupIcon from '@/assets/icons/checkup-icon.svg'
-import vaccineIcon from '@/assets/icons/vaccine-icon.svg'
-import medicineIcon from '@/assets/icons/medicine-icon.svg'
-import groomingIcon from '@/assets/icons/grooming-icon.svg'
-import dewormingIcon from '@/assets/icons/bugs.svg'
-import defaultIcon from '@/assets/icons/default-icon.svg'
+import { usePetStore } from '@/stores/petStore'
+import { getTypeMeta } from '@/constants/calendarEventTypes.js'
 
 const props = defineProps({
   event: {
@@ -20,34 +16,29 @@ const props = defineProps({
 
 defineEmits(['edit', 'delete'])
 
+const petStore = usePetStore()
+
 const WEEKDAYS = ['週日', '週一', '週二', '週三', '週四', '週五', '週六']
 
-const dateObj = computed(() => new Date(props.event.date))
+const dateObj = computed(() => new Date(props.event.eventDate))
 const formattedMonth = computed(() => dateObj.value.getMonth() + 1)
 const formattedDay = computed(() => String(dateObj.value.getDate()).padStart(2, '0'))
 const weekday = computed(() => WEEKDAYS[dateObj.value.getDay()])
 
-const TYPE_MAP = {
-  checkup: { icon: checkupIcon, bg: 'bg-purple-100' },
-  vaccine: { icon: vaccineIcon, bg: 'bg-indigo-50' },
-  medicine: { icon: medicineIcon, bg: 'bg-yellow-50' },
-  grooming: { icon: groomingIcon, bg: 'bg-teal-100' },
-  deworming: { icon: dewormingIcon, bg: 'bg-green-100' },
-}
+// 後端 response 無 petName，改由 petId 查 petStore
+const petName = computed(
+  () => petStore.pets.find((p) => p.id === props.event.petId)?.name ?? '',
+)
+const displayTitle = computed(() =>
+  petName.value ? `${petName.value} - ${props.event.title}` : props.event.title,
+)
 
-const typeIconSrc = computed(() => TYPE_MAP[props.event.type]?.icon ?? defaultIcon)
-const typeIconBg = computed(() => TYPE_MAP[props.event.type]?.bg ?? 'bg-gray-100')
-
-const TAG_STYLE_MAP = {
-  回診: 'bg-purple-100 text-purple-600',
-  疫苗: 'bg-indigo-50  text-blue-400',
-  服藥: 'bg-yellow-50  text-yellow-500',
-  美容: 'bg-teal-100   text-teal-600',
-  除蟲: 'bg-green-100  text-green-600',
-  用藥提醒: 'bg-red-100    text-red-500',
-}
-
-const tagStyle = computed(() => TAG_STYLE_MAP[props.event.tag] ?? 'bg-gray-100 text-gray-500')
+const typeMeta = computed(() => getTypeMeta(props.event.type))
+const typeIconSrc = computed(() => typeMeta.value.icon)
+const typeIconBg = computed(() => typeMeta.value.bg)
+// 後端 response 無 tag，改由 type 對應中文 label 與樣式
+const tagLabel = computed(() => typeMeta.value.label)
+const tagStyle = computed(() => typeMeta.value.chip)
 </script>
 
 <template>
@@ -71,7 +62,7 @@ const tagStyle = computed(() => TAG_STYLE_MAP[props.event.tag] ?? 'bg-gray-100 t
             class="hidden md:inline-block mt-1.5 text-xs px-1.5 py-0.5 rounded-full font-medium text-center whitespace-nowrap"
             :class="tagStyle"
           >
-            {{ event.tag }}
+            {{ tagLabel }}
           </span>
         </template>
       </div>
@@ -86,26 +77,26 @@ const tagStyle = computed(() => TAG_STYLE_MAP[props.event.tag] ?? 'bg-gray-100 t
 
       <div class="flex-1 min-w-0">
         <p class="text-sm md:text-base font-semibold text-gray-900 leading-snug">
-          {{ event.petName }} - {{ event.title }}
+          {{ displayTitle }}
         </p>
 
         <div class="flex items-center gap-1 mt-1 flex-wrap">
           <img src="@/assets/icons/clock-icon.svg" alt="" class="w-3 h-3" />
-          <span class="text-xs md:text-sm text-gray-500">{{ event.time }}</span>
+          <span class="text-xs md:text-sm text-gray-500">{{ event.eventTime }}</span>
           <span v-if="event.location" class="flex items-center gap-0.5 ml-1">
             <img src="@/assets/icons/location-dot.svg" alt="" class="w-3 h-3" />
             <span class="text-xs md:text-sm text-gray-400">{{ event.location }}</span>
           </span>
         </div>
 
-        <p v-if="event.note" class="text-xs md:text-sm text-gray-400 mt-1 leading-relaxed">
-          {{ event.note }}
+        <p v-if="event.notes" class="text-xs md:text-sm text-gray-400 mt-1 leading-relaxed">
+          {{ event.notes }}
         </p>
 
         <!-- tag：手機版顯示在此（md+ 一律隱藏，compact 時已在日期欄顯示） -->
         <div class="mt-2 md:hidden">
           <span class="inline-block text-xs px-2 py-0.5 rounded-full font-medium" :class="tagStyle">
-            {{ event.tag }}
+            {{ tagLabel }}
           </span>
         </div>
       </div>
@@ -113,7 +104,7 @@ const tagStyle = computed(() => TAG_STYLE_MAP[props.event.tag] ?? 'bg-gray-100 t
       <!-- 桌面版按鈕區：compact=true 時不渲染 -->
       <div v-if="!compact" class="hidden md:flex items-center gap-3 flex-shrink-0">
         <span class="inline-block text-xs px-3 py-1 rounded-full font-medium" :class="tagStyle">
-          {{ event.tag }}
+          {{ tagLabel }}
         </span>
         <button
           @click="$emit('edit', event)"
