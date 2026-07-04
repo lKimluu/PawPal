@@ -47,7 +47,12 @@ const center = computed(() => {
     <div
       class="flex flex-col gap-4 border-b border-brand-lightblue bg-white px-4 py-4 md:flex-row md:items-center md:justify-between md:px-6"
     >
-      <h2 class="mt-1 text-lg font-bold text-brand-navy md:text-xl">附近動物醫院</h2>
+      <div>
+        <h2 class="mt-1 text-lg font-bold text-brand-navy md:text-xl">醫院地圖</h2>
+        <p class="mt-1 text-sm leading-6 text-brand-gray">
+          查看附近動物醫院的位置、營業狀態與 24 小時急診資訊。
+        </p>
+      </div>
 
       <dl class="grid grid-cols-3 gap-2 text-center">
         <div class="rounded-2xl bg-brand-lightblue/60 px-3 py-2">
@@ -65,7 +70,7 @@ const center = computed(() => {
       </dl>
     </div>
 
-    <div class="relative h-[430px] w-full bg-brand-lightblue/40 md:h-[540px]">
+    <div class="relative h-[520px] w-full bg-brand-lightblue/40 md:h-[680px]">
       <LMap :zoom="13" :center="center" :zoom-control="false" class="hospital-map h-full w-full">
         <LTileLayer
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"

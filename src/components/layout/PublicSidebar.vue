@@ -46,10 +46,11 @@ const authStore = useAuthStore()
             </li>
 
             <li>
-              <a
-                href="#"
+              <RouterLink
+                to="/hospital"
+                @click="sidebarStore.closeSidebar()"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >搜尋醫療院所</a
+                >搜尋醫療院所</RouterLink
               >
             </li>
 
@@ -153,13 +154,14 @@ const authStore = useAuthStore()
       </nav>
 
       <div class="px-6 pb-8">
-        <button
-          type="button"
+        <RouterLink
+          to="/hospital"
+          @click="sidebarStore.closeSidebar()"
           class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-brand-orange py-4 text-base font-medium text-brand-white shadow-md transition hover:bg-[#e58f00] active:bg-[#E08F00]"
         >
           <img src="@/assets/icons/search-hospital.svg" alt="Hospital Icon" class="h-5 w-5" />
           搜尋附近醫院
-        </button>
+        </RouterLink>
       </div>
     </aside>
   </div>
