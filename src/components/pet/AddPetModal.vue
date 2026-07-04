@@ -61,7 +61,10 @@ const normalizeOptionalValue = (value) => {
   return value
 }
 
-const handleClose = () => emit('close')
+const handleClose = () => {
+  resetForm()
+  emit('close')
+}
 
 const handleSubmit = () => {
   const submittedSpecies =
@@ -123,7 +126,7 @@ const handleDrop = (event) => {
             aria-label="關閉"
             @click="handleClose"
           >
-            ｘ
+            ⨉
           </button>
         </div>
 
