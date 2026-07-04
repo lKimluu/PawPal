@@ -30,11 +30,11 @@ const ageText = computed(() =>
 
 <template>
   <article
-    class="flex w-full items-center gap-4 rounded-[28px] p-4 shadow-[0_10px_24px_rgba(31,41,55,0.08)] md:max-w-[132px] md:flex-col md:items-center md:gap-3 md:px-5 md:py-6"
+    class="flex w-full items-center gap-4 rounded-[28px] p-4 md:max-w-[132px] md:flex-col md:items-center md:gap-3 md:px-5 md:py-6"
     :class="cardThemeClass"
   >
     <div
-      class="h-[74px] w-[74px] shrink-0 overflow-hidden rounded-full border-4 border-white bg-white shadow-[0_6px_14px_rgba(31,41,55,0.14)] md:h-[88px] md:w-[88px]"
+      class="h-[74px] w-[74px] shrink-0 overflow-hidden rounded-full border-4 border-white bg-white md:h-[88px] md:w-[88px]"
     >
       <img :src="pet?.image" :alt="pet?.name || 'pet photo'" class="h-full w-full object-cover" />
     </div>

@@ -1,10 +1,14 @@
 <script setup>
+import { ref } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import PetSwitcher from '@/components/pet/PetSwitcher.vue'
 import GrowthRangeTabs from '@/components/growth/GrowthRangeTabs.vue'
 import AddGrowthButton from '@/components/growth/AddGrowthButton.vue'
 import GrowthChartCard from '@/components/growth/GrowthChartCard.vue'
+import GrowthRecordModal from '@/components/growth/GrowthRecordModal.vue'
+
+const isModalOpen = ref(false)
 </script>
 
 <template>
@@ -16,7 +20,7 @@ import GrowthChartCard from '@/components/growth/GrowthChartCard.vue'
           <PetSwitcher />
           <div class="mb-2 flex items-center justify-between gap-4 md:mb-6">
             <h1 class="text-xl font-bold text-brand-navy md:text-2xl">成長歷程</h1>
-            <AddGrowthButton />
+            <AddGrowthButton @click="isModalOpen = true" />
           </div>
           <div
             class="overflow-hidden rounded-3xl border border-brand-lightblue bg-brand-white shadow-[0_8px_28px_rgba(61,74,122,0.08)]"
@@ -32,5 +36,11 @@ import GrowthChartCard from '@/components/growth/GrowthChartCard.vue'
       </main>
     </div>
     <AppFooter class="lg:hidden" />
+
+    <GrowthRecordModal
+      :isOpen="isModalOpen"
+      @close="isModalOpen = false"
+      @submit="isModalOpen = false"
+    />
   </div>
 </template>

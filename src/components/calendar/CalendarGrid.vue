@@ -1,5 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue'
+const emit = defineEmits(['open-add-modal'])
+import { calendarEvents } from '@/data/calendarEvents.js'
+import CalendarEventItem from './CalendarEventItem.vue'
 
 const activePet = ref('xiaobai')
 
@@ -49,11 +52,15 @@ const calendarCells = computed(() => {
   const daysInPrevMonth = new Date(year, month, 0).getDate()
   const cells = []
 
+  const fmt = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
   for (let i = firstDay - 1; i >= 0; i--) {
     const date = daysInPrevMonth - i
     const d = new Date(year, month - 1, date)
     cells.push({
       date,
+      fullDate: fmt(d),
       isCurrentMonth: false,
       isToday: false,
       isSelected: false,
@@ -67,14 +74,19 @@ const calendarCells = computed(() => {
     const d = new Date(year, month, date)
     const isToday =
       year === today.getFullYear() && month === today.getMonth() && date === today.getDate()
+    const mm = String(month + 1).padStart(2, '0')
+    const dd = String(date).padStart(2, '0')
+    const dateStr = `${year}-${mm}-${dd}`
     cells.push({
       date,
+      fullDate: fmt(d),
       isCurrentMonth: true,
       isToday,
       isSelected: false,
       hasEvent: false,
       isSunday: d.getDay() === 0,
       isSaturday: d.getDay() === 6,
+      events: calendarEvents.filter((e) => e.date === dateStr),
     })
   }
 
@@ -82,6 +94,7 @@ const calendarCells = computed(() => {
     const d = new Date(year, month + 1, date)
     cells.push({
       date,
+      fullDate: fmt(d),
       isCurrentMonth: false,
       isToday: false,
       isSelected: false,
@@ -203,34 +216,46 @@ function selectCell(index) {
           v-for="(cell, index) in calendarCells"
           :key="index"
           @click="selectCell(index)"
-          class="date-cell group relative min-h-15 border-r border-b border-brand-lightblue outline-brand-blue transition-colors duration-150 hover:bg-[#F4F5FA] md:min-h-[70px] lg:min-h-[100px]"
+          class="date-cell group relative min-h-15 border-r border-b border-brand-lightblue outline-brand-blue transition-colors duration-150 hover:bg-[#F4F5FA] overflow-hidden md:min-h-[70px] lg:min-h-[100px]"
           :class="{
             'bg-brand-lightblue outline outline-1 -outline-offset-1  md:outline-2 md:-outline-offset-2':
               index === selectedIndex,
           }"
         >
-          <div class="p-1 flex flex-col h-full relative md:p-1.5 lg:p-2">
+          <div class="p-1 flex flex-col h-full relative overflow-hidden md:p-1.5 lg:p-2">
             <!-- 日期數字 -->
-            <span
-              class="w-4 h-4 flex items-center justify-center rounded-full shrink-0 leading-none text-xs md:w-5 md:h-5 md:text-sm lg:w-[30px] lg:h-[30px] lg:text-base"
-              :class="[
-                cell.isToday
-                  ? 'bg-brand-blue text-white font-normal'
-                  : !cell.isCurrentMonth
-                    ? 'text-[#B0B0C0]'
-                    : cell.isSunday
-                      ? 'text-brand-orange'
-                      : cell.isSaturday
-                        ? 'text-brand-blue'
-                        : 'text-[#2D2D3A]',
-              ]"
-            >
-              {{ cell.date }}
-            </span>
+            <div class="flex items-start justify-between">
+              <span
+                class="w-4 h-4 flex items-center justify-center rounded-full shrink-0 leading-none text-xs md:w-5 md:h-5 md:text-sm lg:w-[30px] lg:h-[30px] lg:text-base"
+                :class="[
+                  cell.isToday
+                    ? 'bg-brand-blue text-white font-normal'
+                    : !cell.isCurrentMonth
+                      ? 'text-[#B0B0C0]'
+                      : cell.isSunday
+                        ? 'text-brand-orange'
+                        : cell.isSaturday
+                          ? 'text-brand-blue'
+                          : 'text-[#2D2D3A]',
+                ]"
+              >
+                {{ cell.date }}
+              </span>
+              <span
+                v-if="cell.events?.length > 3"
+                class="hidden md:inline rounded-full bg-brand-blue text-white px-1.5 py-0.5 text-[10px] lg:text-xs leading-none mt-1"
+              >
+                more...
+              </span>
+            </div>
+
+            <!-- 行事曆事件 -->
+            <CalendarEventItem v-if="cell.events?.length" :events="cell.events" />
 
             <!-- 新增代辦按鈕（hover顯示，手機隱藏） -->
             <button
               aria-label="新增代辦"
+              @click.stop="emit('open-add-modal', cell.fullDate)"
               class="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full bg-brand-blue text-white hidden lg:flex items-center justify-center cursor-pointer opacity-0 transition-all duration-150 group-hover:opacity-100 hover:scale-110 hover:bg-brand-navy p-1"
             >
               <img src="@/assets/icons/new-item.svg" />
