@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-const emit = defineEmits(['open-add-modal'])
+const emit = defineEmits(['open-add-modal', 'open-day-modal'])
 import { calendarEvents } from '@/data/calendarEvents.js'
 import CalendarEventItem from './CalendarEventItem.vue'
 
@@ -129,8 +129,9 @@ function goToToday() {
   currentMonth.value = today.getMonth()
 }
 
-function selectCell(index) {
+function selectCell(index, cell) {
   selectedIndex.value = index
+  emit('open-day-modal', cell.fullDate)
 }
 </script>
 <template>
@@ -215,7 +216,7 @@ function selectCell(index) {
         <div
           v-for="(cell, index) in calendarCells"
           :key="index"
-          @click="selectCell(index)"
+          @click="selectCell(index, cell)"
           class="date-cell group relative min-h-15 border-r border-b border-brand-lightblue outline-brand-blue transition-colors duration-150 hover:bg-[#F4F5FA] overflow-hidden md:min-h-[70px] lg:min-h-[100px]"
           :class="{
             'bg-brand-lightblue outline outline-1 -outline-offset-1  md:outline-2 md:-outline-offset-2':

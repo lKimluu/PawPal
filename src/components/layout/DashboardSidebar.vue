@@ -44,7 +44,7 @@ function handleLogout() {
 
 const navItems = [
   { key: 'home', icon: home, activeIcon: home_o, label: '首頁', to: '/dashboard' },
-  { key: 'map', icon: location, activeIcon: location_o, label: '醫院地圖' },
+  { key: 'map', icon: location, activeIcon: location_o, label: '醫院地圖', to: '/hospital' },
   { key: 'records', icon: diagnostic, activeIcon: diagnostic_o, label: '醫療紀錄', to: '/medical' },
   { key: 'growth', icon: growth, activeIcon: growth_o, label: '成長歷程', to: '/growth' },
   { key: 'notifications', icon: notice, activeIcon: notice_o, label: '通知中心' },
@@ -87,10 +87,10 @@ const navItems = [
             </li>
 
             <li>
-              <a
-                href="#"
+              <RouterLink
+                to="/hospital"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >搜尋醫療院所</a
+                >搜尋醫療院所</RouterLink
               >
             </li>
 
@@ -170,26 +170,26 @@ const navItems = [
             </li>
 
             <li>
-              <a
-                href="#"
+              <RouterLink
+                to="/hospital"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >醫院地圖</a
+                >醫院地圖</RouterLink
               >
             </li>
 
             <li>
-              <router-link
+              <RouterLink
                 to="/medical"
                 class="px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >醫療紀錄</router-link
+                >醫療紀錄</RouterLink
               >
             </li>
 
             <li>
-              <router-link
+              <RouterLink
                 to="/growth"
                 class="px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >成長歷程</router-link
+                >成長歷程</RouterLink
               >
             </li>
 
@@ -238,7 +238,7 @@ const navItems = [
     <nav class="flex flex-1 flex-col py-6">
       <ul class="flex flex-col">
         <li v-for="item in navItems" :key="item.key">
-          <router-link
+          <RouterLink
             :to="item.to"
             class="flex items-center gap-3 px-5 py-3 text-base font-medium hover:bg-[#e6eaf4]"
             :class="
@@ -249,7 +249,7 @@ const navItems = [
           >
             <img :src="getIcon(item)" :alt="item.label + ' icon'" class="h-5 w-5 shrink-0" />
             {{ item.label }}
-          </router-link>
+          </RouterLink>
         </li>
       </ul>
       <div class="mt-auto px-5 pt-6">

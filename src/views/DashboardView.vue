@@ -3,12 +3,14 @@ import { ref, computed } from 'vue'
 import { calendarEvents } from '@/data/calendarEvents'
 import { pets as rawPets } from '@/data/pets'
 import PetCard from '@/components/pet/PetCard.vue'
+import PetProfileModal from '@/components/pet/PetProfileModal.vue'
 import AddPetButton from '@/components/pet/AddPetButton.vue'
 import CalendarGrid from '@/components/calendar/CalendarGrid.vue'
 import EventList from '@/components/calendar/EventList.vue'
 import AddEventModal from '@/components/calendar/AddEventModal.vue'
 import EditEventModal from '@/components/calendar/EditEventModal.vue'
 import DeleteEventModal from '@/components/calendar/DeleteEventModal.vue'
+import DayEventsModal from '@/components/calendar/DayEventsModal.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import memberBanner from '@/assets/images/member_banner_dashboard.png'
@@ -16,6 +18,8 @@ import { useAuthStore } from '@/stores/auth.js'
 
 const themeColors = ['green', 'orange', 'blue']
 const authStore = useAuthStore()
+const selectedPet = ref(null)
+const isPetProfileOpen = ref(false)
 
 const showAddModal = ref(false)
 const addModalDate = ref('')
@@ -27,6 +31,31 @@ const openAddModal = (date = '') => {
 
 const handleAddSubmit = (payload) => {
   showAddModal.value = false
+}
+
+const showDayModal = ref(false)
+const dayModalDate = ref('')
+
+const dayModalEvents = computed(() => calendarEvents.filter((e) => e.date === dayModalDate.value))
+
+const openDayModal = (date) => {
+  dayModalDate.value = date
+  showDayModal.value = true
+}
+
+const handleDayModalAdd = (date) => {
+  showDayModal.value = false
+  openAddModal(date)
+}
+
+const handleDayModalEdit = (event) => {
+  showDayModal.value = false
+  openEditModal(event)
+}
+
+const handleDayModalDelete = (event) => {
+  showDayModal.value = false
+  handleDeleteRequest(event)
 }
 
 const showEditModal = ref(false)
@@ -68,6 +97,16 @@ const handleConfirmDelete = () => {
   // TODO: 串接刪除行程 API 後，於此呼叫並更新 calendarEvents
   handleCloseDeleteModal()
 }
+
+const openPetProfile = (pet) => {
+  selectedPet.value = pet
+  isPetProfileOpen.value = true
+}
+
+const closePetProfile = () => {
+  isPetProfileOpen.value = false
+  selectedPet.value = null
+}
 </script>
 
 <template>
@@ -92,7 +131,7 @@ const handleConfirmDelete = () => {
 
     <div class="w-full px-4 lg:px-8 pb-16 mt-2 md:mt-6">
       <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 lg:gap-x-6 lg:gap-y-8">
-        <CalendarGrid @open-add-modal="openAddModal" />
+        <CalendarGrid @open-add-modal="openAddModal" @open-day-modal="openDayModal" />
 
         <div
           class="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden rounded-3xl border border-brand-lightblue bg-brand-white shadow-[0_8px_28px_rgba(61,74,122,0.08)] p-4"
@@ -102,8 +141,8 @@ const handleConfirmDelete = () => {
             :compact="true"
             @add="openAddModal()"
             @edit="openEditModal"
+            @delete="handleDeleteRequest"
           />
-          <EventList :events="calendarEvents" :compact="true" @delete="handleDeleteRequest" />
         </div>
 
         <section class="lg:col-span-2 min-w-0">
@@ -122,6 +161,7 @@ const handleConfirmDelete = () => {
               :pet="pet"
               :theme="themeColors[index % themeColors.length]"
               class="md:min-w-[132px] md:flex-1"
+              @click="openPetProfile(pet)"
             />
           </div>
         </section>
@@ -130,6 +170,15 @@ const handleConfirmDelete = () => {
   </div>
 
   <AppFooter class="lg:hidden" />
+  <DayEventsModal
+    :is-open="showDayModal"
+    :date="dayModalDate"
+    :events="dayModalEvents"
+    @close="showDayModal = false"
+    @add="handleDayModalAdd"
+    @edit="handleDayModalEdit"
+    @delete="handleDayModalDelete"
+  />
   <AddEventModal
     :is-open="showAddModal"
     :selected-date="addModalDate"
@@ -149,5 +198,11 @@ const handleConfirmDelete = () => {
     :item-name="eventToDelete?.title ?? ''"
     @close="handleCloseDeleteModal"
     @confirm="handleConfirmDelete"
+  />
+
+  <PetProfileModal
+    :is-open="isPetProfileOpen"
+    :pet="selectedPet"
+    @close="closePetProfile"
   />
 </template>

@@ -64,7 +64,7 @@ const handleSubmit = () => emit('submit', { ...form.value })
         class="modal-card relative flex max-h-[90vh] w-full max-w-2xl flex-col gap-6 overflow-hidden rounded-3xl bg-white pt-6 pb-6 pl-6 pr-2 shadow-2xl md:pt-8 md:pb-8 md:pr-2 md:pl-8"
       >
         <!-- 頂部標頭 -->
-        <div class="flex items-start justify-between">
+        <div class="flex items-start justify-between pr-4 md:pr-6">
           <h2 class="text-2xl font-bold tracking-wide text-brand-navy">編輯寵物行程</h2>
           <button
             type="button"

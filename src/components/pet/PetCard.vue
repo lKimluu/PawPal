@@ -13,6 +13,8 @@ const props = defineProps({
   },
 })
 
+const emit = defineEmits(['click'])
+
 const themeClassMap = {
   green: 'bg-[var(--color-brand-green)]',
   orange: 'bg-[var(--color-brand-orange)]',
@@ -30,8 +32,13 @@ const ageText = computed(() =>
 
 <template>
   <article
-    class="flex w-full items-center gap-4 rounded-[28px] p-4 md:max-w-[132px] md:flex-col md:items-center md:gap-3 md:px-5 md:py-6"
+    class="flex w-full cursor-pointer items-center gap-4 rounded-[28px] p-4 transition duration-200 active:scale-[0.99] md:max-w-[132px] md:flex-col md:items-center md:gap-3 md:px-5 md:py-6"
     :class="cardThemeClass"
+    tabindex="0"
+    role="button"
+    @click="emit('click')"
+    @keydown.enter.prevent="emit('click')"
+    @keydown.space.prevent="emit('click')"
   >
     <div
       class="h-[74px] w-[74px] shrink-0 overflow-hidden rounded-full border-4 border-white bg-white md:h-[88px] md:w-[88px]"
