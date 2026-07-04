@@ -36,7 +36,7 @@ const handleAddSubmit = (payload) => {
 const showDayModal = ref(false)
 const dayModalDate = ref('')
 
-const dayModalEvents = computed(() => calendarEvents.filter((e) => e.date === dayModalDate.value))
+const dayModalEvents = computed(() => calendarEvents.filter((e) => e.eventDate === dayModalDate.value))
 
 const openDayModal = (date) => {
   dayModalDate.value = date
@@ -72,6 +72,7 @@ const handleEditSubmit = (payload) => {
 
 const handleEditDelete = (event) => {
   showEditModal.value = false
+  handleDeleteRequest(event)
 }
 
 const dashboardPets = rawPets.map((p) => ({
