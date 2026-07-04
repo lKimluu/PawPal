@@ -14,6 +14,4 @@ app.use(createPinia())
 app.use(router)
 app.use(SetupCalendar, {})
 
-app.use(SetupCalendar, {})
-
 app.mount('#app')

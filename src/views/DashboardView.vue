@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { calendarEvents } from '@/data/calendarEvents'
 import { pets as rawPets } from '@/data/pets'
 import PetCard from '@/components/pet/PetCard.vue'
+import PetProfileModal from '@/components/pet/PetProfileModal.vue'
 import AddPetButton from '@/components/pet/AddPetButton.vue'
 import CalendarGrid from '@/components/calendar/CalendarGrid.vue'
 import EventList from '@/components/calendar/EventList.vue'
@@ -16,6 +17,8 @@ import { useAuthStore } from '@/stores/auth.js'
 
 const themeColors = ['green', 'orange', 'blue']
 const authStore = useAuthStore()
+const selectedPet = ref(null)
+const isPetProfileOpen = ref(false)
 
 const showAddModal = ref(false)
 const addModalDate = ref('')
@@ -68,6 +71,16 @@ const handleConfirmDelete = () => {
   // TODO: 串接刪除行程 API 後，於此呼叫並更新 calendarEvents
   handleCloseDeleteModal()
 }
+
+const openPetProfile = (pet) => {
+  selectedPet.value = pet
+  isPetProfileOpen.value = true
+}
+
+const closePetProfile = () => {
+  isPetProfileOpen.value = false
+  selectedPet.value = null
+}
 </script>
 
 <template>
@@ -102,8 +115,8 @@ const handleConfirmDelete = () => {
             :compact="true"
             @add="openAddModal()"
             @edit="openEditModal"
+            @delete="handleDeleteRequest"
           />
-          <EventList :events="calendarEvents" :compact="true" @delete="handleDeleteRequest" />
         </div>
 
         <section class="lg:col-span-2 min-w-0">
@@ -122,6 +135,7 @@ const handleConfirmDelete = () => {
               :pet="pet"
               :theme="themeColors[index % themeColors.length]"
               class="md:min-w-[132px] md:flex-1"
+              @click="openPetProfile(pet)"
             />
           </div>
         </section>
@@ -149,5 +163,11 @@ const handleConfirmDelete = () => {
     :item-name="eventToDelete?.title ?? ''"
     @close="handleCloseDeleteModal"
     @confirm="handleConfirmDelete"
+  />
+
+  <PetProfileModal
+    :is-open="isPetProfileOpen"
+    :pet="selectedPet"
+    @close="closePetProfile"
   />
 </template>
