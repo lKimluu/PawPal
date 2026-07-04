@@ -1,16 +1,21 @@
 <script setup>
 import { ref, computed } from 'vue'
 const emit = defineEmits(['open-add-modal', 'open-day-modal'])
-import { calendarEvents } from '@/data/calendarEvents.js'
+import { useCalendarStore } from '@/stores/calendar.js'
+import { usePetStore } from '@/stores/petStore'
 import CalendarEventItem from './CalendarEventItem.vue'
 
-const activePet = ref('xiaobai')
+const calendarStore = useCalendarStore()
+const petStore = usePetStore()
 
-const petTabs = [
+const activePet = ref('all')
+
+// 「檢視全部」+ 由 petStore 動態產生各寵物分頁（petStore 之後改 API 也會自動跟著更新）
+// TODO: 依 activePet 篩選事件（檢視全部/單一寵物）另開 issue 實作
+const petTabs = computed(() => [
   { id: 'all', label: '檢視全部' },
-  { id: 'xiaobai', label: '阿肥' },
-  { id: 'juzi', label: '學妹' },
-]
+  ...petStore.pets.map((pet) => ({ id: pet.id, label: pet.name })),
+])
 
 const weekdays = [
   { key: 'sun', label: '日' },
@@ -86,7 +91,7 @@ const calendarCells = computed(() => {
       hasEvent: false,
       isSunday: d.getDay() === 0,
       isSaturday: d.getDay() === 6,
-      events: calendarEvents.filter((e) => e.eventDate === dateStr),
+      events: calendarStore.events.filter((e) => e.eventDate === dateStr),
     })
   }
 
