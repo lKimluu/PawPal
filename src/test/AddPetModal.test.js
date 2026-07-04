@@ -2,7 +2,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 
-const source = readFileSync(new URL('./AddPetModal.vue', import.meta.url), 'utf8')
+const source = readFileSync(
+  new URL('../components/pet/AddPetModal.vue', import.meta.url),
+  'utf8',
+)
 
 test('新增寵物視窗選擇其他種類時，會顯示自填寵物種類欄位', () => {
   assert.match(source, /customSpecies:\s*''/)
