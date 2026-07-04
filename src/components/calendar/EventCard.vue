@@ -89,10 +89,12 @@ const tagStyle = computed(() => TAG_STYLE_MAP[props.event.tag] ?? 'bg-gray-100 t
           {{ event.petName }} - {{ event.title }}
         </p>
 
-        <div class="flex items-center gap-1 mt-1 flex-wrap">
-          <img src="@/assets/icons/clock-icon.svg" alt="" class="w-3 h-3" />
-          <span class="text-xs md:text-sm text-gray-500">{{ event.time }}</span>
-          <span v-if="event.location" class="flex items-center gap-0.5 ml-1">
+        <div v-if="event.time || event.location" class="flex items-center gap-1 mt-1 flex-wrap">
+          <span v-if="event.time" class="flex items-center gap-1">
+            <img src="@/assets/icons/clock-icon.svg" alt="" class="w-3 h-3" />
+            <span class="text-xs md:text-sm text-gray-500">{{ event.time }}</span>
+          </span>
+          <span v-if="event.location" class="flex items-center gap-0.5">
             <img src="@/assets/icons/location-dot.svg" alt="" class="w-3 h-3" />
             <span class="text-xs md:text-sm text-gray-400">{{ event.location }}</span>
           </span>
