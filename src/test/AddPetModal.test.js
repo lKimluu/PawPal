@@ -20,3 +20,7 @@ test('新增寵物視窗送出時會把自填種類放進 species 欄位，不�
   assert.match(source, /species:\s*submittedSpecies/)
   assert.doesNotMatch(source, /customSpecies:\s*form\.value\.customSpecies/)
 })
+
+test('新增寵物視窗關閉時會重置表單資料', () => {
+  assert.match(source, /const handleClose\s*=\s*\(\)\s*=>\s*{\s*resetForm\(\)\s*emit\('close'\)\s*}/)
+})

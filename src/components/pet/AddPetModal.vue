@@ -61,7 +61,10 @@ const normalizeOptionalValue = (value) => {
   return value
 }
 
-const handleClose = () => emit('close')
+const handleClose = () => {
+  resetForm()
+  emit('close')
+}
 
 const handleSubmit = () => {
   const submittedSpecies =
