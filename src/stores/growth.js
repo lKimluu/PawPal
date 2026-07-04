@@ -36,7 +36,7 @@ export const useGrowthStore = defineStore('growth', () => {
     isSubmitting.value = true
     errorMessage.value = null
 
-    const { record_date, ...metrics } = formData
+    const { recordDate, ...metrics } = formData
 
     const entries = Object.entries(metrics).filter(([, value]) => value !== null)
 
@@ -44,11 +44,11 @@ export const useGrowthStore = defineStore('growth', () => {
       entries.map(([metric_type, value]) =>
         createGrowthRecord(
           {
-            pet_id: petId,
-            metric_type,
+            petId,
+            metricType: metric_type,
             value,
             unit: UNIT_MAP[metric_type],
-            recorded_at: record_date,
+            recordedAt: recordDate,
           },
           token,
         ),

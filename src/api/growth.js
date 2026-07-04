@@ -31,6 +31,15 @@ export function getGrowthRecords(petId, token) {
   return request('get', `/api/v1/growth-records?pet_id=${petId}`, { token })
 }
 
-export function createGrowthRecord(payload, token) {
-  return request('post', '/api/v1/growth-records', { payload, token })
+export function createGrowthRecord({ petId, metricType, value, unit, recordedAt }, token) {
+  return request('post', '/api/v1/growth-records', {
+    payload: {
+      pet_id: petId,
+      metric_type: metricType,
+      value,
+      unit,
+      recorded_at: recordedAt,
+    },
+    token,
+  })
 }
