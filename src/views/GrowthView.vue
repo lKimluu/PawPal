@@ -7,6 +7,7 @@ import GrowthRangeTabs from '@/components/growth/GrowthRangeTabs.vue'
 import AddGrowthButton from '@/components/growth/AddGrowthButton.vue'
 import GrowthChartCard from '@/components/growth/GrowthChartCard.vue'
 import GrowthRecordModal from '@/components/growth/GrowthRecordModal.vue'
+import GrowthHistoryButton from '@/components/growth/GrowthHistoryButton.vue'
 
 const isModalOpen = ref(false)
 </script>
@@ -20,7 +21,10 @@ const isModalOpen = ref(false)
           <PetSwitcher />
           <div class="mb-2 flex items-center justify-between gap-4 md:mb-6">
             <h1 class="text-xl font-bold text-brand-navy md:text-2xl">成長歷程</h1>
-            <AddGrowthButton @click="isModalOpen = true" />
+            <div class="flex items-center gap-2">
+              <GrowthHistoryButton @click="() => {}" />
+              <AddGrowthButton @click="isModalOpen = true" />
+            </div>
           </div>
           <div
             class="overflow-hidden rounded-3xl border border-brand-lightblue bg-brand-white shadow-[0_8px_28px_rgba(61,74,122,0.08)]"
