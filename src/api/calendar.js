@@ -10,7 +10,7 @@ function fromApi(row) {
     petId: row.pet_id,
     title: row.title,
     eventDate: row.event_date,
-    eventTime: row.event_time,
+    eventTime: row.event_time ? row.event_time.slice(0, 5) : row.event_time,
     type: row.type,
     location: row.location,
     notes: row.notes,
@@ -26,10 +26,10 @@ function toCreateBody(form) {
     pet_id: form.petId,
     title: form.title,
     event_date: form.eventDate,
-    event_time: form.eventTime,
+    event_time: form.eventTime || undefined,
     type: form.type,
-    location: form.location,
-    notes: form.notes,
+    location: form.location || undefined,
+    notes: form.notes || undefined,
   }
 }
 
@@ -38,7 +38,7 @@ function toUpdateBody(form) {
   const body = {}
   if (form.title !== undefined) body.title = form.title
   if (form.eventDate !== undefined) body.event_date = form.eventDate
-  if (form.eventTime !== undefined) body.event_time = form.eventTime
+  if (form.eventTime) body.event_time = form.eventTime
   if (form.type !== undefined) body.type = form.type
   if (form.location !== undefined) body.location = form.location
   if (form.notes !== undefined) body.notes = form.notes
