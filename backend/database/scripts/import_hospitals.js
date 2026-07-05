@@ -1,11 +1,9 @@
-import pg from 'pg'
 import axios from 'axios'
 import dotenv from 'dotenv'
 import { fileURLToPath } from 'url'
+import { createPoolFromEnv } from '../../src/config/create_pool.js'
 
 dotenv.config({ quiet: true })
-
-const { Pool } = pg
 
 export const MOA_HOSPITALS_URL =
   'https://data.moa.gov.tw/Service/OpenData/DataFileService.aspx'
@@ -193,18 +191,7 @@ export async function importHospitals({
   return stats
 }
 
-export function createPoolFromEnv() {
-  return new Pool({
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME,
-    ssl: {
-      rejectUnauthorized: false,
-    },
-  })
-}
+export { createPoolFromEnv }
 
 async function main() {
   const pool = createPoolFromEnv()

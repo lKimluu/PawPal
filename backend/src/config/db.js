@@ -1,17 +1,6 @@
-import pg from 'pg'
 import dotenv from 'dotenv'
+import { createPoolFromEnv } from './create_pool.js'
 
 dotenv.config({ quiet: true })
 
-const { Pool } = pg
-
-export const pool = new Pool({
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-})
+export const pool = createPoolFromEnv()
