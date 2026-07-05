@@ -10,7 +10,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'submit'])
 
 const form = ref({
-  record_date: new Date(),
+  recordDate: new Date(),
   weight: '',
   length: '',
   food_intake: '',
@@ -34,7 +34,7 @@ watch(
   (newVal) => {
     if (newVal) {
       form.value = {
-        record_date: new Date(),
+        recordDate: new Date(),
         weight: '',
         length: '',
         food_intake: '',
@@ -50,17 +50,17 @@ const handleClose = () => emit('close')
 
 const handleSubmit = () => {
   let formattedDate = ''
-  if (form.value.record_date instanceof Date) {
-    const y = form.value.record_date.getFullYear()
-    const m = String(form.value.record_date.getMonth() + 1).padStart(2, '0')
-    const d = String(form.value.record_date.getDate()).padStart(2, '0')
+  if (form.value.recordDate instanceof Date) {
+    const y = form.value.recordDate.getFullYear()
+    const m = String(form.value.recordDate.getMonth() + 1).padStart(2, '0')
+    const d = String(form.value.recordDate.getDate()).padStart(2, '0')
     formattedDate = `${y}-${m}-${d}`
   } else {
-    formattedDate = form.value.record_date.substring(0, 10)
+    formattedDate = form.value.recordDate.substring(0, 10)
   }
 
   emit('submit', {
-    record_date: formattedDate,
+    recordDate: formattedDate,
     weight: form.value.weight !== '' ? Number(form.value.weight) : null,
     length: form.value.length !== '' ? Number(form.value.length) : null,
     food_intake: form.value.food_intake !== '' ? Number(form.value.food_intake) : null,
@@ -103,7 +103,7 @@ const handleSubmit = () => {
               <span class="text-red-600 font-normal">*</span>
             </label>
             <VDatePicker
-              v-model="form.record_date"
+              v-model="form.recordDate"
               :masks="{ input: 'YYYY-MM-DD' }"
               color="orange"
               :popover="{ visibility: 'click', placement: 'bottom-start' }"
