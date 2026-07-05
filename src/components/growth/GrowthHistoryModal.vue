@@ -56,9 +56,9 @@ const handleClose = () => emit('close')
       @click.self="handleClose"
     >
       <div
-        class="modal-card flex max-h-[90vh] w-full max-w-2xl flex-col gap-4 overflow-hidden rounded-3xl bg-white p-6 shadow-2xl md:p-8"
+        class="modal-card relative flex max-h-[90vh] w-full max-w-2xl flex-col gap-6 overflow-hidden rounded-3xl bg-white pt-6 pb-6 pl-6 pr-2 shadow-2xl md:pt-8 md:pb-8 md:pr-2 md:pl-8"
       >
-        <div class="flex items-start justify-between">
+        <div class="flex items-start justify-between pr-4 md:pr-6">
           <div class="flex items-baseline gap-2">
             <h2 class="text-2xl font-bold tracking-wide text-brand-navy">歷史紀錄</h2>
             <span class="text-sm text-brand-gray">僅顯示最近 30 天紀錄</span>
@@ -77,7 +77,7 @@ const handleClose = () => emit('close')
             v-for="tab in tabs"
             :key="tab"
             type="button"
-            class="shrink-0 cursor-pointer rounded-full px-3 py-2 text-sm font-bold shadow-sm transition duration-200 active:scale-95"
+            class="appearance-none flex items-center justify-center shrink-0 cursor-pointer rounded-full px-3 py-2 text-sm font-bold shadow-sm transition duration-200 active:scale-95"
             :class="
               activeTab === tab
                 ? 'bg-brand-blue text-white shadow-brand-blue/20'
@@ -89,7 +89,7 @@ const handleClose = () => emit('close')
           </button>
         </div>
 
-        <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+        <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-4 md:pr-6">
           <div
             v-if="filteredRecords.length === 0"
             class="flex flex-col items-center justify-center py-16 text-center"
