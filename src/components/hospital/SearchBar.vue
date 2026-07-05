@@ -47,7 +47,7 @@ const matchedCount = computed(() => {
       />
     </label>
 
-    <div class="mt-9 space-y-3">
+    <div class="mt-5 space-y-3">
       <div class="flex items-center justify-between gap-4 text-[14px] font-normal text-brand-navy">
         <span>只顯示營業中</span>
         <button
@@ -81,15 +81,15 @@ const matchedCount = computed(() => {
       </div>
     </div>
 
-    <div class="mt-10">
+    <div class="mt-6">
       <h3 class="text-[15px] font-bold tracking-wide">看診類別</h3>
 
-      <div class="mt-4 flex flex-wrap gap-2">
+      <div class="mt-4 flex gap-2 overflow-x-auto pb-2 pr-1">
         <button
           v-for="category in categories"
           :key="category"
           type="button"
-          class="cursor-pointer rounded-full border px-3 py-1.5 text-[12px] font-bold transition active:scale-95"
+          class="shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-[12px] font-bold whitespace-nowrap transition active:scale-95"
           :class="
             selectedCategory === category
               ? 'border-brand-blue bg-brand-blue text-brand-white shadow-[0_5px_14px_rgba(146,168,245,0.35)]'
@@ -102,7 +102,7 @@ const matchedCount = computed(() => {
       </div>
     </div>
 
-    <p class="mt-10 text-[13px] font-medium text-brand-gray">
+    <p class="mt-6 text-[13px] font-medium text-brand-gray">
       找到 <span class="font-bold text-brand-orange">{{ matchedCount }}</span> 間醫院
     </p>
   </section>

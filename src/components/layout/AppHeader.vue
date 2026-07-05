@@ -24,7 +24,7 @@ const navGroups = [
     id: 'medical',
     label: '醫療專區',
     items: [
-      { label: '搜尋醫療院所', href: '#' },
+      { label: '搜尋醫療院所', to: '/hospital' },
       { label: '線上看診', href: '#' },
       { label: '緊急處置教學', href: '#' },
     ],
@@ -46,9 +46,9 @@ const navGroups = [
     <!-- 手機版與平板版 -->
     <div class="lg:hidden">
       <div class="mx-auto flex h-[55px] items-center justify-between px-4">
-        <router-link to="/" class="items-center">
+        <RouterLink to="/" class="items-center">
           <img src="@/assets/images/PawPal_logo.PNG" alt="logo" class="h-10 w-auto md:h-8" />
-        </router-link>
+        </RouterLink>
 
         <button
           type="button"
@@ -62,9 +62,9 @@ const navGroups = [
 
     <!-- 電腦版 -->
     <div class="mx-auto hidden h-17 items-center px-4 lg:flex lg:justify-between">
-      <router-link to="/" class="flex items-center pl-4">
+      <RouterLink to="/" class="flex items-center pl-4">
         <img src="@/assets/images/PawPal_logo.PNG" alt="logo" class="h-12 w-auto" />
-      </router-link>
+      </RouterLink>
 
       <div class="flex items-center gap-5 lg:contents">
         <nav class="flex items-center gap-5 lg:gap-16 text-brand-gray">
@@ -86,14 +86,22 @@ const navGroups = [
             <div
               class="invisible absolute left-0 z-50 mt-2 w-40 rounded-lg bg-white py-2 opacity-0 shadow-lg transition-all duration-150 group-hover:visible group-hover:opacity-100"
             >
-              <a
-                v-for="item in group.items"
-                :key="item.label"
-                :href="item.href"
-                class="block px-4 py-2 transition hover:bg-brand-lightblue hover:text-brand-darkgray"
-              >
-                {{ item.label }}
-              </a>
+              <template v-for="item in group.items" :key="item.label">
+                <RouterLink
+                  v-if="item.to"
+                  :to="item.to"
+                  class="block px-4 py-2 transition hover:bg-brand-lightblue hover:text-brand-darkgray"
+                >
+                  {{ item.label }}
+                </RouterLink>
+                <a
+                  v-else
+                  :href="item.href"
+                  class="block px-4 py-2 transition hover:bg-brand-lightblue hover:text-brand-darkgray"
+                >
+                  {{ item.label }}
+                </a>
+              </template>
             </div>
           </div>
 
@@ -106,14 +114,14 @@ const navGroups = [
         </nav>
 
         <div class="flex items-center gap-2">
-          <a
-            href="#"
+          <RouterLink
+            to="/hospital"
             class="flex items-center justify-center rounded-full bg-brand-orange px-4 py-2 text-white transition hover:bg-[#e58f04]"
           >
             <img src="@/assets/icons/location.svg" class="size-5" />
             搜尋附近醫院
-          </a>
-          <router-link
+          </RouterLink>
+          <RouterLink
             to="/login"
             class="flex items-center justify-center px-4 py-2 text-brand-gray transition hover:text-brand-darkgray"
           >
@@ -122,7 +130,7 @@ const navGroups = [
               class="member-icon size-11 transition duration-150"
               alt="member"
             />
-          </router-link>
+          </RouterLink>
         </div>
       </div>
     </div>

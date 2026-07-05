@@ -9,6 +9,7 @@ import Medical from '@/views/MedicalView.vue'
 import Dashboard from '@/views/DashboardView.vue'
 import Growth from '@/views/GrowthView.vue'
 import BaseModalPreview from '@/views/BaseModalPreviewView.vue'
+import Hospital from '@/views/HospitalView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -70,6 +71,11 @@ const router = createRouter({
       path: '/base-modal-preview',
       name: 'BaseModalPreview',
       component: BaseModalPreview,
+    },
+    {
+      path: '/hospital',
+      name: 'Hospital',
+      component: Hospital,
     },
   ],
 })

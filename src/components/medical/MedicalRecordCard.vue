@@ -98,7 +98,6 @@ const prevImage = () => {
         />
       </div>
     </div>
-
     <div class="absolute right-4 bottom-4 flex items-center gap-2 md:hidden z-20">
       <button
         @click="emit('edit-record', props.record)"
@@ -109,7 +108,7 @@ const prevImage = () => {
         <img class="w-5 h-5" src="@/assets/icons/edit_b.svg" alt="編輯" />
       </button>
       <button
-        @click="emit('delete-record', props.record?.id)"
+        @click="emit('delete-record', props.record)"
         type="button"
         class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition active:bg-red-500/20 active:scale-95"
         title="刪除"
