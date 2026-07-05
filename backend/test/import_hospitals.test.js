@@ -21,6 +21,7 @@ import {
   importHospitals,
   MOA_HOSPITALS_DETAIL_URL,
   MOA_HOSPITALS_URL,
+  MOA_REQUEST_TIMEOUT_MS,
   normalizeHospitalRow,
   UPSERT_HOSPITAL_SQL,
 } from '../database/scripts/import_hospitals.js'
@@ -278,6 +279,7 @@ test('fetchMoaHospitalRows：應以 UnitId 單次抓取完整資料集', async (
   assert.equal(seenRequests.length, 1)
   assert.equal(seenRequests[0].url, MOA_HOSPITALS_URL)
   assert.deepEqual(seenRequests[0].options.params, { UnitId: '078' })
+  assert.equal(seenRequests[0].options.timeout, MOA_REQUEST_TIMEOUT_MS)
   assert.ok(MOA_HOSPITALS_DETAIL_URL.includes('open_detail.aspx?id=078'))
 })
 

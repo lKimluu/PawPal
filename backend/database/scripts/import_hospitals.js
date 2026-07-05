@@ -11,6 +11,7 @@ export const MOA_HOSPITALS_URL =
   'https://data.moa.gov.tw/Service/OpenData/DataFileService.aspx'
 export const MOA_HOSPITALS_DETAIL_URL = 'https://data.moa.gov.tw/open_detail.aspx?id=078'
 export const MOA_UNIT_ID = '078'
+export const MOA_REQUEST_TIMEOUT_MS = 15000
 export const OPEN_LICENSE_STATUS = '開業'
 
 const TAIWAN_CITY_PREFIX_PATTERN = /^[\u4e00-\u9fa5]{2,3}[縣市]/
@@ -81,7 +82,10 @@ export async function fetchMoaHospitalRows({ axiosClient = axios } = {}) {
 
   let response
   try {
-    response = await axiosClient.get(MOA_HOSPITALS_URL, { params })
+    response = await axiosClient.get(MOA_HOSPITALS_URL, {
+      params,
+      timeout: MOA_REQUEST_TIMEOUT_MS,
+    })
   } catch (error) {
     if (error.response) {
       throw new Error(
