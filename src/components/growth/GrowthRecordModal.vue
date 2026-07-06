@@ -5,12 +5,14 @@ const props = defineProps({
   isOpen: { type: Boolean, default: false },
   title: { type: String, default: '新增成長指標' },
   subtitle: { type: String, default: '記錄毛孩的各項指標' },
+  isSubmitting: { type: Boolean, default: false },
+  errorMessage: { type: String, default: null },
 })
 
 const emit = defineEmits(['close', 'submit'])
 
 const form = ref({
-  record_date: new Date(),
+  recordDate: new Date(),
   weight: '',
   length: '',
   food_intake: '',
@@ -34,7 +36,7 @@ watch(
   (newVal) => {
     if (newVal) {
       form.value = {
-        record_date: new Date(),
+        recordDate: new Date(),
         weight: '',
         length: '',
         food_intake: '',
@@ -50,17 +52,17 @@ const handleClose = () => emit('close')
 
 const handleSubmit = () => {
   let formattedDate = ''
-  if (form.value.record_date instanceof Date) {
-    const y = form.value.record_date.getFullYear()
-    const m = String(form.value.record_date.getMonth() + 1).padStart(2, '0')
-    const d = String(form.value.record_date.getDate()).padStart(2, '0')
+  if (form.value.recordDate instanceof Date) {
+    const y = form.value.recordDate.getFullYear()
+    const m = String(form.value.recordDate.getMonth() + 1).padStart(2, '0')
+    const d = String(form.value.recordDate.getDate()).padStart(2, '0')
     formattedDate = `${y}-${m}-${d}`
   } else {
-    formattedDate = form.value.record_date.substring(0, 10)
+    formattedDate = form.value.recordDate.substring(0, 10)
   }
 
   emit('submit', {
-    record_date: formattedDate,
+    recordDate: formattedDate,
     weight: form.value.weight !== '' ? Number(form.value.weight) : null,
     length: form.value.length !== '' ? Number(form.value.length) : null,
     food_intake: form.value.food_intake !== '' ? Number(form.value.food_intake) : null,
@@ -68,7 +70,6 @@ const handleSubmit = () => {
     urination: form.value.urination !== '' ? Number(form.value.urination) : null,
     defecation: form.value.defecation !== '' ? Number(form.value.defecation) : null,
   })
-  handleClose()
 }
 </script>
 
@@ -103,7 +104,7 @@ const handleSubmit = () => {
               <span class="text-red-600 font-normal">*</span>
             </label>
             <VDatePicker
-              v-model="form.record_date"
+              v-model="form.recordDate"
               :masks="{ input: 'YYYY-MM-DD' }"
               color="orange"
               :popover="{ visibility: 'click', placement: 'bottom-start' }"
@@ -258,26 +259,29 @@ const handleSubmit = () => {
             </div>
           </div>
 
-          <div class="mt-4 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
-            <button
-              type="button"
-              @click="handleClose"
-              class="cursor-pointer rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-500 transition duration-200 hover:bg-slate-100 hover:text-slate-700 active:scale-95"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              :disabled="!hasAtLeastOne"
-              :class="[
-                'rounded-xl px-6 py-2.5 text-sm font-semibold text-white shadow-md transition duration-200',
-                hasAtLeastOne
-                  ? 'cursor-pointer bg-brand-orange shadow-brand-orange/20 hover:bg-[#ee9300] hover:shadow-lg active:scale-95'
-                  : 'cursor-not-allowed bg-slate-300 shadow-none',
-              ]"
-            >
-              新增紀錄
-            </button>
+          <div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4">
+            <p v-if="errorMessage" class="text-sm text-red-500">{{ errorMessage }}</p>
+            <div class="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                @click="handleClose"
+                class="cursor-pointer rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-500 transition duration-200 hover:bg-slate-100 hover:text-slate-700 active:scale-95"
+              >
+                取消
+              </button>
+              <button
+                type="submit"
+                :disabled="!hasAtLeastOne || isSubmitting"
+                :class="[
+                  'rounded-xl px-6 py-2.5 text-sm font-semibold text-white shadow-md transition duration-200',
+                  hasAtLeastOne && !isSubmitting
+                    ? 'cursor-pointer bg-brand-orange shadow-brand-orange/20 hover:bg-[#ee9300] hover:shadow-lg active:scale-95'
+                    : 'cursor-not-allowed bg-slate-300 shadow-none',
+                ]"
+              >
+                {{ isSubmitting ? '新增中...' : '新增紀錄' }}
+              </button>
+            </div>
           </div>
         </form>
       </div>

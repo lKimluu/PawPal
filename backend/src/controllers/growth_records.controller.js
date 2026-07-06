@@ -4,7 +4,7 @@ import { METRIC_TYPES } from '../schemas/growth_records.schema.js'
 export function createGrowthRecordsController(growthRecordsService) {
   async function getGrowthRecords(req, res) {
     const userId = req.userId
-    const petId = Number(req.query.petId)
+    const petId = Number(req.query.pet_id ?? req.query.petId)
     const { metricType } = req.query
 
     if (!Number.isSafeInteger(petId) || petId <= 0) {
