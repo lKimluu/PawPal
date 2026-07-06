@@ -29,6 +29,17 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
 
+const CANONICAL_ANIMAL_TYPES = [
+  ['狗', 'dog'],
+  ['貓', 'cat'],
+  ['兔', 'rabbit'],
+  ['鼠類', 'rodent'],
+  ['鳥類', 'bird'],
+  ['爬蟲類', 'reptile'],
+  ['兩棲類', 'amphibian'],
+  ['其他特殊寵物', 'other_exotic'],
+]
+
 function makeRows(count, status = '開業') {
   return Array.from({ length: count }, (_, index) => ({
     縣市: '宜蘭縣',
@@ -104,15 +115,91 @@ test('setup-db：應只執行 schema 且不得刪除既有資料表', () => {
   const setupScript = readProjectFile('scripts/setup-db.js')
 
   assert.doesNotMatch(setupScript, /DROP\s+TABLE/i)
-  assert.ok(TABLES_IN_ORDER.includes('hospitals'))
+  assert.deepEqual(TABLES_IN_ORDER.slice(-3), [
+    'hospitals',
+    'animal_types',
+    'hospital_animal_types',
+  ])
   assert.deepEqual(SEED_FILES_IN_ORDER, [
     'users',
     'pets',
     'calendar_events',
     'medical_records',
     'growth_records',
+    'animal_types.seed',
   ])
   assert.ok(!SEED_FILES_IN_ORDER.includes('hospitals'))
+})
+
+test('animal_types schema：應建立固定動物種類 reference data 結構', () => {
+  const schema = readProjectFile('database/schema/animal_types.sql')
+
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS animal_types/)
+  assert.match(schema, /id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY/)
+  assert.match(schema, /name VARCHAR\(50\) NOT NULL UNIQUE/)
+  assert.match(schema, /slug VARCHAR\(50\) NOT NULL UNIQUE/)
+  assert.match(schema, /created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP/)
+})
+
+test('animal_types seed：應固定建立 8 種 canonical 動物分類且可重跑', () => {
+  const seedSql = readProjectFile('database/seeds/animal_types.seed.sql')
+
+  assert.doesNotMatch(seedSql, /TRUNCATE|DELETE\s+FROM/i)
+  assert.match(seedSql, /INSERT INTO animal_types/)
+  assert.match(seedSql, /ON CONFLICT \(slug\) DO NOTHING/)
+
+  for (const [name, slug] of CANONICAL_ANIMAL_TYPES) {
+    assert.match(seedSql, new RegExp(`'${name}',\\s*'${slug}'`))
+  }
+
+  const valueRows = [...seedSql.matchAll(/\('([^']+)',\s*'([^']+)'\)/g)]
+
+  assert.equal(valueRows.length, CANONICAL_ANIMAL_TYPES.length)
+  assert.deepEqual(
+    valueRows.map((match) => [match[1], match[2]]),
+    CANONICAL_ANIMAL_TYPES,
+  )
+})
+
+test('hospital_animal_types schema：應建立醫院與動物種類多對多關聯', () => {
+  const schema = readProjectFile('database/schema/hospital_animal_types.sql')
+
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS hospital_animal_types/)
+  assert.match(schema, /hospital_id INTEGER NOT NULL/)
+  assert.match(schema, /animal_type_id INTEGER NOT NULL/)
+  assert.match(schema, /created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP/)
+  assert.match(schema, /FOREIGN KEY \(hospital_id\)/)
+  assert.match(schema, /REFERENCES hospitals\(id\)/)
+  assert.match(schema, /FOREIGN KEY \(animal_type_id\)/)
+  assert.match(schema, /REFERENCES animal_types\(id\)/)
+  assert.match(schema, /UNIQUE \(hospital_id, animal_type_id\)/)
+  assert.match(schema, /idx_hospital_animal_types_hospital_id/)
+  assert.match(schema, /idx_hospital_animal_types_animal_type_id/)
+})
+
+test('hospital_animal_types schema：應記錄驗證狀態與來源且不表示不支援診療', () => {
+  const schema = readProjectFile('database/schema/hospital_animal_types.sql')
+  const seedSql = readProjectFile('database/seeds/animal_types.seed.sql')
+
+  assert.match(schema, /verification_status VARCHAR\(30\) NOT NULL DEFAULT 'unverified'/)
+  assert.match(schema, /CONSTRAINT chk_hospital_animal_types_verification_status/)
+  assert.match(
+    schema,
+    /CHECK \(verification_status IN \('unverified', 'verified', 'rejected'\)\)/,
+  )
+  assert.match(schema, /source TEXT/)
+  assert.doesNotMatch(schema, /unsupported|not_supported|does_not_treat|is_supported/i)
+  assert.doesNotMatch(seedSql, /hospital_animal_types/)
+})
+
+test('hospital_animal_types schema：應支援雙向 join 查詢契約', () => {
+  const schema = readProjectFile('database/schema/hospital_animal_types.sql')
+
+  assert.match(schema, /hospital_id INTEGER NOT NULL/)
+  assert.match(schema, /animal_type_id INTEGER NOT NULL/)
+  assert.match(schema, /UNIQUE \(hospital_id, animal_type_id\)/)
+  assert.match(schema, /idx_hospital_animal_types_hospital_id/)
+  assert.match(schema, /idx_hospital_animal_types_animal_type_id/)
 })
 
 test('schema：所有 CREATE TABLE 都應使用 IF NOT EXISTS', () => {
@@ -175,6 +262,8 @@ test('clear-seed：應使用精準條件且不得破壞 hospitals 或整張表',
   assert.doesNotMatch(clearSeedScript, /DROP\s+TABLE/i)
   assert.doesNotMatch(clearSeedScript, /TRUNCATE/i)
   assert.doesNotMatch(clearSeedScript, /DELETE\s+FROM\s+hospitals/i)
+  assert.doesNotMatch(clearSeedScript, /DELETE\s+FROM\s+animal_types/i)
+  assert.doesNotMatch(clearSeedScript, /DELETE\s+FROM\s+hospital_animal_types/i)
   assert.doesNotMatch(clearSeedScript, /DROP\s+TYPE/i)
   assertNoUnqualifiedDelete(clearSeedScript)
   assert.match(clearSeedScript, /BEGIN/)
