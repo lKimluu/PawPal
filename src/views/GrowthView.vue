@@ -1,5 +1,8 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useGrowthStore } from '@/stores/growth.js'
+import { useAuthStore } from '@/stores/auth.js'
+import { usePetStore } from '@/stores/petStore.js'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import PetSwitcher from '@/components/pet/PetSwitcher.vue'
@@ -10,8 +13,30 @@ import GrowthRecordModal from '@/components/growth/GrowthRecordModal.vue'
 import GrowthHistoryButton from '@/components/growth/GrowthHistoryButton.vue'
 import GrowthHistoryModal from '@/components/growth/GrowthHistoryModal.vue'
 
-const isHistoryOpen = ref(false)
+const growthStore = useGrowthStore()
+const authStore = useAuthStore()
+const petStore = usePetStore()
+
 const isModalOpen = ref(false)
+onMounted(() => {
+  if (petStore.selectedPetId) {
+    growthStore.fetchRecords(petStore.selectedPetId, authStore.token)
+  }
+})
+
+const handleSubmit = async (formData) => {
+  const results = await growthStore.createRecordsFrom(
+    petStore.selectedPetId,
+    formData,
+    authStore.token,
+  )
+  const allSuccess = results.every((r) => r.success)
+  if (allSuccess) {
+    isModalOpen.value = false
+    growthStore.fetchRecords(petStore.selectedPetId, authStore.token)
+  }
+}
+const isHistoryOpen = ref(false)
 
 const mockHistoryRecords = [
   { id: 1, metric_type: 'weight', value: 5.2, unit: 'kg', recorded_at: '2026-07-01' },
@@ -60,8 +85,10 @@ const mockHistoryRecords = [
     />
     <GrowthRecordModal
       :is-open="isModalOpen"
+      :is-submitting="growthStore.isSubmitting"
+      :error-message="growthStore.errorMessage"
       @close="isModalOpen = false"
-      @submit="isModalOpen = false"
+      @submit="handleSubmit"
     />
   </div>
 </template>
