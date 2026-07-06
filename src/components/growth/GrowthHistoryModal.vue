@@ -72,7 +72,7 @@ const handleClose = () => emit('close')
           </button>
         </div>
 
-        <div class="flex gap-3 overflow-x-auto pb-1">
+        <div class="flex shrink-0 gap-3 overflow-x-auto pb-1">
           <button
             v-for="tab in tabs"
             :key="tab"
