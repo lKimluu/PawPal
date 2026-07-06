@@ -14,8 +14,6 @@ import {
   Filler,
 } from 'chart.js'
 
-import { growthRecords } from '@/data/growthRecords.js'
-
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -28,45 +26,78 @@ ChartJS.register(
   Filler,
 )
 
-const uiConfig = {
-  weight: { type: 'line', color: '#ffa002' },
-  food_intake: { type: 'bar', color: '#10B981' },
-  water_frequency: { type: 'bar', color: '#92a8f5' },
-  urination: { type: 'bar', color: '#ff66cc' },
-  defecation: { type: 'bar', color: '#8B5CF6' },
+const props = defineProps({
+  records: { type: Array, default: () => [] },
+  range: { type: String, default: '6 個月' },
+})
+
+const RANGE_DAYS = { '3 個月': 90, '6 個月': 180, '1 年': 365 }
+
+const METRIC_META = {
+  weight: { label: '體重趨勢', unit: 'kg', type: 'line', color: '#ffa002' },
+  length: { label: '身體長度', unit: 'cm', type: 'line', color: '#64748b' },
+  food_intake: { label: '每日進食量', unit: 'g', type: 'bar', color: '#10B981' },
+  water_frequency: { label: '飲水次數', unit: '次', type: 'bar', color: '#92a8f5' },
+  urination: { label: '排尿次數', unit: '次', type: 'bar', color: '#ff66cc' },
+  defecation: { label: '排便次數', unit: '次', type: 'bar', color: '#8B5CF6' },
 }
 
 const displayRecords = computed(() => {
-  return growthRecords
-    .map((record) => ({
-      ...record,
-      chartType: uiConfig[record.metric_type]?.type || 'line',
-      themeColor: uiConfig[record.metric_type]?.color || '#cbd5e1',
-    }))
-    .filter((record) => {
-      return record.history.some((item) => item.value > 0)
-    })
-})
-const getChartData = (record) => {
-  return {
-    labels: record.history.map((item) => item.date),
-    datasets: [
-      {
-        data: record.history.map((item) => item.value),
-        borderColor: record.themeColor,
-        backgroundColor: `${record.themeColor}25`,
-        borderWidth: 2,
-        pointBackgroundColor: record.themeColor,
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        fill: true,
-        tension: 0.4,
-        borderRadius: record.chartType === 'bar' ? 4 : 0,
-      },
-    ],
+  const days = RANGE_DAYS[props.range] ?? 180
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - days)
+
+  const grouped = {}
+  for (const r of props.records) {
+    if (new Date(r.recorded_at.substring(0, 10)) < cutoff) continue
+    if (!grouped[r.metric_type]) grouped[r.metric_type] = []
+    grouped[r.metric_type].push(r)
   }
-}
+
+  return Object.entries(grouped)
+    .map(([metric_type, items]) => {
+      const meta = METRIC_META[metric_type]
+      if (!meta) return null
+
+      const sorted = [...items].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))
+      const latest = sorted[sorted.length - 1]
+
+      return {
+        metric_type,
+        metric: meta.label,
+        currentValue: latest?.value ?? '-',
+        unit: meta.unit,
+        chartType: meta.type,
+        themeColor: meta.color,
+        history: sorted.map((item) => ({
+          date: item.recorded_at.substring(5, 10).replace('-', '/'),
+          value: item.value,
+        })),
+      }
+    })
+    .filter(Boolean)
+    .filter((item) => item.history.some((h) => h.value > 0))
+})
+
+const getChartData = (record) => ({
+  labels: record.history.map((item) => item.date),
+  datasets: [
+    {
+      data: record.history.map((item) => item.value),
+      borderColor: record.themeColor,
+      backgroundColor: `${record.themeColor}25`,
+      borderWidth: 2,
+      pointBackgroundColor: record.themeColor,
+      pointBorderColor: '#ffffff',
+      pointBorderWidth: 2,
+      pointRadius: 4,
+      fill: true,
+      tension: 0.4,
+      borderRadius: record.chartType === 'bar' ? 4 : 0,
+    },
+  ],
+})
+
 const getChartOptions = (record) => ({
   responsive: true,
   maintainAspectRatio: false,
@@ -96,10 +127,19 @@ const getChartOptions = (record) => ({
 <template>
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full p-4">
     <div
+      v-if="displayRecords.length === 0"
+      class="md:col-span-2 flex items-center justify-center py-16 text-sm text-brand-gray"
+    >
+      目前沒有紀錄
+    </div>
+
+    <div
       v-for="record in displayRecords"
       :key="record.metric_type"
       class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col h-full"
-      :class="{ 'md:col-span-2': record.metric_type === 'weight' }"
+      :class="{
+        'md:col-span-2': record.metric_type === 'weight' || record.metric_type === 'length',
+      }"
     >
       <div class="flex justify-between items-start mb-4">
         <div class="flex items-center gap-2">
