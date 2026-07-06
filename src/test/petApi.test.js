@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { buildUpdatePetPayload, normalizePetFromApi } from '../api/pet.js'
+import { buildUpdatePetPayload, normalizePetFromApi, resolvePetUpdateErrorMessage } from '../api/pet.js'
 
 test('buildUpdatePetPayload 會將寵物表單 camelCase 欄位轉成後端 snake_case 欄位', () => {
   const payload = buildUpdatePetPayload({
@@ -80,4 +80,23 @@ test('normalizePetFromApi 會將後端寵物資料欄位轉成前端 camelCase �
     note: 'likes walks',
     photoUrl: 'https://example.com/momo.png',
   })
+})
+
+test('resolvePetUpdateErrorMessage 會將常見修改寵物錯誤轉成繁體中文提示', () => {
+  assert.equal(
+    resolvePetUpdateErrorMessage({ response: { status: 400 } }),
+    '寵物資料格式不正確，請檢查必填欄位與體重格式',
+  )
+  assert.equal(
+    resolvePetUpdateErrorMessage({ response: { status: 404 } }),
+    '找不到這隻寵物，請重新整理後再試',
+  )
+  assert.equal(
+    resolvePetUpdateErrorMessage({ response: { status: 409 } }),
+    '晶片號碼已被使用，請確認後再送出',
+  )
+  assert.equal(
+    resolvePetUpdateErrorMessage({ request: {} }),
+    '無法連線到伺服器，請確認後端服務是否已啟動',
+  )
 })
