@@ -69,9 +69,9 @@ const displayRecords = computed(() => {
         unit: meta.unit,
         chartType: meta.type,
         themeColor: meta.color,
-        history: sorted.map((item) => ({
-          date: item.recorded_at.substring(5, 10).replace('-', '/'),
-          value: item.value,
+        history: sorted.map((r) => ({
+          date: r.recorded_at.substring(5, 10).replace('-', '/'),
+          value: Number(r.value),
         })),
       }
     })
@@ -161,10 +161,16 @@ const getChartOptions = (record) => ({
       <div class="relative w-full h-48 mt-auto">
         <Line
           v-if="record.chartType === 'line'"
+          :key="`line-${record.metric_type}-${record.history.length}`"
           :data="getChartData(record)"
           :options="getChartOptions(record)"
         />
-        <Bar v-else :data="getChartData(record)" :options="getChartOptions(record)" />
+        <Bar
+          v-else
+          :key="`bar-${record.metric_type}-${record.history.length}`"
+          :data="getChartData(record)"
+          :options="getChartOptions(record)"
+        />
       </div>
     </div>
   </div>
