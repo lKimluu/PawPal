@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import petPhoto from '@/assets/images/dog.png'
+import { formatPetBirthday, formatPetGender } from '@/utils/petDisplay.js'
 
 const props = defineProps({
   isOpen: {
@@ -19,6 +20,9 @@ const emit = defineEmits(['close'])
 const petImage = computed(
   () => props.pet?.photoUrl || props.pet?.image || props.pet?.avatar_url || props.pet?.avatarUrl || petPhoto,
 )
+
+const petGender = computed(() => formatPetGender(props.pet?.gender))
+const petBirthday = computed(() => formatPetBirthday(props.pet?.birthday))
 
 const formatValue = (value) => {
   if (value === '' || value == null) return '-'
@@ -62,10 +66,10 @@ const formatValue = (value) => {
                 {{ formatValue(pet.name) }}
               </h2>
               <p class="text-base font-medium text-brand-gray">{{ formatValue(pet.breed) }}</p>
-              <p class="text-base font-medium text-brand-gray">{{ formatValue(pet.gender) }}</p>
+              <p class="text-base font-medium text-brand-gray">{{ petGender }}</p>
               <p class="text-base font-medium text-brand-gray">
                 {{ formatValue(pet.age) }}
-                <span v-if="pet.birthday">（{{ pet.birthday }}）</span>
+                <span v-if="pet.birthday">（{{ petBirthday }}）</span>
               </p>
             </div>
           </aside>
