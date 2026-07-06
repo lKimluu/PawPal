@@ -439,6 +439,12 @@ test('upsert SQL：應以 license_number 做 ON CONFLICT 去重更新', () => {
   ])
 })
 
+test('upsert SQL：重複匯入時應保留既有座標', () => {
+  assert.doesNotMatch(UPSERT_HOSPITAL_SQL, /latitude = EXCLUDED\.latitude/)
+  assert.doesNotMatch(UPSERT_HOSPITAL_SQL, /longitude = EXCLUDED\.longitude/)
+  assert.match(UPSERT_HOSPITAL_SQL, /updated_at = CURRENT_TIMESTAMP/)
+})
+
 test('importHospitals：成功時應輸出統計並回傳 fetched/skipped/written', async () => {
   const logs = []
   const pool = {

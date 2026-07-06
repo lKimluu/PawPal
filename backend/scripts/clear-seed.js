@@ -1,10 +1,9 @@
-import pg from 'pg'
 import dotenv from 'dotenv'
 import { fileURLToPath } from 'url'
+import { createPoolFromEnv } from '../src/config/create_pool.js'
 
 dotenv.config()
 
-const { Pool } = pg
 const scriptPath = fileURLToPath(import.meta.url)
 
 export const SEED_EMAILS = [
@@ -23,18 +22,7 @@ export const SEED_MICROCHIP_NUMBERS = [
   '900138000000005',
 ]
 
-export function createPoolFromEnv() {
-  return new Pool({
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME,
-    ssl: {
-      rejectUnauthorized: false,
-    },
-  })
-}
+export { createPoolFromEnv }
 
 export const DELETE_SEED_CALENDAR_EVENTS_SQL = `
 WITH seed_calendar_events(owner_email, microchip_number, title, event_date, event_time, type) AS (
