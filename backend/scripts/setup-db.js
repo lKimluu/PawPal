@@ -1,25 +1,15 @@
-import pg from 'pg'
 import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { createPoolFromEnv } from '../src/config/create_pool.js'
 
 dotenv.config()
 
-const { Pool } = pg
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const scriptPath = fileURLToPath(import.meta.url)
 
-const pool = new Pool({
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-})
+const pool = createPoolFromEnv()
 
 export const TABLES_IN_ORDER = [
   'users',
