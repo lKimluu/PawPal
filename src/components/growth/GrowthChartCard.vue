@@ -34,12 +34,12 @@ const props = defineProps({
 const RANGE_DAYS = { '3 個月': 90, '6 個月': 180, '1 年': 365 }
 
 const METRIC_META = {
-  weight: { label: '體重趨勢', unit: 'kg', type: 'line', color: '#ffa002' },
-  length: { label: '身體長度', unit: 'cm', type: 'line', color: '#64748b' },
-  food_intake: { label: '每日進食量', unit: 'g', type: 'bar', color: '#10B981' },
-  water_frequency: { label: '飲水次數', unit: '次', type: 'bar', color: '#92a8f5' },
-  urination: { label: '排尿次數', unit: '次', type: 'bar', color: '#ff66cc' },
-  defecation: { label: '排便次數', unit: '次', type: 'bar', color: '#8B5CF6' },
+  weight: { label: '體重趨勢', unit: 'kg', type: 'line', color: '#ffa002', decimals: 1 },
+  length: { label: '身體長度', unit: 'cm', type: 'line', color: '#64748b', decimals: 1 },
+  food_intake: { label: '每日進食量', unit: 'g', type: 'bar', color: '#10B981', decimals: 1 },
+  water_frequency: { label: '飲水次數', unit: '次', type: 'bar', color: '#92a8f5', decimals: 0 },
+  urination: { label: '排尿次數', unit: '次', type: 'bar', color: '#ff66cc', decimals: 0 },
+  defecation: { label: '排便次數', unit: '次', type: 'bar', color: '#8B5CF6', decimals: 0 },
 }
 
 const displayRecords = computed(() => {
@@ -65,7 +65,7 @@ const displayRecords = computed(() => {
       return {
         metric_type,
         metric: meta.label,
-        currentValue: latest?.value ?? '-',
+        currentValue: latest?.value != null ? Number(latest.value).toFixed(meta.decimals) : '-',
         unit: meta.unit,
         chartType: meta.type,
         themeColor: meta.color,
