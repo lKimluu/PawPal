@@ -15,11 +15,16 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import memberBanner from '@/assets/images/member_banner_dashboard.png'
 import { useAuthStore } from '@/stores/auth.js'
+import { useToastStore } from '@/stores/toast.js'
+import { updatePet } from '@/api/pet.js'
 
 const themeColors = ['green', 'orange', 'blue']
 const authStore = useAuthStore()
+const toastStore = useToastStore()
 const selectedPet = ref(null)
 const isPetProfileOpen = ref(false)
+const isPetSaving = ref(false)
+const petUpdateError = ref('')
 
 const showAddModal = ref(false)
 const addModalDate = ref('')
@@ -74,11 +79,11 @@ const handleEditDelete = (event) => {
   showEditModal.value = false
 }
 
-const dashboardPets = rawPets.map((p) => ({
+const dashboardPets = ref(rawPets.map((p) => ({
   ...p,
   image: p.photoUrl ?? null,
   ageUnit: '',
-}))
+})))
 
 const userName = computed(() => authStore.user?.name || '寵物家長')
 
@@ -100,12 +105,54 @@ const handleConfirmDelete = () => {
 
 const openPetProfile = (pet) => {
   selectedPet.value = pet
+  petUpdateError.value = ''
   isPetProfileOpen.value = true
 }
 
 const closePetProfile = () => {
   isPetProfileOpen.value = false
   selectedPet.value = null
+  petUpdateError.value = ''
+}
+
+const handlePetUpdate = async ({ id, data }) => {
+  if (!id) {
+    petUpdateError.value = '找不到要修改的寵物，請重新整理後再試'
+    return
+  }
+
+  isPetSaving.value = true
+  petUpdateError.value = ''
+
+  const result = await updatePet(id, data, authStore.token)
+
+  isPetSaving.value = false
+
+  if (!result.success) {
+    petUpdateError.value = result.message || '寵物資料更新失敗，請稍後再試'
+    return
+  }
+
+  const updatedPet = result.data?.pet ?? { id, ...data }
+
+  dashboardPets.value = dashboardPets.value.map((pet) => {
+    if (pet.id !== id) {
+      return pet
+    }
+
+    const mergedPet = {
+      ...pet,
+      ...updatedPet,
+      image: updatedPet.photoUrl ?? pet.image ?? null,
+      ageUnit: pet.ageUnit ?? '',
+    }
+
+    selectedPet.value = mergedPet
+    return mergedPet
+  })
+
+  toastStore.showToast(result.message || '寵物資料更新成功')
+  closePetProfile()
 }
 </script>
 
@@ -203,6 +250,9 @@ const closePetProfile = () => {
   <PetProfileModal
     :is-open="isPetProfileOpen"
     :pet="selectedPet"
+    :is-saving="isPetSaving"
+    :error-message="petUpdateError"
     @close="closePetProfile"
+    @update="handlePetUpdate"
   />
 </template>

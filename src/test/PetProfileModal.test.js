@@ -36,6 +36,20 @@ test('PetProfileModal 會顯示寵物詳細資料並使用 BaseButton 關閉', (
   assert.match(profileModal, /pet\.note/)
 })
 
+test('PetProfileModal 會提供編輯模式並交由 Dashboard 呼叫 updatePet', () => {
+  assert.match(profileModal, /defineEmits\(\['close', 'update'\]\)/)
+  assert.match(profileModal, /isEditing/)
+  assert.match(profileModal, /handleSubmit/)
+  assert.match(profileModal, /v-model="form\.microchipNumber"/)
+  assert.match(profileModal, /v-model="form\.bloodType"/)
+  assert.match(profileModal, /v-model="form\.furColor"/)
+  assert.match(profileModal, /v-model="form\.photoUrl"/)
+  assert.match(profileModal, /v-model="form\.note"/)
+  assert.match(dashboardView, /import \{ updatePet \} from '@\/api\/pet\.js'/)
+  assert.match(dashboardView, /handlePetUpdate/)
+  assert.match(dashboardView, /@update="handlePetUpdate"/)
+})
+
 test('Dashboard 只渲染一個緊湊行程清單並串接新增、編輯、刪除事件', () => {
   const compactEventListCount = dashboardView.match(/<EventList[\s\S]*?:compact="true"[\s\S]*?\/>/g)?.length ?? 0
 
