@@ -1,5 +1,7 @@
 <script setup>
 import { computed } from 'vue'
+import { usePetStore } from '@/stores/petStore'
+import { getTypeMeta } from '@/constants/calendarEventTypes.js'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -8,6 +10,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'add', 'edit', 'delete'])
+
+const petStore = usePetStore()
 
 const WEEKDAYS = ['週日', '週一', '週二', '週三', '週四', '週五', '週六']
 
@@ -24,28 +28,12 @@ const weekdayLabel = computed(() => {
   return WEEKDAYS[new Date(y, m - 1, d).getDay()]
 })
 
-// 左側色條顏色（同 CalendarEventItem 的 colorMap）
-const colorMap = {
-  checkup: '#EF7C7C',
-  vaccine: '#4CC9A4',
-  medicine: '#FFA94D',
-  grooming: '#A78BFA',
-  deworming: '#60A5FA',
-  other: '#9CA3AF',
-}
-
-// tag chip 樣式（同 EventCard 的 TAG_STYLE_MAP）
-const TAG_STYLE_MAP = {
-  回診: 'bg-purple-100 text-purple-600',
-  疫苗: 'bg-indigo-50  text-blue-400',
-  服藥: 'bg-yellow-50  text-yellow-500',
-  美容: 'bg-teal-100   text-teal-600',
-  除蟲: 'bg-green-100  text-green-600',
-  用藥提醒: 'bg-red-100    text-red-500',
-}
-
-const barColor = (event) => colorMap[event.type] ?? colorMap.other
-const tagStyle = (event) => TAG_STYLE_MAP[event.tag] ?? 'bg-gray-100 text-gray-500'
+// 左側色條 / tag chip / 中文 label 皆由 type 對應共用 meta
+const barColor = (event) => getTypeMeta(event.type).color
+const tagStyle = (event) => getTypeMeta(event.type).chip
+const tagLabel = (event) => getTypeMeta(event.type).label
+// 後端 response 無 petName，改由 petId 查 petStore
+const petNameOf = (event) => petStore.pets.find((p) => p.id === event.petId)?.name ?? ''
 
 const handleClose = () => emit('close')
 const handleAdd = () => emit('add', props.date)
@@ -111,7 +99,7 @@ const handleAdd = () => emit('add', props.date)
                     class="inline-block rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap"
                     :class="tagStyle(event)"
                   >
-                    {{ event.tag }}
+                    {{ tagLabel(event) }}
                   </span>
                   <span class="text-base font-bold text-brand-navy">{{ event.title }}</span>
                 </div>
@@ -120,19 +108,19 @@ const handleAdd = () => emit('add', props.date)
                 <div class="mt-3 flex flex-col gap-1.5 text-sm">
                   <div class="flex gap-4">
                     <span class="w-8 shrink-0 text-brand-gray">寵物</span>
-                    <span class="text-brand-darkgray">{{ event.petName }}</span>
+                    <span class="text-brand-darkgray">{{ petNameOf(event) }}</span>
                   </div>
-                  <div v-if="event.time" class="flex gap-4">
+                  <div v-if="event.eventTime" class="flex gap-4">
                     <span class="w-8 shrink-0 text-brand-gray">時間</span>
-                    <span class="text-brand-darkgray">{{ event.time }}</span>
+                    <span class="text-brand-darkgray">{{ event.eventTime }}</span>
                   </div>
                   <div v-if="event.location" class="flex gap-4">
                     <span class="w-8 shrink-0 text-brand-gray">地點</span>
                     <span class="text-brand-darkgray">{{ event.location }}</span>
                   </div>
-                  <div v-if="event.note" class="flex gap-4">
+                  <div v-if="event.notes" class="flex gap-4">
                     <span class="w-8 shrink-0 text-brand-gray">備註</span>
-                    <span class="text-brand-darkgray">{{ event.note }}</span>
+                    <span class="text-brand-darkgray">{{ event.notes }}</span>
                   </div>
                 </div>
               </div>

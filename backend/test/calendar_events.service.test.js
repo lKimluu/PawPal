@@ -28,10 +28,10 @@ test('createEvent：成功時應回傳新建立的行程', async (t) => {
   t.mock.method(pool, 'query', async () => ({ rows: [newRow] }))
 
   const result = await createEvent({
-    petId: 1,
+    pet_id: 1,
     userId: 2,
     title: '施打疫苗',
-    eventDate: '2026-07-10',
+    event_date: '2026-07-10',
     type: 'vaccine',
   })
 
@@ -42,10 +42,10 @@ test('createEvent：pet 不屬於該使用者時應回傳 null', async (t) => {
   t.mock.method(pool, 'query', async () => ({ rows: [] }))
 
   const result = await createEvent({
-    petId: 99,
+    pet_id: 99,
     userId: 2,
     title: '施打疫苗',
-    eventDate: '2026-07-10',
+    event_date: '2026-07-10',
     type: 'vaccine',
   })
 
