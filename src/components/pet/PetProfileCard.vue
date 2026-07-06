@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { formatPetBirthday, formatPetGender } from '@/utils/petDisplay.js'
 
 const props = defineProps({
   pet: {
@@ -14,6 +15,9 @@ const weightDisplay = computed(() => {
   if (!props.pet.weight) return '—'
   return `${props.pet.weight} kg`
 })
+
+const genderDisplay = computed(() => formatPetGender(props.pet.gender))
+const birthdayDisplay = computed(() => formatPetBirthday(props.pet.birthday))
 </script>
 
 <template>
@@ -52,11 +56,11 @@ const weightDisplay = computed(() => {
             </button>
           </div>
           <p class="text-xs md:text-sm text-gray-500 md:mt-0.5">
-            {{ pet.breed }}<span class="md:hidden">・{{ pet.gender }}</span>
+            {{ pet.breed }}<span class="md:hidden">・{{ genderDisplay }}</span>
           </p>
-          <p class="hidden md:block text-sm text-gray-500 mt-0.5">{{ pet.gender }}</p>
+          <p class="hidden md:block text-sm text-gray-500 mt-0.5">{{ genderDisplay }}</p>
           <p class="text-xs md:text-sm text-gray-500 mt-0.5">
-            {{ pet.age }} （{{ pet.birthday }}）
+            {{ pet.age }} （{{ birthdayDisplay }}）
           </p>
         </div>
       </div>

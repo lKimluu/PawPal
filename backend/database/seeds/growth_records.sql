@@ -32,4 +32,12 @@ FROM (
     ('900138000000005', 'weight', 5.30, 'kg', TIMESTAMP '2020-09-30 10:00:00', 'Two year checkup')
 ) AS growth (microchip_number, metric_type, value, unit, recorded_at, notes)
 JOIN pets ON pets.microchip_number = growth.microchip_number
-ON CONFLICT DO NOTHING;
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM growth_records existing
+  WHERE existing.pet_id = pets.id
+    AND existing.metric_type = growth.metric_type::metric_type_enum
+    AND existing.recorded_at = growth.recorded_at
+    AND existing.value = growth.value
+    AND existing.unit = growth.unit
+);

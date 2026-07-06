@@ -1,8 +1,10 @@
-DROP TYPE IF EXISTS event_type CASCADE;
-
-CREATE TYPE event_type AS ENUM (
-  'vet', 'vaccine', 'grooming', 'medication', 'bath', 'training', 'other'
-);
+DO $$ BEGIN
+  CREATE TYPE event_type AS ENUM (
+    'vet', 'vaccine', 'grooming', 'medication', 'bath', 'training', 'other'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE TABLE IF NOT EXISTS calendar_events (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
