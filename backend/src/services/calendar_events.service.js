@@ -16,11 +16,11 @@ export async function getEventsByUserId(userId) {
 }
 
 export async function createEvent({
-  petId,
+  pet_id,
   userId,
   title,
-  eventDate,
-  eventTime,
+  event_date,
+  event_time,
   type,
   location,
   notes,
@@ -33,7 +33,7 @@ export async function createEvent({
       WHERE id = $1 AND user_id = $8
       RETURNING *
     `,
-    [petId, title, eventDate, eventTime ?? null, type, location ?? null, notes ?? null, userId],
+    [pet_id, title, event_date, event_time ?? null, type, location ?? null, notes ?? null, userId],
   )
 
   return result.rows[0] ?? null

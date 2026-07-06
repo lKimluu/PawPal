@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import petPhoto from '@/assets/images/dog.png'
+import { formatPetBirthday, formatPetGender } from '@/utils/petDisplay.js'
 
 const props = defineProps({
   isOpen: {
@@ -47,6 +48,9 @@ const profileBirthdayInputClass =
   'inline-block h-6 w-[7.5rem] min-w-0 rounded-none border-0 border-b border-transparent bg-transparent px-0 py-0 text-center text-base font-medium leading-6 text-brand-gray outline-none transition hover:border-brand-blue/30 focus:border-brand-blue focus:bg-transparent focus:ring-0 md:text-left'
 const profileSelectClass =
   'block h-6 appearance-none rounded-none border-0 border-b border-transparent bg-transparent px-0 py-0 pr-5 text-base font-medium leading-6 text-brand-gray outline-none transition hover:border-brand-blue/30 focus:border-brand-blue focus:bg-transparent focus:ring-0'
+
+const petGender = computed(() => formatPetGender(props.pet?.gender))
+const petBirthday = computed(() => formatPetBirthday(props.pet?.birthday))
 
 function formatValue(value) {
   if (value === '' || value == null) return '-'
@@ -188,7 +192,7 @@ watch(
               />
 
               <p v-if="!isEditingProfile" :class="profileMetaTextClass">
-                {{ formatValue(pet.gender) }}
+                {{ petGender }}
               </p>
               <select
                 v-else
@@ -203,7 +207,7 @@ watch(
 
               <p v-if="!isEditingProfile" :class="profileMetaTextClass">
                 {{ formatValue(pet.age) }}
-                <span v-if="pet.birthday">（{{ pet.birthday }}）</span>
+                <span v-if="pet.birthday">（{{ petBirthday }}）</span>
               </p>
               <div
                 v-else

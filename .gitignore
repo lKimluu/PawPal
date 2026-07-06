@@ -45,3 +45,5 @@ backend/.env
 
 # Frontend env
 .env
+.spectra/
+openspec/.vector-search.db*

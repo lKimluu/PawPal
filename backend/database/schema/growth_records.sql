@@ -1,13 +1,15 @@
-DROP TYPE IF EXISTS metric_type_enum CASCADE;
-
-CREATE TYPE metric_type_enum AS ENUM (
-  'weight',
-  'length',
-  'water_frequency',
-  'food_intake',
-  'urination',
-  'defecation'
-);
+DO $$ BEGIN
+  CREATE TYPE metric_type_enum AS ENUM (
+    'weight',
+    'length',
+    'water_frequency',
+    'food_intake',
+    'urination',
+    'defecation'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE TABLE IF NOT EXISTS growth_records (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
