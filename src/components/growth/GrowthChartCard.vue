@@ -13,6 +13,7 @@ import {
   Legend,
   Filler,
 } from 'chart.js'
+import { formatLocalMonthDay } from '@/utils/dateFormat.js'
 
 ChartJS.register(
   CategoryScale,
@@ -49,7 +50,7 @@ const displayRecords = computed(() => {
 
   const grouped = {}
   for (const r of props.records) {
-    if (new Date(r.recorded_at.substring(0, 10)) < cutoff) continue
+    if (new Date(r.recorded_at) < cutoff) continue
     if (!grouped[r.metric_type]) grouped[r.metric_type] = []
     grouped[r.metric_type].push(r)
   }
@@ -70,7 +71,7 @@ const displayRecords = computed(() => {
         chartType: meta.type,
         themeColor: meta.color,
         history: sorted.map((r) => ({
-          date: r.recorded_at.substring(5, 10).replace('-', '/'),
+          date: formatLocalMonthDay(r.recorded_at),
           value: Number(r.value),
         })),
       }

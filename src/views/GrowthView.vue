@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useGrowthStore } from '@/stores/growth.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { usePetStore } from '@/stores/petStore.js'
+import { useToastStore } from '@/stores/toast.js'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import PetSwitcher from '@/components/pet/PetSwitcher.vue'
@@ -13,15 +14,19 @@ import GrowthChartCard from '@/components/growth/GrowthChartCard.vue'
 import GrowthRecordModal from '@/components/growth/GrowthRecordModal.vue'
 import GrowthHistoryButton from '@/components/growth/GrowthHistoryButton.vue'
 import GrowthHistoryModal from '@/components/growth/GrowthHistoryModal.vue'
+import DeleteConfirmModal from '@/components/common/DeleteConfirmModal.vue'
 
 const growthStore = useGrowthStore()
 const authStore = useAuthStore()
 const petStore = usePetStore()
 const { pets, selectedPetId } = storeToRefs(petStore)
+const toastStore = useToastStore()
 const activeRange = ref('6 個月')
 
 const isModalOpen = ref(false)
 const isHistoryOpen = ref(false)
+const isDeleteOpen = ref(false)
+const pendingDeleteRecord = ref(null)
 
 onMounted(async () => {
   await petStore.fetchPets()
@@ -49,6 +54,41 @@ const handleSubmit = async (formData) => {
     growthStore.fetchRecords(petStore.selectedPetId, authStore.token)
   }
 }
+
+const handleDeleteRecord = (record) => {
+  pendingDeleteRecord.value = record
+  isDeleteOpen.value = true
+}
+
+const handleConfirmDelete = async () => {
+  if (!pendingDeleteRecord.value) return
+
+  const result = await growthStore.deleteRecord(pendingDeleteRecord.value.id, authStore.token)
+
+  isDeleteOpen.value = false
+  pendingDeleteRecord.value = null
+
+  if (result.success) {
+    toastStore.showToast('紀錄已刪除')
+  } else {
+    toastStore.showToast('刪除失敗，請稍後再試', 'error')
+  }
+}
+
+const deleteItemName = computed(() => {
+  if (!pendingDeleteRecord.value) return ''
+  const labelMap = {
+    weight: '體重',
+    length: '身體長度',
+    food_intake: '每日進食量',
+    water_frequency: '飲水次數',
+    urination: '排尿次數',
+    defecation: '排便次數',
+  }
+  const label =
+    labelMap[pendingDeleteRecord.value.metric_type] ?? pendingDeleteRecord.value.metric_type
+  return `${label} ${pendingDeleteRecord.value.value} ${pendingDeleteRecord.value.unit}`
+})
 </script>
 
 <template>
@@ -84,6 +124,7 @@ const handleSubmit = async (formData) => {
       :is-open="isHistoryOpen"
       :records="growthStore.records"
       @close="isHistoryOpen = false"
+      @delete-record="handleDeleteRecord"
     />
     <GrowthRecordModal
       :is-open="isModalOpen"
@@ -91,6 +132,13 @@ const handleSubmit = async (formData) => {
       :error-message="growthStore.errorMessage"
       @close="isModalOpen = false"
       @submit="handleSubmit"
+    />
+    <DeleteConfirmModal
+      :is-open="isDeleteOpen"
+      title="確定刪除此筆紀錄？"
+      :item-name="deleteItemName"
+      @close="isDeleteOpen = false"
+      @confirm="handleConfirmDelete"
     />
   </div>
 </template>

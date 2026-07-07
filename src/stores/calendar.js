@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import {
   getEvents,
@@ -14,6 +14,19 @@ export const useCalendarStore = defineStore('calendar', () => {
   const events = ref([])
   const isLoading = ref(false)
   const error = ref(null)
+
+  // 'all' = 檢視全部；否則為某隻寵物的 id（number）
+  const selectedPetId = ref('all')
+
+  const filteredEvents = computed(() =>
+    selectedPetId.value === 'all'
+      ? events.value
+      : events.value.filter((e) => e.petId === selectedPetId.value),
+  )
+
+  function setSelectedPet(id) {
+    selectedPetId.value = id
+  }
 
   async function fetchEvents() {
     isLoading.value = true
@@ -87,5 +100,16 @@ export const useCalendarStore = defineStore('calendar', () => {
     }
   }
 
-  return { events, isLoading, error, fetchEvents, addEvent, updateEvent, deleteEvent }
+  return {
+    events,
+    isLoading,
+    error,
+    selectedPetId,
+    filteredEvents,
+    setSelectedPet,
+    fetchEvents,
+    addEvent,
+    updateEvent,
+    deleteEvent,
+  }
 })
