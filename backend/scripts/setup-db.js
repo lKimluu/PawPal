@@ -18,6 +18,8 @@ export const TABLES_IN_ORDER = [
   'medical_records',
   'growth_records',
   'hospitals',
+  'animal_types',
+  'hospital_animal_types',
 ]
 
 export const SEED_FILES_IN_ORDER = [
@@ -26,6 +28,7 @@ export const SEED_FILES_IN_ORDER = [
   'calendar_events',
   'medical_records',
   'growth_records',
+  'animal_types.seed',
 ]
 
 async function runSqlFile(filePath) {
