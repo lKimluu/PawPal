@@ -68,8 +68,6 @@ const profileMetaTextClass = profileReadonlyFieldClass
 const profileMetaInputClass = profileEditableFieldClass
 const profileBirthdayInputClass =
   'inline-block h-6 w-[7.5rem] min-w-0 rounded-none border-0 bg-transparent px-0 py-0 text-center text-base font-medium leading-6 text-brand-gray outline-none focus:ring-0 md:text-left'
-const profileSelectClass =
-  `${profileEditableFieldClass} block appearance-none py-0 pr-5`
 
 const petGender = computed(() => formatPetGender(props.pet?.gender))
 const petBirthday = computed(() => formatPetBirthday(props.pet?.birthday))
