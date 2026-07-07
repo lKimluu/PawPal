@@ -96,7 +96,7 @@ async function saveEdit(record) {
     toastStore.showToast('紀錄已更新')
     editingId.value = null
   } else {
-    toastStore.showToast(result.message || '更新失敗，請稍後再試', 'error')
+    toastStore.showToast('更新失敗，請稍後再試', 'error')
   }
 }
 

@@ -61,7 +61,7 @@ const handleConfirmDelete = async () => {
   if (result.success) {
     toastStore.showToast('紀錄已刪除')
   } else {
-    toastStore.showToast(result.message || '刪除失敗，請稍後再試', 'error')
+    toastStore.showToast('刪除失敗，請稍後再試', 'error')
   }
 }
 
