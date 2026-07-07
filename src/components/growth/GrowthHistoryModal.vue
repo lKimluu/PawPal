@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useGrowthStore } from '@/stores/growth.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { useToastStore } from '@/stores/toast.js'
+import { formatLocalDate } from '@/utils/dateFormat.js'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -67,12 +68,6 @@ const filteredRecords = computed(() => {
 
   return result.sort((a, b) => new Date(b.recorded_at) - new Date(a.recorded_at))
 })
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '-'
-  const [y, m, d] = dateStr.substring(0, 10).split('-')
-  return `${y}-${m}-${d}`
-}
 
 function startEdit(record) {
   editingId.value = record.id
@@ -167,7 +162,9 @@ const handleClose = () => {
                   class="h-3 w-3 shrink-0 rounded-full"
                   :style="{ backgroundColor: METRIC_COLOR_MAP[record.metric_type] ?? '#cbd5e1' }"
                 ></div>
-                <span class="text-sm text-brand-gray">{{ formatDate(record.recorded_at) }}</span>
+                <span class="text-sm text-brand-gray">{{
+                  formatLocalDate(record.recorded_at)
+                }}</span>
               </div>
               <div class="mt-1 flex items-center pl-5">
                 <span class="flex-1 text-sm font-medium text-brand-navy">
@@ -233,7 +230,7 @@ const handleClose = () => {
                 :style="{ backgroundColor: METRIC_COLOR_MAP[record.metric_type] ?? '#cbd5e1' }"
               ></div>
               <span class="w-24 shrink-0 text-sm text-brand-gray">
-                {{ formatDate(record.recorded_at) }}
+                {{ formatLocalDate(record.recorded_at) }}
               </span>
               <span class="flex-1 text-sm font-medium text-brand-navy">
                 {{ METRIC_LABEL_MAP[record.metric_type] ?? record.metric_type }}
