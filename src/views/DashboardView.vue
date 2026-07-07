@@ -15,15 +15,15 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import memberBanner from '@/assets/images/member_banner_dashboard.png'
 import { useAuthStore } from '@/stores/auth.js'
+import { useCalendarStore } from '@/stores/calendar.js'
 import { usePetStore } from '@/stores/petStore.js'
 import { useToastStore } from '@/stores/toast.js'
-import { useCalendarStore } from '@/stores/calendar.js'
 
 const themeColors = ['green', 'orange', 'blue']
 const authStore = useAuthStore()
+const calendarStore = useCalendarStore()
 const petStore = usePetStore()
 const toastStore = useToastStore()
-const calendarStore = useCalendarStore()
 const { pets } = storeToRefs(petStore)
 const selectedPet = ref(null)
 const isPetProfileOpen = ref(false)
