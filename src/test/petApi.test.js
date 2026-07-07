@@ -4,6 +4,7 @@ import { test } from 'node:test'
 
 import {
   buildUpdatePetPayload,
+  createPetRequestData,
   mapPetFromApi,
   mapPetToApi,
   normalizePetFromApi,
@@ -124,6 +125,40 @@ test('resolvePetUpdateErrorMessage returns update-specific messages', () => {
   )
 })
 
+test('createPetRequestData builds multipart FormData when avatarFile is present', async () => {
+  const avatarFile = new Blob(['avatar'], { type: 'image/png' })
+  const request = createPetRequestData({
+    name: 'Momo',
+    species: 'dog',
+    weight: '6.8',
+    neutered: true,
+    avatarFile,
+  })
+
+  assert.ok(request.data instanceof FormData)
+  assert.equal(request.headers['Content-Type'], undefined)
+  assert.equal(request.data.get('name'), 'Momo')
+  assert.equal(request.data.get('species'), 'dog')
+  assert.equal(request.data.get('weight'), '6.8')
+  assert.equal(request.data.get('neutered'), 'true')
+  assert.equal(await request.data.get('avatar').text(), 'avatar')
+})
+
+test('createPetRequestData keeps JSON payload when avatarFile is absent', () => {
+  const request = createPetRequestData({
+    name: 'Momo',
+    species: 'dog',
+    photoUrl: 'https://example.com/momo.png',
+  })
+
+  assert.equal(request.headers['Content-Type'], 'application/json')
+  assert.deepEqual(request.data, {
+    name: 'Momo',
+    species: 'dog',
+    avatar_url: 'https://example.com/momo.png',
+  })
+})
+
 test('Dashboard wires pet store, add pet modal, and update pet modal', () => {
   const dashboardView = readSource('../views/DashboardView.vue')
   const addPetButton = readSource('../components/pet/AddPetButton.vue')
@@ -133,6 +168,7 @@ test('Dashboard wires pet store, add pet modal, and update pet modal', () => {
   assert.match(addPetButton, /defineEmits\(\['click'\]\)/)
   assert.match(addPetButton, /@click="emit\('click'\)"/)
   assert.match(addPetModal, /defineEmits\(\['close', 'submit'\]\)/)
+  assert.match(addPetModal, /avatarFile/)
   assert.match(dashboardView, /usePetStore/)
   assert.match(dashboardView, /AddPetModal/)
   assert.match(dashboardView, /PetProfileModal/)

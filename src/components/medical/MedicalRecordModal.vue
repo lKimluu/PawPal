@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { supabase } from '../../utils/supabase'
 
 const RECORD_TYPES = ['看診', '疫苗', '手術', '用藥', '體檢', '其他']
 
@@ -49,49 +48,10 @@ watch(
 
 const handleClose = () => emit('close')
 
-const uploadImagesToSupabase = async () => {
-  if (!form.value.rawFiles?.length) return []
-  const uploadedUrls = []
-
-  for (const file of form.value.rawFiles) {
-    try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
-
-      const { data, error } = await supabase.storage
-        .from('medical-records')
-        .upload(fileName, file, { cacheControl: '3600', upsert: false })
-
-      if (error) throw error
-
-      const { data: signData, error: signError } = await supabase.storage
-        .from('medical-records')
-        .createSignedUrl(data.path, 60 * 60 * 24 * 365)
-
-      if (signError) throw signError
-      uploadedUrls.push(signData.signedUrl)
-    } catch (err) {
-      console.error('照片上傳發生錯誤:', err)
-    }
-  }
-
-  return uploadedUrls
-}
-
 const handleSubmit = async () => {
-  let newUploadedUrls = []
-  try {
-    newUploadedUrls = await uploadImagesToSupabase()
-  } catch (error) {
-    console.error('照片上傳防禦:', error)
-  }
-
   const remainingOldUrls = Array.isArray(form.value.imageUrl)
     ? form.value.imageUrl.filter((url) => typeof url === 'string' && url.startsWith('http'))
     : []
-
-  form.value.imageUrl = [...remainingOldUrls, ...newUploadedUrls]
-  form.value.rawFiles = []
 
   const dateObj =
     form.value.recordDate instanceof Date ? form.value.recordDate : new Date(form.value.recordDate)
@@ -103,6 +63,8 @@ const handleSubmit = async () => {
     mode: isEditMode.value ? 'edit' : 'create',
     data: {
       ...form.value,
+      imageUrl: remainingOldUrls,
+      rawFiles: form.value.rawFiles,
       recordDate: formattedDate,
     },
   })
@@ -124,11 +86,17 @@ const handleFileChange = (event) => {
 }
 
 const removeImage = (index) => {
-  if (form.value.imageUrl[index].startsWith('blob:')) {
-    URL.revokeObjectURL(form.value.imageUrl[index])
+  const removedUrl = form.value.imageUrl[index]
+  if (removedUrl?.startsWith('blob:')) {
+    URL.revokeObjectURL(removedUrl)
+    const blobIndex = form.value.imageUrl
+      .slice(0, index + 1)
+      .filter((url) => typeof url === 'string' && url.startsWith('blob:')).length - 1
+    if (blobIndex >= 0) {
+      form.value.rawFiles.splice(blobIndex, 1)
+    }
   }
   form.value.imageUrl.splice(index, 1)
-  form.value.rawFiles.splice(index, 1)
 }
 </script>
 
