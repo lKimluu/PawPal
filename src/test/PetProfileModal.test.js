@@ -24,6 +24,11 @@ test('PetCard 會發出 click 事件讓父層開啟寵物資料彈窗', () => {
   assert.match(petCard, /@click="emit\('click'\)"/)
 })
 
+test('PetCard 會用 birthday 計算 Dashboard 年齡顯示', () => {
+  assert.match(petCard, /formatPetAge/)
+  assert.match(petCard, /props\.pet\?\.birthday/)
+})
+
 test('PetProfileModal 會顯示寵物詳細資料並使用 BaseButton 關閉', () => {
   assert.match(profileModal, /petPhoto/)
   assert.match(profileModal, /petImage/)
