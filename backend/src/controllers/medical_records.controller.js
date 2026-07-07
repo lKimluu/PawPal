@@ -7,6 +7,8 @@ import {
   updateRecord as updateRecordService,
   deleteRecord as deleteRecordService,
 } from '../services/medical_records.service.js'
+import { uploadImages as defaultUploadImages } from '../services/image_upload.service.js'
+import { MEDICAL_IMAGE_UPLOAD_INTENT_FIELD } from '../middlewares/upload_image.js'
 
 function getUserId(req) {
   const userId = req.userId || req.user?.id
@@ -28,40 +30,62 @@ function parseId(id) {
   return parsed
 }
 
+function hasUploadedFiles(req) {
+  return (req.files ?? []).length > 0
+}
+
+function stripInternalMedicalFields(recordData) {
+  const { [MEDICAL_IMAGE_UPLOAD_INTENT_FIELD]: _imageUploadIntent, ...publicRecordData } =
+    recordData
+  return publicRecordData
+}
+
+async function appendUploadedMedicalImages(req, uploadImages) {
+  if (!hasUploadedFiles(req)) return
+
+  const urls = await uploadImages(req.files)
+  if (urls.length !== req.files.length) {
+    const error = new Error('圖片上傳失敗，請稍後再試')
+    error.status = 502
+    throw error
+  }
+  const existingValue = req.body.image_url
+  const existingUrls = Array.isArray(existingValue)
+    ? existingValue
+    : typeof existingValue === 'string' && existingValue.trim()
+      ? [existingValue]
+      : []
+
+  req.body.image_url = [...existingUrls, ...urls]
+}
+
 export function createAddRecord({
   checkPetOwnership: injectCheckPetOwnership,
   createRecord: injectCreateRecord,
+  uploadImages: injectUploadImages = defaultUploadImages,
 }) {
   return async function addRecord(req, res) {
     try {
       const userId = getUserId(req)
-      const {
-        pet_id,
-        record_type,
-        hospital_name,
-        title,
-        record_date,
-        symptoms,
-        diagnosis,
-        prescription,
-        image_url,
-      } = req.body
+      const { pet_id } = req.body
 
       const isOwner = await injectCheckPetOwnership(pet_id, userId)
       if (!isOwner) {
         return res.status(404).json({ message: '找不到該寵物資訊' })
       }
 
+      await appendUploadedMedicalImages(req, injectUploadImages)
+      const recordData = stripInternalMedicalFields(req.body)
       const newRecord = await injectCreateRecord({
-        pet_id,
-        record_type,
-        hospital_name: hospital_name || null,
-        title,
-        record_date,
-        symptoms: symptoms || null,
-        diagnosis: diagnosis || null,
-        prescription: prescription || null,
-        image_url: image_url || [],
+        pet_id: recordData.pet_id,
+        record_type: recordData.record_type,
+        hospital_name: recordData.hospital_name || null,
+        title: recordData.title,
+        record_date: recordData.record_date,
+        symptoms: recordData.symptoms || null,
+        diagnosis: recordData.diagnosis || null,
+        prescription: recordData.prescription || null,
+        image_url: recordData.image_url || [],
       })
 
       return res.status(201).json({ message: '新增醫療紀錄成功', data: newRecord })
@@ -76,6 +100,7 @@ export function createAddRecord({
 export const addRecord = createAddRecord({
   checkPetOwnership: checkPetOwnershipService,
   createRecord: createRecordService,
+  uploadImages: defaultUploadImages,
 })
 
 export function createGetAllRecords({ findAllRecordsByUserId: injectFindAllRecordsByUserId }) {
@@ -154,6 +179,7 @@ export function createUpdateRecord({
   findRecordById: injectFindRecordById,
   checkPetOwnership: injectCheckPetOwnership,
   updateRecord: injectUpdateRecord,
+  uploadImages: injectUploadImages = defaultUploadImages,
 }) {
   return async function updateRecord(req, res) {
     try {
@@ -174,7 +200,9 @@ export function createUpdateRecord({
         }
       }
 
-      const updated = await injectUpdateRecord(parsedId, updateData)
+      await appendUploadedMedicalImages(req, injectUploadImages)
+      const sanitizedUpdateData = stripInternalMedicalFields(req.body)
+      const updated = await injectUpdateRecord(parsedId, sanitizedUpdateData)
       return res.status(200).json({ message: '更新醫療紀錄成功', data: updated })
     } catch (error) {
       console.error(error.stack)
@@ -188,6 +216,7 @@ export const updateRecord = createUpdateRecord({
   findRecordById: findRecordByIdService,
   checkPetOwnership: checkPetOwnershipService,
   updateRecord: updateRecordService,
+  uploadImages: defaultUploadImages,
 })
 
 export function createDeleteRecord({

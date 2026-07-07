@@ -1,9 +1,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { pets as rawPets } from '@/data/pets'
+import { storeToRefs } from 'pinia'
 import PetCard from '@/components/pet/PetCard.vue'
 import PetProfileModal from '@/components/pet/PetProfileModal.vue'
 import AddPetButton from '@/components/pet/AddPetButton.vue'
+import AddPetModal from '@/components/pet/AddPetModal.vue'
 import CalendarGrid from '@/components/calendar/CalendarGrid.vue'
 import EventList from '@/components/calendar/EventList.vue'
 import AddEventModal from '@/components/calendar/AddEventModal.vue'
@@ -15,14 +16,20 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import memberBanner from '@/assets/images/member_banner_dashboard.png'
 import { useAuthStore } from '@/stores/auth.js'
 import { useCalendarStore } from '@/stores/calendar.js'
+import { usePetStore } from '@/stores/petStore.js'
+import { useToastStore } from '@/stores/toast.js'
 
 const themeColors = ['green', 'orange', 'blue']
 const authStore = useAuthStore()
 const calendarStore = useCalendarStore()
-
-onMounted(() => calendarStore.fetchEvents())
+const petStore = usePetStore()
+const toastStore = useToastStore()
+const { pets } = storeToRefs(petStore)
 const selectedPet = ref(null)
 const isPetProfileOpen = ref(false)
+const isAddPetModalOpen = ref(false)
+const isCreatingPet = ref(false)
+const addPetErrorMessage = ref('')
 
 const showAddModal = ref(false)
 const addModalDate = ref('')
@@ -90,13 +97,21 @@ const handleEditDelete = (event) => {
   handleDeleteRequest(event)
 }
 
-const dashboardPets = rawPets.map((p) => ({
+const dashboardPets = computed(() => pets.value.map((p) => ({
   ...p,
   image: p.photoUrl ?? null,
   ageUnit: '',
-}))
+})))
 
 const userName = computed(() => authStore.user?.name || '寵物家長')
+
+onMounted(() => {
+  calendarStore.fetchEvents()
+
+  if (authStore.isLoggedIn) {
+    petStore.fetchPets()
+  }
+})
 
 const showDeleteModal = ref(false)
 const eventToDelete = ref(null)
@@ -126,6 +141,36 @@ const openPetProfile = (pet) => {
 const closePetProfile = () => {
   isPetProfileOpen.value = false
   selectedPet.value = null
+}
+
+const openAddPetModal = () => {
+  addPetErrorMessage.value = ''
+  isAddPetModalOpen.value = true
+}
+
+const closeAddPetModal = () => {
+  if (!isCreatingPet.value) {
+    isAddPetModalOpen.value = false
+    addPetErrorMessage.value = ''
+  }
+}
+
+const handleCreatePet = async (payload) => {
+  isCreatingPet.value = true
+  addPetErrorMessage.value = ''
+
+  const result = await petStore.createPet(payload)
+
+  isCreatingPet.value = false
+
+  if (result.success) {
+    isAddPetModalOpen.value = false
+    toastStore.showToast(result.message || '寵物資料新增成功')
+    return
+  }
+
+  addPetErrorMessage.value = result.message || '寵物資料新增失敗，請稍後再試'
+  toastStore.showToast(addPetErrorMessage.value, 'error')
 }
 </script>
 
@@ -174,7 +219,7 @@ const closePetProfile = () => {
           <div
             class="flex flex-col md:flex-row gap-3 md:gap-4 overflow-y-auto max-h-[360px] md:overflow-y-hidden md:overflow-x-auto md:max-h-none pb-2"
           >
-            <AddPetButton class="md:min-w-[132px] md:flex-1" />
+            <AddPetButton class="md:min-w-[132px] md:flex-1" @click="openAddPetModal" />
             <PetCard
               v-for="(pet, index) in dashboardPets"
               :key="pet.id"
@@ -224,5 +269,12 @@ const closePetProfile = () => {
     :is-open="isPetProfileOpen"
     :pet="selectedPet"
     @close="closePetProfile"
+  />
+  <AddPetModal
+    :is-open="isAddPetModalOpen"
+    :is-loading="isCreatingPet"
+    :error-message="addPetErrorMessage"
+    @close="closeAddPetModal"
+    @submit="handleCreatePet"
   />
 </template>
