@@ -16,6 +16,7 @@ import GrowthHistoryModal from '@/components/growth/GrowthHistoryModal.vue'
 const growthStore = useGrowthStore()
 const authStore = useAuthStore()
 const petStore = usePetStore()
+const activeRange = ref('6 個月')
 
 const isModalOpen = ref(false)
 onMounted(() => {
@@ -37,16 +38,6 @@ const handleSubmit = async (formData) => {
   }
 }
 const isHistoryOpen = ref(false)
-
-const mockHistoryRecords = [
-  { id: 1, metric_type: 'weight', value: 5.2, unit: 'kg', recorded_at: '2026-07-01' },
-  { id: 2, metric_type: 'length', value: 20, unit: 'cm', recorded_at: '2026-07-01' },
-  { id: 3, metric_type: 'food_intake', value: 120, unit: 'g', recorded_at: '2026-07-02' },
-  { id: 4, metric_type: 'water_frequency', value: 4, unit: '次', recorded_at: '2026-07-02' },
-  { id: 5, metric_type: 'urination', value: 3, unit: '次', recorded_at: '2026-07-03' },
-  { id: 6, metric_type: 'defecation', value: 1, unit: '次', recorded_at: '2026-07-03' },
-  { id: 7, metric_type: 'weight', value: 5.3, unit: 'kg', recorded_at: '2026-07-04' },
-]
 </script>
 
 <template>
@@ -67,10 +58,10 @@ const mockHistoryRecords = [
             class="overflow-hidden rounded-3xl border border-brand-lightblue bg-brand-white shadow-[0_8px_28px_rgba(61,74,122,0.08)]"
           >
             <div class="border-b border-brand-lightblue bg-brand-lightblue px-2 py-1 md:px-8">
-              <GrowthRangeTabs />
+              <GrowthRangeTabs @change="activeRange = $event" />
             </div>
             <div class="py-3 md:py-6">
-              <GrowthChartCard />
+              <GrowthChartCard :records="growthStore.records" :range="activeRange" />
             </div>
           </div>
         </section>
@@ -80,7 +71,7 @@ const mockHistoryRecords = [
 
     <GrowthHistoryModal
       :is-open="isHistoryOpen"
-      :records="mockHistoryRecords"
+      :records="growthStore.records"
       @close="isHistoryOpen = false"
     />
     <GrowthRecordModal

@@ -1,8 +1,15 @@
 <script setup>
 import { ref } from 'vue'
 
+const emit = defineEmits(['change'])
+
 const ranges = ['3 個月', '6 個月', '1 年']
 const activeRange = ref('6 個月')
+
+function selectRange(range) {
+  activeRange.value = range
+  emit('change', range)
+}
 </script>
 
 <template>
@@ -19,7 +26,7 @@ const activeRange = ref('6 個月')
           ? 'bg-brand-blue text-brand-white shadow-[0_8px_18px_rgba(146,168,245,0.36)]'
           : 'bg-brand-white text-brand-gray hover:text-brand-blue'
       "
-      @click="activeRange = range"
+      @click="selectRange(range)"
     >
       {{ range }}
     </button>
