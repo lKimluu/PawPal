@@ -1,41 +1,53 @@
 import assert from 'node:assert/strict'
+import { existsSync, readFileSync } from 'node:fs'
 import { test } from 'node:test'
 
-import { buildUpdatePetPayload, normalizePetFromApi, resolvePetUpdateErrorMessage } from '../api/pet.js'
+import {
+  buildUpdatePetPayload,
+  mapPetFromApi,
+  mapPetToApi,
+  normalizePetFromApi,
+  resolvePetUpdateErrorMessage,
+} from '../api/pet.js'
 
-test('buildUpdatePetPayload 會將寵物表單 camelCase 欄位轉成後端 snake_case 欄位', () => {
-  const payload = buildUpdatePetPayload({
-    name: 'Momo',
+function readSource(path) {
+  const url = new URL(path, import.meta.url)
+  return existsSync(url) ? readFileSync(url, 'utf8') : ''
+}
+
+test('mapPetToApi maps pet form fields to API schema', () => {
+  const payload = mapPetToApi({
+    name: ' Momo ',
     species: 'dog',
-    breed: 'mix',
+    breed: 'Shiba',
     gender: 'female',
-    birthday: '2026-07-06',
-    weight: '4.2',
+    birthday: '2024-01-02',
+    weight: '6.8',
     microchipNumber: '900215000123456',
     neutered: true,
     bloodType: 'DEA 1.1',
-    furColor: 'black',
-    note: 'likes walks',
+    furColor: 'brown',
+    note: 'friendly',
     photoUrl: 'https://example.com/momo.png',
   })
 
   assert.deepEqual(payload, {
     name: 'Momo',
     species: 'dog',
-    breed: 'mix',
+    breed: 'Shiba',
     gender: 'female',
-    birthday: '2026-07-06',
-    weight: 4.2,
+    birthday: '2024-01-02',
+    weight: 6.8,
     microchip_number: '900215000123456',
     neutered: true,
     blood_type: 'DEA 1.1',
-    fur_color: 'black',
-    notes: 'likes walks',
+    fur_color: 'brown',
+    notes: 'friendly',
     avatar_url: 'https://example.com/momo.png',
   })
 })
 
-test('buildUpdatePetPayload 會移除空白選填值，但保留 false 與 0', () => {
+test('buildUpdatePetPayload skips empty fields and preserves false and zero', () => {
   const payload = buildUpdatePetPayload({
     name: 'Momo',
     species: 'dog',
@@ -55,7 +67,27 @@ test('buildUpdatePetPayload 會移除空白選填值，但保留 false 與 0', (
   })
 })
 
-test('normalizePetFromApi 會將後端寵物資料欄位轉成前端 camelCase 欄位', () => {
+test('mapPetFromApi maps API pet fields back to frontend schema', () => {
+  const pet = mapPetFromApi({
+    id: 7,
+    name: 'Momo',
+    species: 'dog',
+    microchip_number: '900215000123456',
+    blood_type: 'DEA 1.1',
+    fur_color: 'brown',
+    notes: 'friendly',
+    avatar_url: 'https://example.com/momo.png',
+  })
+
+  assert.equal(pet.microchipNumber, '900215000123456')
+  assert.equal(pet.bloodType, 'DEA 1.1')
+  assert.equal(pet.furColor, 'brown')
+  assert.equal(pet.note, 'friendly')
+  assert.equal(pet.photoUrl, 'https://example.com/momo.png')
+  assert.equal(pet.image, 'https://example.com/momo.png')
+})
+
+test('normalizePetFromApi remains compatible with update pet call sites', () => {
   const pet = normalizePetFromApi({
     id: 1,
     name: 'Momo',
@@ -66,37 +98,49 @@ test('normalizePetFromApi 會將後端寵物資料欄位轉成前端 camelCase �
     avatar_url: 'https://example.com/momo.png',
   })
 
-  assert.deepEqual(pet, {
-    id: 1,
-    name: 'Momo',
-    microchip_number: '900215000123456',
-    blood_type: 'DEA 1.1',
-    fur_color: 'black',
-    notes: 'likes walks',
-    avatar_url: 'https://example.com/momo.png',
-    microchipNumber: '900215000123456',
-    bloodType: 'DEA 1.1',
-    furColor: 'black',
-    note: 'likes walks',
-    photoUrl: 'https://example.com/momo.png',
-  })
+  assert.equal(pet.microchipNumber, '900215000123456')
+  assert.equal(pet.bloodType, 'DEA 1.1')
+  assert.equal(pet.furColor, 'black')
+  assert.equal(pet.note, 'likes walks')
+  assert.equal(pet.photoUrl, 'https://example.com/momo.png')
 })
 
-test('resolvePetUpdateErrorMessage 會將常見修改寵物錯誤轉成繁體中文提示', () => {
+test('resolvePetUpdateErrorMessage returns update-specific messages', () => {
   assert.equal(
-    resolvePetUpdateErrorMessage({ response: { status: 400 } }),
+    resolvePetUpdateErrorMessage({ response: { status: 400, data: {} } }),
     '寵物資料格式不正確，請檢查必填欄位與體重格式',
   )
   assert.equal(
-    resolvePetUpdateErrorMessage({ response: { status: 404 } }),
+    resolvePetUpdateErrorMessage({ response: { status: 404, data: {} } }),
     '找不到這隻寵物，請重新整理後再試',
   )
   assert.equal(
-    resolvePetUpdateErrorMessage({ response: { status: 409 } }),
+    resolvePetUpdateErrorMessage({ response: { status: 409, data: {} } }),
     '晶片號碼已被使用，請確認後再送出',
   )
   assert.equal(
     resolvePetUpdateErrorMessage({ request: {} }),
     '無法連線到伺服器，請確認後端服務是否已啟動',
   )
+})
+
+test('Dashboard wires pet store, add pet modal, and update pet modal', () => {
+  const dashboardView = readSource('../views/DashboardView.vue')
+  const addPetButton = readSource('../components/pet/AddPetButton.vue')
+  const addPetModal = readSource('../components/pet/AddPetModal.vue')
+  const petStore = readSource('../stores/petStore.js')
+
+  assert.match(addPetButton, /defineEmits\(\['click'\]\)/)
+  assert.match(addPetButton, /@click="emit\('click'\)"/)
+  assert.match(addPetModal, /defineEmits\(\['close', 'submit'\]\)/)
+  assert.match(dashboardView, /usePetStore/)
+  assert.match(dashboardView, /AddPetModal/)
+  assert.match(dashboardView, /PetProfileModal/)
+  assert.match(dashboardView, /@click="openAddPetModal"/)
+  assert.match(dashboardView, /@submit="handleCreatePet"/)
+  assert.match(dashboardView, /@update="handlePetUpdate"/)
+  assert.match(petStore, /createPetApi/)
+  assert.match(petStore, /updatePetApi/)
+  assert.match(petStore, /async function createPet/)
+  assert.match(petStore, /async function updatePet/)
 })

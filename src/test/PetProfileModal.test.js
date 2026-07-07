@@ -45,7 +45,7 @@ test('PetProfileModal 會提供編輯模式並交由 Dashboard 呼叫 updatePet'
   assert.match(profileModal, /v-model="form\.furColor"/)
   assert.match(profileModal, /v-model="form\.photoUrl"/)
   assert.match(profileModal, /v-model="form\.note"/)
-  assert.match(dashboardView, /import \{ updatePet \} from '@\/api\/pet\.js'/)
+  assert.match(dashboardView, /petStore\.updatePet/)
   assert.match(dashboardView, /handlePetUpdate/)
   assert.match(dashboardView, /@update="handlePetUpdate"/)
 })

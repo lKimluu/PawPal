@@ -1,15 +1,20 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
-defineProps({
+const props = defineProps({
   isOpen: { type: Boolean, default: false },
+  isLoading: { type: Boolean, default: false },
+  errorMessage: { type: String, default: '' },
   title: { type: String, default: '新增寵物' },
   subtitle: { type: String, default: '請填寫寵物基本資料' },
 })
 
 const emit = defineEmits(['close', 'submit'])
 
-const form = ref({
+const validationError = ref('')
+const fileInputRef = ref(null)
+
+const createDefaultForm = () => ({
   name: '',
   species: '',
   customSpecies: '',
@@ -17,39 +22,26 @@ const form = ref({
   gender: '',
   birthday: '',
   weight: '',
-  microchip_number: '',
+  microchipNumber: '',
   neutered: false,
-  blood_type: '',
-  fur_color: '',
-  notes: '',
-  avatar_url: '',
+  bloodType: '',
+  furColor: '',
+  note: '',
+  photoUrl: '',
   photo_files: [],
 })
 
+const form = ref(createDefaultForm())
+
 const speciesOptions = ['狗', '貓', '其他']
 const genderOptions = ['公', '母', '未知']
-const fileInputRef = ref(null)
 
 const inputClass =
-  'w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-brand-darkgray placeholder-brand-gray/40 outline-none transition duration-200 hover:border-brand-blue hover:bg-brand-blue/5 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-blue/10'
+  'w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-brand-darkgray placeholder-brand-gray/40 outline-none transition duration-200 hover:border-brand-blue hover:bg-brand-blue/5 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-blue/10 disabled:cursor-not-allowed disabled:opacity-60'
 
 const resetForm = () => {
-  form.value = {
-    name: '',
-    species: '',
-    customSpecies: '',
-    breed: '',
-    gender: '',
-    birthday: '',
-    weight: '',
-    microchip_number: '',
-    neutered: false,
-    blood_type: '',
-    fur_color: '',
-    notes: '',
-    avatar_url: '',
-    photo_files: [],
-  }
+  form.value = createDefaultForm()
+  validationError.value = ''
 }
 
 const normalizeOptionalValue = (value) => {
@@ -67,8 +59,25 @@ const handleClose = () => {
 }
 
 const handleSubmit = () => {
+  validationError.value = ''
+
   const submittedSpecies =
     form.value.species === '其他' ? form.value.customSpecies.trim() : form.value.species.trim()
+
+  if (!form.value.name.trim()) {
+    validationError.value = '請填寫寵物名稱'
+    return
+  }
+
+  if (!submittedSpecies) {
+    validationError.value = '請填寫寵物種類'
+    return
+  }
+
+  if (form.value.weight !== '' && Number(form.value.weight) < 0) {
+    validationError.value = '體重不可小於 0'
+    return
+  }
 
   const payload = {
     name: form.value.name.trim(),
@@ -77,19 +86,22 @@ const handleSubmit = () => {
     gender: normalizeOptionalValue(form.value.gender),
     birthday: normalizeOptionalValue(form.value.birthday),
     weight: form.value.weight === '' ? undefined : Number(form.value.weight),
-    microchip_number: normalizeOptionalValue(form.value.microchip_number),
+    microchipNumber: normalizeOptionalValue(form.value.microchipNumber),
     neutered: form.value.neutered,
-    blood_type: normalizeOptionalValue(form.value.blood_type),
-    fur_color: normalizeOptionalValue(form.value.fur_color),
-    notes: normalizeOptionalValue(form.value.notes),
-    avatar_url: normalizeOptionalValue(form.value.avatar_url),
+    bloodType: normalizeOptionalValue(form.value.bloodType),
+    furColor: normalizeOptionalValue(form.value.furColor),
+    note: normalizeOptionalValue(form.value.note),
+    photoUrl: normalizeOptionalValue(form.value.photoUrl),
   }
 
   emit('submit', payload)
-  resetForm()
 }
 
-const triggerFileInput = () => fileInputRef.value?.click()
+const triggerFileInput = () => {
+  if (!props.isLoading) {
+    fileInputRef.value?.click()
+  }
+}
 
 const setPhotoFiles = (files) => {
   form.value.photo_files = Array.from(files ?? [])
@@ -100,8 +112,19 @@ const handleFileChange = (event) => {
 }
 
 const handleDrop = (event) => {
-  setPhotoFiles(event.dataTransfer?.files)
+  if (!props.isLoading) {
+    setPhotoFiles(event.dataTransfer?.files)
+  }
 }
+
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (!isOpen) {
+      resetForm()
+    }
+  },
+)
 </script>
 
 <template>
@@ -111,10 +134,10 @@ const handleDrop = (event) => {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       @click.self="handleClose"
     >
-      <div
-        class="modal-card relative flex max-h-[90vh] w-full max-w-2xl flex-col gap-6 overflow-hidden rounded-3xl bg-white pt-6 pb-6 pl-6 pr-2 shadow-2xl md:pt-8 md:pb-8 md:pr-2 md:pl-8"
+      <section
+        class="modal-card relative flex max-h-[90vh] w-full max-w-2xl flex-col gap-6 overflow-hidden rounded-3xl bg-white pt-6 pb-6 pl-6 pr-2 text-brand-navy shadow-2xl md:pt-8 md:pb-8 md:pl-8 md:pr-2"
       >
-        <div class="flex items-start justify-between gap-4">
+        <div class="flex items-start justify-between gap-4 pr-4 md:pr-6">
           <div class="flex flex-col gap-1">
             <h2 class="text-2xl font-bold tracking-wide text-brand-navy">{{ title }}</h2>
             <span v-if="subtitle" class="pt-1 text-xs text-brand-gray">{{ subtitle }}</span>
@@ -122,18 +145,23 @@ const handleDrop = (event) => {
 
           <button
             type="button"
-            class="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-lg text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95"
+            class="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-lg text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="關閉"
+            :disabled="isLoading"
             @click="handleClose"
           >
-            ⨉
+            x
           </button>
         </div>
 
-           <form
-          @submit.prevent="handleSubmit"
-          class="flex min-h-0 flex-col gap-5 overflow-y-auto pr-4 md:pr-6"
-        >
+        <form class="flex min-h-0 flex-col gap-5 overflow-y-auto pr-4 md:pr-6" @submit.prevent="handleSubmit">
+          <p
+            v-if="validationError || errorMessage"
+            class="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600"
+          >
+            {{ validationError || errorMessage }}
+          </p>
+
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div class="flex flex-col gap-2">
               <label class="text-base font-bold text-brand-navy">
@@ -145,6 +173,7 @@ const handleDrop = (event) => {
                 type="text"
                 placeholder="請輸入寵物名稱"
                 :class="inputClass"
+                :disabled="isLoading"
                 required
               />
             </div>
@@ -154,7 +183,7 @@ const handleDrop = (event) => {
                 種類
                 <span class="font-normal text-red-600">*</span>
               </label>
-              <select v-model="form.species" :class="inputClass" required>
+              <select v-model="form.species" :class="inputClass" :disabled="isLoading" required>
                 <option value="" disabled>請選擇種類</option>
                 <option v-for="species in speciesOptions" :key="species" :value="species">
                   {{ species }}
@@ -167,6 +196,7 @@ const handleDrop = (event) => {
                 maxlength="50"
                 placeholder="請輸入寵物種類"
                 :class="inputClass"
+                :disabled="isLoading"
                 required
               />
             </div>
@@ -178,12 +208,13 @@ const handleDrop = (event) => {
                 type="text"
                 placeholder="例如：傑克羅素"
                 :class="inputClass"
+                :disabled="isLoading"
               />
             </div>
 
             <div class="flex flex-col gap-2">
               <label class="text-base font-bold text-brand-navy">性別</label>
-              <select v-model="form.gender" :class="inputClass">
+              <select v-model="form.gender" :class="inputClass" :disabled="isLoading">
                 <option value="">請選擇性別</option>
                 <option v-for="gender in genderOptions" :key="gender" :value="gender">
                   {{ gender }}
@@ -193,7 +224,7 @@ const handleDrop = (event) => {
 
             <div class="flex flex-col gap-2">
               <label class="text-base font-bold text-brand-navy">生日</label>
-              <input v-model="form.birthday" type="date" :class="inputClass" />
+              <input v-model="form.birthday" type="date" :class="inputClass" :disabled="isLoading" />
             </div>
 
             <div class="flex flex-col gap-2">
@@ -206,6 +237,7 @@ const handleDrop = (event) => {
                   step="0.01"
                   placeholder="例如：12"
                   :class="`${inputClass} pr-12`"
+                  :disabled="isLoading"
                 />
                 <span
                   class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-brand-gray"
@@ -218,30 +250,44 @@ const handleDrop = (event) => {
             <div class="flex flex-col gap-2">
               <label class="text-base font-bold text-brand-navy">晶片號碼</label>
               <input
-                v-model="form.microchip_number"
+                v-model="form.microchipNumber"
                 type="text"
                 placeholder="請輸入晶片號碼"
                 :class="inputClass"
+                :disabled="isLoading"
               />
             </div>
 
             <div class="flex flex-col gap-2">
               <label class="text-base font-bold text-brand-navy">血型</label>
               <input
-                v-model="form.blood_type"
+                v-model="form.bloodType"
                 type="text"
                 placeholder="例如：DEA 1.1"
                 :class="inputClass"
+                :disabled="isLoading"
               />
             </div>
 
             <div class="flex flex-col gap-2">
               <label class="text-base font-bold text-brand-navy">毛色</label>
               <input
-                v-model="form.fur_color"
+                v-model="form.furColor"
                 type="text"
                 placeholder="例如：黑色"
                 :class="inputClass"
+                :disabled="isLoading"
+              />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-base font-bold text-brand-navy">照片網址</label>
+              <input
+                v-model="form.photoUrl"
+                type="url"
+                placeholder="https://..."
+                :class="inputClass"
+                :disabled="isLoading"
               />
             </div>
 
@@ -249,11 +295,13 @@ const handleDrop = (event) => {
               <label class="text-base font-bold text-brand-navy">結紮狀態</label>
               <label
                 class="flex h-full min-h-[46px] cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-brand-darkgray transition duration-200 hover:border-brand-blue hover:bg-brand-blue/5"
+                :class="{ 'cursor-not-allowed opacity-60': isLoading }"
               >
                 <input
                   v-model="form.neutered"
                   type="checkbox"
                   class="h-4 w-4 accent-brand-blue"
+                  :disabled="isLoading"
                 />
                 已結紮
               </label>
@@ -261,20 +309,19 @@ const handleDrop = (event) => {
           </div>
 
           <div class="flex flex-col gap-2">
-            <label class="text-base font-bold text-brand-navy">
-              上傳寵物大頭貼
-              <span class="text-xs font-normal text-brand-gray/50"></span>
-            </label>
+            <label class="text-base font-bold text-brand-navy">上傳寵物大頭貼</label>
             <input
               ref="fileInputRef"
               type="file"
               multiple
               accept="image/*"
               class="hidden"
+              :disabled="isLoading"
               @change="handleFileChange"
             />
             <div
               class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-blue/30 bg-brand-blue/5 py-5 transition duration-200 hover:border-brand-blue hover:bg-brand-blue/10"
+              :class="{ 'cursor-not-allowed opacity-60': isLoading }"
               @click="triggerFileInput"
               @dragover.prevent
               @drop.prevent="handleDrop"
@@ -299,30 +346,33 @@ const handleDrop = (event) => {
           <div class="flex flex-col gap-2">
             <label class="text-base font-bold text-brand-navy">備註</label>
             <textarea
-              v-model="form.notes"
+              v-model="form.note"
               rows="3"
               placeholder="請輸入生活習慣、注意事項或其他備註"
               :class="`${inputClass} resize-none`"
+              :disabled="isLoading"
             ></textarea>
           </div>
 
           <div class="mt-4 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
             <button
               type="button"
-              class="cursor-pointer rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-500 transition duration-200 hover:bg-slate-100 hover:text-slate-700 active:scale-95"
+              class="cursor-pointer rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-500 transition duration-200 hover:bg-slate-100 hover:text-slate-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="isLoading"
               @click="handleClose"
             >
               取消
             </button>
             <button
               type="submit"
-              class="cursor-pointer rounded-xl bg-brand-blue px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-blue/20 transition duration-200 hover:bg-[#7b94ee] hover:shadow-lg active:scale-95"
+              class="cursor-pointer rounded-xl bg-brand-blue px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-blue/20 transition duration-200 hover:bg-[#7b94ee] hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="isLoading"
             >
-              新增寵物
+              {{ isLoading ? '送出中...' : '新增寵物' }}
             </button>
           </div>
         </form>
-      </div>
+      </section>
     </div>
   </Transition>
 </template>

@@ -24,7 +24,7 @@ export const useGrowthStore = defineStore('growth', () => {
     const result = await getGrowthRecords(petId, token)
 
     if (result.success) {
-      records.value = result.data.data ?? []
+      records.value = result.data.records ?? []
     } else {
       errorMessage.value = result.message
     }
