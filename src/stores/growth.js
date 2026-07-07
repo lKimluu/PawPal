@@ -1,6 +1,11 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { getGrowthRecords, createGrowthRecord } from '@/api/growth.js'
+import {
+  getGrowthRecords,
+  createGrowthRecord,
+  updateGrowthRecord,
+  deleteGrowthRecord,
+} from '@/api/growth.js'
 
 const UNIT_MAP = {
   weight: 'kg',
@@ -24,7 +29,7 @@ export const useGrowthStore = defineStore('growth', () => {
     const result = await getGrowthRecords(petId, token)
 
     if (result.success) {
-      records.value = result.data.data ?? []
+      records.value = result.data.records ?? []
     } else {
       errorMessage.value = result.message
     }
@@ -37,7 +42,6 @@ export const useGrowthStore = defineStore('growth', () => {
     errorMessage.value = null
 
     const { recordDate, ...metrics } = formData
-
     const entries = Object.entries(metrics).filter(([, value]) => value !== null)
 
     const results = await Promise.all(
@@ -61,8 +65,26 @@ export const useGrowthStore = defineStore('growth', () => {
     }
 
     isSubmitting.value = false
-
     return results
+  }
+
+  async function updateRecord(id, value, token) {
+    const result = await updateGrowthRecord(id, value, token)
+    if (result.success) {
+      const index = records.value.findIndex((r) => r.id === id)
+      if (index !== -1) {
+        records.value[index] = { ...records.value[index], value }
+      }
+    }
+    return result
+  }
+
+  async function deleteRecord(id, token) {
+    const result = await deleteGrowthRecord(id, token)
+    if (result.success) {
+      records.value = records.value.filter((r) => r.id !== id)
+    }
+    return result
   }
 
   return {
@@ -72,5 +94,7 @@ export const useGrowthStore = defineStore('growth', () => {
     errorMessage,
     fetchRecords,
     createRecordsFrom,
+    updateRecord,
+    deleteRecord,
   }
 })

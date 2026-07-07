@@ -50,11 +50,14 @@ export async function createGrowthRecord({
 export async function updateGrowthRecord(userId, id, { value, unit, recordedAt, notes }) {
   const result = await pool.query(
     `UPDATE growth_records gr
-     SET value = $3, unit = $4, recorded_at = $5, notes = $6
+     SET value = COALESCE($3, gr.value),
+         unit = COALESCE($4, gr.unit),
+         recorded_at = COALESCE($5, gr.recorded_at),
+         notes = COALESCE($6, gr.notes)
      FROM pets
      WHERE gr.id = $1 AND gr.pet_id = pets.id AND pets.user_id = $2
      RETURNING gr.id, gr.pet_id, gr.metric_type, gr.value, gr.unit, gr.recorded_at, gr.notes, gr.created_at`,
-    [id, userId, value, unit, recordedAt, notes ?? null],
+    [id, userId, value ?? null, unit ?? null, recordedAt ?? null, notes ?? null],
   )
   return result.rows[0] || null
 }

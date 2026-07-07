@@ -1,12 +1,19 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { useGrowthStore } from '@/stores/growth.js'
+import { useAuthStore } from '@/stores/auth.js'
+import { useToastStore } from '@/stores/toast.js'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
   records: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['close', 'edit-record', 'delete-record'])
+const emit = defineEmits(['close', 'delete-record'])
+
+const growthStore = useGrowthStore()
+const authStore = useAuthStore()
+const toastStore = useToastStore()
 
 const METRIC_LABEL_MAP = {
   weight: '體重',
@@ -29,6 +36,10 @@ const METRIC_COLOR_MAP = {
 const tabs = ['全部', '體重', '身體長度', '每日進食量', '飲水次數', '排尿次數', '排便次數']
 const activeTab = ref('全部')
 
+const editingId = ref(null)
+const editingValue = ref('')
+const isSaving = ref(false)
+
 const filteredRecords = computed(() => {
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 30)
@@ -45,7 +56,36 @@ const formatDate = (dateStr) => {
   return `${y}-${m}-${d}`
 }
 
-const handleClose = () => emit('close')
+function startEdit(record) {
+  editingId.value = record.id
+  editingValue.value = String(record.value)
+}
+
+function cancelEdit() {
+  editingId.value = null
+  editingValue.value = ''
+}
+
+async function saveEdit(record) {
+  const num = Number(editingValue.value)
+  if (isNaN(num) || num < 0) return
+
+  isSaving.value = true
+  const result = await growthStore.updateRecord(record.id, num, authStore.token)
+  isSaving.value = false
+
+  if (result.success) {
+    toastStore.showToast('紀錄已更新')
+    editingId.value = null
+  } else {
+    toastStore.showToast(result.message || '更新失敗，請稍後再試', 'error')
+  }
+}
+
+const handleClose = () => {
+  cancelEdit()
+  emit('close')
+}
 </script>
 
 <template>
@@ -72,7 +112,7 @@ const handleClose = () => emit('close')
           </button>
         </div>
 
-        <div class="flex gap-3 overflow-x-auto pb-1">
+        <div class="flex shrink-0 gap-3 overflow-x-auto pb-1">
           <button
             v-for="tab in tabs"
             :key="tab"
@@ -104,28 +144,119 @@ const handleClose = () => emit('close')
           >
             <!-- 手機版：兩排 -->
             <div class="md:hidden">
-              <!-- 第一排：icon + 日期 -->
               <div class="flex items-center gap-1">
                 <div
                   class="h-3 w-3 shrink-0 rounded-full"
                   :style="{ backgroundColor: METRIC_COLOR_MAP[record.metric_type] ?? '#cbd5e1' }"
                 ></div>
-                <span class="text-sm text-brand-gray">
-                  {{ formatDate(record.recorded_at) }}
-                </span>
+                <span class="text-sm text-brand-gray">{{ formatDate(record.recorded_at) }}</span>
               </div>
-              <!-- 第二排：種類 + 數值 + 編輯刪除 -->
               <div class="mt-1 flex items-center pl-5">
                 <span class="flex-1 text-sm font-medium text-brand-navy">
                   {{ METRIC_LABEL_MAP[record.metric_type] ?? record.metric_type }}
                 </span>
-                <span class="text-sm font-bold text-brand-darkgray mr-4">
-                  {{ record.value }} {{ record.unit }}
-                </span>
-                <div class="flex items-center gap-1 ml-1">
+                <template v-if="editingId === record.id">
+                  <input
+                    v-model="editingValue"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    :disabled="isSaving"
+                    class="w-16 rounded-lg border border-brand-blue px-2 py-0.5 text-sm text-brand-navy outline-none focus:ring-2 focus:ring-brand-blue/30 disabled:opacity-50"
+                  />
+                  <span class="mx-1 text-xs text-brand-gray">{{ record.unit }}</span>
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      :disabled="isSaving"
+                      @click="saveEdit(record)"
+                      class="flex h-7 items-center justify-center rounded-full bg-brand-blue/10 px-2 text-xs font-bold text-brand-blue transition hover:bg-brand-blue/20 active:scale-95 disabled:opacity-50"
+                    >
+                      儲存
+                    </button>
+                    <button
+                      type="button"
+                      :disabled="isSaving"
+                      @click="cancelEdit"
+                      class="flex h-7 items-center justify-center rounded-full bg-slate-100 px-2 text-xs font-bold text-brand-gray transition hover:bg-slate-200 active:scale-95 disabled:opacity-50"
+                    >
+                      取消
+                    </button>
+                  </div>
+                </template>
+                <template v-else>
+                  <span class="mr-4 text-sm font-bold text-brand-darkgray">
+                    {{ record.value }} {{ record.unit }}
+                  </span>
+                  <div class="ml-1 flex items-center gap-1">
+                    <button
+                      type="button"
+                      @click="startEdit(record)"
+                      class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition hover:bg-brand-blue/15 active:scale-95"
+                    >
+                      <img class="h-4 w-4" src="@/assets/icons/edit_b.svg" alt="編輯" />
+                    </button>
+                    <button
+                      type="button"
+                      @click="emit('delete-record', record)"
+                      class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition hover:bg-red-500/15 active:scale-95"
+                    >
+                      <img class="h-4 w-4" src="@/assets/icons/delete_r.svg" alt="刪除" />
+                    </button>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- 桌機版：一排 -->
+            <div class="hidden items-center gap-5 md:flex">
+              <div
+                class="h-3 w-3 shrink-0 rounded-full"
+                :style="{ backgroundColor: METRIC_COLOR_MAP[record.metric_type] ?? '#cbd5e1' }"
+              ></div>
+              <span class="w-24 shrink-0 text-sm text-brand-gray">
+                {{ formatDate(record.recorded_at) }}
+              </span>
+              <span class="flex-1 text-sm font-medium text-brand-navy">
+                {{ METRIC_LABEL_MAP[record.metric_type] ?? record.metric_type }}
+              </span>
+              <template v-if="editingId === record.id">
+                <div class="flex shrink-0 items-center gap-2">
+                  <input
+                    v-model="editingValue"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    :disabled="isSaving"
+                    class="w-20 rounded-lg border border-brand-blue px-2 py-0.5 text-sm text-brand-navy outline-none focus:ring-2 focus:ring-brand-blue/30 disabled:opacity-50"
+                  />
+                  <span class="text-xs text-brand-gray">{{ record.unit }}</span>
                   <button
                     type="button"
-                    @click="emit('edit-record', record)"
+                    :disabled="isSaving"
+                    @click="saveEdit(record)"
+                    class="flex h-7 items-center justify-center rounded-full bg-brand-blue/10 px-3 text-xs font-bold text-brand-blue transition hover:bg-brand-blue/20 active:scale-95 disabled:opacity-50"
+                  >
+                    儲存
+                  </button>
+                  <button
+                    type="button"
+                    :disabled="isSaving"
+                    @click="cancelEdit"
+                    class="flex h-7 items-center justify-center rounded-full bg-slate-100 px-3 text-xs font-bold text-brand-gray transition hover:bg-slate-200 active:scale-95 disabled:opacity-50"
+                  >
+                    取消
+                  </button>
+                </div>
+              </template>
+              <template v-else>
+                <span class="mr-6 shrink-0 text-sm font-bold text-brand-darkgray">
+                  {{ record.value }} {{ record.unit }}
+                </span>
+                <div class="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    @click="startEdit(record)"
                     class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition hover:bg-brand-blue/15 active:scale-95"
                   >
                     <img class="h-4 w-4" src="@/assets/icons/edit_b.svg" alt="編輯" />
@@ -138,40 +269,7 @@ const handleClose = () => emit('close')
                     <img class="h-4 w-4" src="@/assets/icons/delete_r.svg" alt="刪除" />
                   </button>
                 </div>
-              </div>
-            </div>
-
-            <!-- 桌機版：原本一排 -->
-            <div class="hidden md:flex items-center gap-5">
-              <div
-                class="h-3 w-3 shrink-0 rounded-full"
-                :style="{ backgroundColor: METRIC_COLOR_MAP[record.metric_type] ?? '#cbd5e1' }"
-              ></div>
-              <span class="w-24 shrink-0 text-sm text-brand-gray">
-                {{ formatDate(record.recorded_at) }}
-              </span>
-              <span class="flex-1 text-sm font-medium text-brand-navy">
-                {{ METRIC_LABEL_MAP[record.metric_type] ?? record.metric_type }}
-              </span>
-              <span class="shrink-0 text-sm font-bold text-brand-darkgray mr-6">
-                {{ record.value }} {{ record.unit }}
-              </span>
-              <div class="flex shrink-0 items-center gap-1">
-                <button
-                  type="button"
-                  @click="emit('edit-record', record)"
-                  class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition hover:bg-brand-blue/15 active:scale-95"
-                >
-                  <img class="h-4 w-4" src="@/assets/icons/edit_b.svg" alt="編輯" />
-                </button>
-                <button
-                  type="button"
-                  @click="emit('delete-record', record)"
-                  class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition hover:bg-red-500/15 active:scale-95"
-                >
-                  <img class="h-4 w-4" src="@/assets/icons/delete_r.svg" alt="刪除" />
-                </button>
-              </div>
+              </template>
             </div>
           </div>
         </div>
