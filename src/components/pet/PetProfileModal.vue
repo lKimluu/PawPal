@@ -18,11 +18,20 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const isEditingProfile = ref(false)
-const editForm = ref(createEditForm())
 const weightInputRef = ref(null)
+const photoFileInputRef = ref(null)
+const selectedPhotoFile = ref(null)
+const photoPreviewUrl = ref('')
+const editForm = ref(createEditForm())
 
 const petImage = computed(
-  () => props.pet?.photoUrl || props.pet?.image || props.pet?.avatar_url || props.pet?.avatarUrl || petPhoto,
+  () =>
+    photoPreviewUrl.value ||
+    props.pet?.photoUrl ||
+    props.pet?.image ||
+    props.pet?.avatar_url ||
+    props.pet?.avatarUrl ||
+    petPhoto,
 )
 
 const profileFieldBaseClass =
@@ -53,7 +62,7 @@ const detailInlineInputClass =
 const detailTextareaClass = `${detailEditableFieldClass} resize-none leading-relaxed`
 const detailSelectClass = `${detailEditableFieldClass} appearance-none pr-10`
 const profilePhotoClass =
-  'h-36 w-36 shrink-0 overflow-hidden rounded-full border-4 border-white bg-brand-lightblue shadow-[0_10px_24px_rgba(61,74,122,0.16)] md:h-40 md:w-40'
+  'h-36 w-36 shrink-0 overflow-hidden rounded-full border-4 border-white bg-brand-lightblue md:h-40 md:w-40'
 const profileSummaryClass = 'mt-6 w-full space-y-2'
 const profileMetaTextClass = profileReadonlyFieldClass
 const profileMetaInputClass = profileEditableFieldClass
@@ -117,6 +126,20 @@ function createEditForm() {
     bloodType: pet.bloodType ?? pet.blood_type ?? '',
     furColor: pet.furColor ?? pet.fur_color ?? '',
     note: pet.note ?? pet.notes ?? '',
+    photoFile: selectedPhotoFile.value,
+  }
+}
+
+function clearPhotoSelection() {
+  if (photoPreviewUrl.value) {
+    URL.revokeObjectURL(photoPreviewUrl.value)
+  }
+
+  selectedPhotoFile.value = null
+  photoPreviewUrl.value = ''
+
+  if (photoFileInputRef.value) {
+    photoFileInputRef.value.value = ''
   }
 }
 
@@ -131,6 +154,7 @@ function handleStartEdit() {
 
 function handleCancelEdit() {
   resetEditForm()
+  clearPhotoSelection()
   isEditingProfile.value = false
 }
 
@@ -140,6 +164,7 @@ function handleSaveEdit() {
 
 function handleClose() {
   isEditingProfile.value = false
+  clearPhotoSelection()
   emit('close')
 }
 
@@ -147,9 +172,29 @@ function focusWeightInput() {
   weightInputRef.value?.focus()
 }
 
+function triggerPhotoUpload() {
+  if (!isEditingProfile.value) return
+  photoFileInputRef.value?.click()
+}
+
+function handlePhotoChange(event) {
+  const file = event.target.files?.[0]
+
+  if (!file) return
+
+  if (photoPreviewUrl.value) {
+    URL.revokeObjectURL(photoPreviewUrl.value)
+  }
+
+  selectedPhotoFile.value = file
+  photoPreviewUrl.value = URL.createObjectURL(file)
+  editForm.value.photoFile = file
+}
+
 watch(
   () => [props.isOpen, props.pet],
   () => {
+    clearPhotoSelection()
     resetEditForm()
     isEditingProfile.value = false
   },
@@ -168,7 +213,7 @@ watch(
       >
         <button
           type="button"
-          class="absolute right-4 top-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-lg text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95"
+          class="absolute right-3 top-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-lg text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95"
           aria-label="關閉"
           @click="handleClose"
         >
@@ -177,7 +222,34 @@ watch(
 
         <div class="grid grid-cols-1 auto-rows-max gap-6 overflow-y-auto overflow-x-hidden pr-1 md:min-h-0 md:flex-1 md:auto-rows-auto md:grid-cols-[260px_minmax(0,1fr)] md:items-start md:overflow-hidden md:pr-0">
           <aside class="flex flex-col items-center text-center md:min-h-0">
-            <div :class="profilePhotoClass">
+            <input
+              ref="photoFileInputRef"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              @change="handlePhotoChange"
+            />
+
+            <button
+              v-if="isEditingProfile"
+              type="button"
+              :class="`${profilePhotoClass} group relative cursor-pointer p-0 transition duration-200 hover:border-brand-blue focus:border-brand-blue focus:outline-none`"
+              aria-label="重新上傳寵物照片"
+              @click="triggerPhotoUpload"
+            >
+              <img
+                :src="petImage"
+                :alt="`${pet.name || '寵物'}照片`"
+                class="h-full w-full object-cover"
+              />
+              <span
+                class="absolute inset-0 flex items-center justify-center px-4 text-sm font-bold text-white opacity-0 transition duration-200 group-hover:opacity-100 group-focus:opacity-100"
+              >
+                點擊更換照片
+              </span>
+            </button>
+
+            <div v-else :class="profilePhotoClass">
               <img
                 :src="petImage"
                 :alt="`${pet.name || '寵物'}照片`"
