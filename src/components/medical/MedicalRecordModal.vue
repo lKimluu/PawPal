@@ -83,7 +83,7 @@ const handleSubmit = async () => {
   try {
     newUploadedUrls = await uploadImagesToSupabase()
   } catch (error) {
-    console.error('🛡️ 照片上傳防禦:', error)
+    console.error('照片上傳防禦:', error)
   }
 
   const remainingOldUrls = Array.isArray(form.value.imageUrl)
