@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
+import { storeToRefs } from 'pinia'
 import { usePetStore } from '@/stores/petStore'
 import { EVENT_TYPE_OPTIONS } from '@/constants/calendarEventTypes.js'
 import TimeWheelPicker from '@/components/common/TimeWheelPicker.vue'
@@ -13,7 +14,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const { pets } = usePetStore()
+const petStore = usePetStore()
+const { pets } = storeToRefs(petStore)
 
 const form = ref({
   title: '',
