@@ -207,12 +207,14 @@ const closePetProfile = () => {
   <AddEventModal
     :is-open="showAddModal"
     :selected-date="addModalDate"
+    :is-loading="calendarStore.isLoading"
     @close="showAddModal = false"
     @submit="handleAddSubmit"
   />
   <EditEventModal
     :is-open="showEditModal"
     :event="editingEvent"
+    :is-loading="calendarStore.isLoading"
     @close="showEditModal = false"
     @submit="handleEditSubmit"
     @delete="handleEditDelete"
@@ -221,6 +223,7 @@ const closePetProfile = () => {
   <DeleteEventModal
     :is-open="showDeleteModal"
     :item-name="eventToDelete?.title ?? ''"
+    :is-loading="calendarStore.isLoading"
     @close="handleCloseDeleteModal"
     @confirm="handleConfirmDelete"
   />

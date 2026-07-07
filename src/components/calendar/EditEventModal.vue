@@ -7,6 +7,7 @@ import TimeWheelPicker from '@/components/common/TimeWheelPicker.vue'
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
   event: { type: Object, default: null },
+  isLoading: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['close', 'submit', 'delete'])
@@ -48,9 +49,18 @@ watch(
   { immediate: true },
 )
 
-const handleClose = () => emit('close')
-const handleDelete = () => emit('delete', props.event)
-const handleSubmit = () => emit('submit', { ...form.value })
+const handleClose = () => {
+  if (props.isLoading) return
+  emit('close')
+}
+const handleDelete = () => {
+  if (props.isLoading) return
+  emit('delete', props.event)
+}
+const handleSubmit = () => {
+  if (props.isLoading) return
+  emit('submit', { ...form.value })
+}
 </script>
 
 <template>
@@ -69,6 +79,7 @@ const handleSubmit = () => emit('submit', { ...form.value })
           <button
             type="button"
             @click="handleClose"
+            :disabled="isLoading"
             class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-lg text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95"
           >
             ⨉
@@ -223,6 +234,7 @@ const handleSubmit = () => emit('submit', { ...form.value })
             <button
               type="button"
               @click="handleDelete"
+              :disabled="isLoading"
               class="cursor-pointer rounded-xl border border-red-200 px-6 py-2.5 text-sm font-semibold text-red-400 transition duration-200 hover:bg-red-50 hover:text-red-600 active:scale-95"
             >
               刪除
@@ -233,15 +245,17 @@ const handleSubmit = () => emit('submit', { ...form.value })
               <button
                 type="button"
                 @click="handleClose"
+                :disabled="isLoading"
                 class="cursor-pointer rounded-xl border border-slate-200 px-6 py-2.5 text-sm font-semibold text-slate-500 transition duration-200 hover:bg-slate-50 hover:text-slate-700 active:scale-95"
               >
                 取消
               </button>
               <button
                 type="submit"
+                :disabled="isLoading"
                 class="cursor-pointer rounded-xl bg-brand-blue px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-brand-blue/20 transition duration-200 hover:bg-[#7b94ee] hover:shadow-lg active:scale-95"
               >
-                儲存
+                {{ isLoading ? '儲存中...' : '儲存' }}
               </button>
             </div>
           </div>
