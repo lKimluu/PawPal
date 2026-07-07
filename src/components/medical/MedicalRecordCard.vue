@@ -9,7 +9,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['edit-record', 'delete-record'])
-const images = computed(() => props.record?.image_url ?? [])
+const images = computed(() => props.record?.imageUrl ?? [])
 
 const isLightboxOpen = ref(false)
 const activeImageIndex = ref(0)
@@ -44,38 +44,30 @@ const prevImage = () => {
           <p
             class="font-extrabold tracking-[0.08em] text-brand-navy text-sm md:text-base lg:text:lg"
           >
-            症狀：
-            <span
+            症狀：<span
               class="ml-2 font-medium tracking-normal text-brand-darkgray whitespace-pre-line text-sm md:text-base lg:text:lg"
+              >{{ props.record?.symptoms }}</span
             >
-              {{ props.record?.symptoms }}
-            </span>
           </p>
         </div>
-
         <div v-if="props.record?.diagnosis">
           <p
             class="font-extrabold tracking-[0.08em] text-brand-navy text-sm md:text-base lg:text:lg"
           >
-            診斷：
-            <span
+            診斷：<span
               class="ml-2 font-medium tracking-normal text-brand-darkgray text-sm md:text-base lg:text:lg whitespace-pre-line"
+              >{{ props.record?.diagnosis }}</span
             >
-              {{ props.record?.diagnosis }}
-            </span>
           </p>
         </div>
-
         <div v-if="props.record?.prescription">
           <p
             class="font-extrabold tracking-[0.08em] text-brand-navy text-sm md:text-base lg:text:lg"
           >
-            處方：
-            <span
+            處方：<span
               class="ml-2 font-medium tracking-normal text-brand-darkgray text-sm md:text-base lg:text:lg whitespace-pre-line"
+              >{{ props.record?.prescription }}</span
             >
-              {{ props.record?.prescription }}
-            </span>
           </p>
         </div>
       </div>
@@ -130,7 +122,6 @@ const prevImage = () => {
       >
         ✕
       </button>
-
       <button
         v-if="images.length > 1"
         @click="prevImage"
@@ -138,7 +129,6 @@ const prevImage = () => {
       >
         ‹
       </button>
-
       <div class="relative max-h-[85vh] max-w-[90vw] overflow-hidden rounded-xl">
         <img
           :src="images[activeImageIndex]"
@@ -152,7 +142,6 @@ const prevImage = () => {
           {{ activeImageIndex + 1 }} / {{ images.length }}
         </div>
       </div>
-
       <button
         v-if="images.length > 1"
         @click="nextImage"

@@ -17,6 +17,20 @@ const METRIC_LABEL_MAP = {
   defecation: '排便次數',
 }
 
+const METRIC_DECIMALS = {
+  weight: 1,
+  length: 1,
+  food_intake: 1,
+  water_frequency: 0,
+  urination: 0,
+  defecation: 0,
+}
+
+const formatValue = (record) => {
+  const decimals = METRIC_DECIMALS[record.metric_type] ?? 1
+  return Number(record.value).toFixed(decimals)
+}
+
 const METRIC_COLOR_MAP = {
   weight: '#ffa002',
   length: '#64748b',
@@ -35,8 +49,12 @@ const filteredRecords = computed(() => {
 
   const recent = props.records.filter((r) => new Date(r.recorded_at) >= cutoff)
 
-  if (activeTab.value === '全部') return recent
-  return recent.filter((r) => METRIC_LABEL_MAP[r.metric_type] === activeTab.value)
+  const result =
+    activeTab.value === '全部'
+      ? recent
+      : recent.filter((r) => METRIC_LABEL_MAP[r.metric_type] === activeTab.value)
+
+  return result.sort((a, b) => new Date(b.recorded_at) - new Date(a.recorded_at))
 })
 
 const formatDate = (dateStr) => {
@@ -72,7 +90,7 @@ const handleClose = () => emit('close')
           </button>
         </div>
 
-        <div class="flex gap-3 overflow-x-auto pb-1">
+        <div class="flex shrink-0 gap-3 overflow-x-auto pb-1">
           <button
             v-for="tab in tabs"
             :key="tab"
@@ -120,7 +138,7 @@ const handleClose = () => emit('close')
                   {{ METRIC_LABEL_MAP[record.metric_type] ?? record.metric_type }}
                 </span>
                 <span class="text-sm font-bold text-brand-darkgray mr-4">
-                  {{ record.value }} {{ record.unit }}
+                  {{ formatValue(record) }} {{ record.unit }}
                 </span>
                 <div class="flex items-center gap-1 ml-1">
                   <button
@@ -154,7 +172,7 @@ const handleClose = () => emit('close')
                 {{ METRIC_LABEL_MAP[record.metric_type] ?? record.metric_type }}
               </span>
               <span class="shrink-0 text-sm font-bold text-brand-darkgray mr-6">
-                {{ record.value }} {{ record.unit }}
+                {{ formatValue(record) }} {{ record.unit }}
               </span>
               <div class="flex shrink-0 items-center gap-1">
                 <button
