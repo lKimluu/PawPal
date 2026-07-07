@@ -16,8 +16,9 @@ export const useMedicalStore = defineStore('medical', () => {
       image_url: Array.isArray(formData.image_url)
         ? formData.image_url
         : Array.isArray(formData.imageUrl)
-          ? formData.imageUrl
+          ? formData.imageUrl.filter((url) => typeof url === 'string' && !url.startsWith('blob:'))
           : [],
+      rawFiles: Array.isArray(formData.rawFiles) ? formData.rawFiles : [],
     }
 
     if (formData.hospital_name !== undefined) {

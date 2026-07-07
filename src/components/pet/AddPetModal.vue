@@ -92,6 +92,7 @@ const handleSubmit = () => {
     furColor: normalizeOptionalValue(form.value.furColor),
     note: normalizeOptionalValue(form.value.note),
     photoUrl: normalizeOptionalValue(form.value.photoUrl),
+    avatarFile: form.value.photo_files[0] || null,
   }
 
   emit('submit', payload)
@@ -104,7 +105,7 @@ const triggerFileInput = () => {
 }
 
 const setPhotoFiles = (files) => {
-  form.value.photo_files = Array.from(files ?? [])
+  form.value.photo_files = Array.from(files ?? []).slice(0, 1)
 }
 
 const handleFileChange = (event) => {
@@ -313,7 +314,6 @@ watch(
             <input
               ref="fileInputRef"
               type="file"
-              multiple
               accept="image/*"
               class="hidden"
               :disabled="isLoading"
@@ -335,8 +335,8 @@ watch(
                 <span>
                   {{
                     form.photo_files.length
-                      ? `已選擇 ${form.photo_files.length} 張照片`
-                      : '上傳或拖曳寵物照片...'
+                      ? `已選擇 ${form.photo_files[0].name}`
+                      : '上傳或拖曳一張寵物照片...'
                   }}
                 </span>
               </div>

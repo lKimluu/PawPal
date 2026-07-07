@@ -24,13 +24,19 @@ function normalizeWeight(weight) {
 }
 
 function getAuthHeaders() {
-  const token = localStorage.getItem(TOKEN_STORAGE_KEY) || ''
+  const token = globalThis.localStorage?.getItem(TOKEN_STORAGE_KEY) || ''
 
   return token
     ? {
         Authorization: `Bearer ${token}`,
       }
     : {}
+}
+
+function appendIfPresent(formData, key, value) {
+  if (hasValue(value)) {
+    formData.append(key, value)
+  }
 }
 
 export function mapPetToApi(data) {
@@ -50,6 +56,33 @@ export function mapPetToApi(data) {
   assignIfPresent(payload, 'avatar_url', data.photoUrl?.trim?.() ?? data.photoUrl)
 
   return payload
+}
+
+export function createPetRequestData(data) {
+  const avatarFile = data.avatarFile || data.photoFile || data.photo_files?.[0] || null
+  const payload = mapPetToApi(data)
+
+  if (!avatarFile) {
+    return {
+      data: payload,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+    }
+  }
+
+  const formData = new FormData()
+
+  Object.entries(payload).forEach(([key, value]) => {
+    appendIfPresent(formData, key, value)
+  })
+  formData.append('avatar', avatarFile)
+
+  return {
+    data: formData,
+    headers: getAuthHeaders(),
+  }
 }
 
 export function mapPetFromApi(pet) {
@@ -113,11 +146,9 @@ export async function listPets() {
 
 export async function createPet(data) {
   try {
-    const response = await axios.post(`${API_BASE_URL}/api/v1/pets`, mapPetToApi(data), {
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-      },
+    const request = createPetRequestData(data)
+    const response = await axios.post(`${API_BASE_URL}/api/v1/pets`, request.data, {
+      headers: request.headers,
     })
 
     return {
