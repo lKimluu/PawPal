@@ -97,8 +97,12 @@ export async function updateRecord(id, data) {
     values.push(data.record_type)
   }
   if (data.hospital_name !== undefined) {
+    const val =
+      typeof data.hospital_name === 'string' && data.hospital_name.trim() === ''
+        ? null
+        : data.hospital_name
     fields.push(`hospital_name = $${values.length + 1}`)
-    values.push(data.hospital_name)
+    values.push(val)
   }
   if (data.title !== undefined) {
     fields.push(`title = $${values.length + 1}`)
@@ -109,16 +113,24 @@ export async function updateRecord(id, data) {
     values.push(data.record_date)
   }
   if (data.symptoms !== undefined) {
+    const val =
+      typeof data.symptoms === 'string' && data.symptoms.trim() === '' ? null : data.symptoms
     fields.push(`symptoms = $${values.length + 1}`)
-    values.push(data.symptoms)
+    values.push(val)
   }
   if (data.diagnosis !== undefined) {
+    const val =
+      typeof data.diagnosis === 'string' && data.diagnosis.trim() === '' ? null : data.diagnosis
     fields.push(`diagnosis = $${values.length + 1}`)
-    values.push(data.diagnosis)
+    values.push(val)
   }
   if (data.prescription !== undefined) {
+    const val =
+      typeof data.prescription === 'string' && data.prescription.trim() === ''
+        ? null
+        : data.prescription
     fields.push(`prescription = $${values.length + 1}`)
-    values.push(data.prescription)
+    values.push(val)
   }
   if (data.image_url !== undefined) {
     const dbImageUrl = Array.isArray(data.image_url)
