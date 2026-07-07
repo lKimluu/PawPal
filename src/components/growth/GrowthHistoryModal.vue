@@ -173,7 +173,6 @@ const handleClose = () => {
                 <span class="flex-1 text-sm font-medium text-brand-navy">
                   {{ METRIC_LABEL_MAP[record.metric_type] ?? record.metric_type }}
                 </span>
-<<<<<<< HEAD
                 <template v-if="editingId === record.id">
                   <input
                     v-model="editingValue"
@@ -205,7 +204,7 @@ const handleClose = () => {
                 </template>
                 <template v-else>
                   <span class="mr-4 text-sm font-bold text-brand-darkgray">
-                    {{ record.value }} {{ record.unit }}
+                    {{ formatValue(record) }} {{ record.unit }}
                   </span>
                   <div class="ml-1 flex items-center gap-1">
                     <button
@@ -250,12 +249,6 @@ const handleClose = () => {
                     class="w-20 rounded-lg border border-brand-blue px-2 py-0.5 text-sm text-brand-navy outline-none focus:ring-2 focus:ring-brand-blue/30 disabled:opacity-50"
                   />
                   <span class="text-xs text-brand-gray">{{ record.unit }}</span>
-=======
-                <span class="text-sm font-bold text-brand-darkgray mr-4">
-                  {{ formatValue(record) }} {{ record.unit }}
-                </span>
-                <div class="flex items-center gap-1 ml-1">
->>>>>>> origin/dev
                   <button
                     type="button"
                     :disabled="isSaving"
@@ -276,7 +269,7 @@ const handleClose = () => {
               </template>
               <template v-else>
                 <span class="mr-6 shrink-0 text-sm font-bold text-brand-darkgray">
-                  {{ record.value }} {{ record.unit }}
+                  {{ formatValue(record) }} {{ record.unit }}
                 </span>
                 <div class="flex shrink-0 items-center gap-1">
                   <button
@@ -294,44 +287,7 @@ const handleClose = () => {
                     <img class="h-4 w-4" src="@/assets/icons/delete_r.svg" alt="刪除" />
                   </button>
                 </div>
-<<<<<<< HEAD
               </template>
-=======
-              </div>
-            </div>
-
-            <!-- 桌機版：原本一排 -->
-            <div class="hidden md:flex items-center gap-5">
-              <div
-                class="h-3 w-3 shrink-0 rounded-full"
-                :style="{ backgroundColor: METRIC_COLOR_MAP[record.metric_type] ?? '#cbd5e1' }"
-              ></div>
-              <span class="w-24 shrink-0 text-sm text-brand-gray">
-                {{ formatDate(record.recorded_at) }}
-              </span>
-              <span class="flex-1 text-sm font-medium text-brand-navy">
-                {{ METRIC_LABEL_MAP[record.metric_type] ?? record.metric_type }}
-              </span>
-              <span class="shrink-0 text-sm font-bold text-brand-darkgray mr-6">
-                {{ formatValue(record) }} {{ record.unit }}
-              </span>
-              <div class="flex shrink-0 items-center gap-1">
-                <button
-                  type="button"
-                  @click="emit('edit-record', record)"
-                  class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition hover:bg-brand-blue/15 active:scale-95"
-                >
-                  <img class="h-4 w-4" src="@/assets/icons/edit_b.svg" alt="編輯" />
-                </button>
-                <button
-                  type="button"
-                  @click="emit('delete-record', record)"
-                  class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition hover:bg-red-500/15 active:scale-95"
-                >
-                  <img class="h-4 w-4" src="@/assets/icons/delete_r.svg" alt="刪除" />
-                </button>
-              </div>
->>>>>>> origin/dev
             </div>
           </div>
         </div>

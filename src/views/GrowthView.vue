@@ -18,11 +18,8 @@ import DeleteConfirmModal from '@/components/common/DeleteConfirmModal.vue'
 const growthStore = useGrowthStore()
 const authStore = useAuthStore()
 const petStore = usePetStore()
-<<<<<<< HEAD
 const toastStore = useToastStore()
-=======
 const activeRange = ref('6 個月')
->>>>>>> origin/dev
 
 const isModalOpen = ref(false)
 const isHistoryOpen = ref(false)
@@ -47,7 +44,6 @@ const handleSubmit = async (formData) => {
     growthStore.fetchRecords(petStore.selectedPetId, authStore.token)
   }
 }
-<<<<<<< HEAD
 
 const handleDeleteRecord = (record) => {
   pendingDeleteRecord.value = record
@@ -83,9 +79,6 @@ const deleteItemName = computed(() => {
     labelMap[pendingDeleteRecord.value.metric_type] ?? pendingDeleteRecord.value.metric_type
   return `${label} ${pendingDeleteRecord.value.value} ${pendingDeleteRecord.value.unit}`
 })
-=======
-const isHistoryOpen = ref(false)
->>>>>>> origin/dev
 </script>
 
 <template>
