@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { test } from 'node:test'
 
-import { mapPetFromApi, mapPetToApi } from '../api/pet.js'
+import { createPetRequestData, mapPetFromApi, mapPetToApi } from '../api/pet.js'
 
 function readSource(path) {
   const url = new URL(path, import.meta.url)
@@ -77,6 +77,40 @@ test('mapPetFromApi 會將後端寵物欄位轉成前端 schema', () => {
   assert.equal(pet.photoUrl, 'https://example.com/momo.png')
 })
 
+test('createPetRequestData 有 avatarFile 時會建立 multipart FormData', async () => {
+  const avatarFile = new Blob(['avatar'], { type: 'image/png' })
+  const request = createPetRequestData({
+    name: 'Momo',
+    species: 'dog',
+    weight: '6.8',
+    neutered: true,
+    avatarFile,
+  })
+
+  assert.ok(request.data instanceof FormData)
+  assert.equal(request.headers['Content-Type'], undefined)
+  assert.equal(request.data.get('name'), 'Momo')
+  assert.equal(request.data.get('species'), 'dog')
+  assert.equal(request.data.get('weight'), '6.8')
+  assert.equal(request.data.get('neutered'), 'true')
+  assert.equal(await request.data.get('avatar').text(), 'avatar')
+})
+
+test('createPetRequestData 沒有 avatarFile 時維持 JSON payload', () => {
+  const request = createPetRequestData({
+    name: 'Momo',
+    species: 'dog',
+    photoUrl: 'https://example.com/momo.png',
+  })
+
+  assert.equal(request.headers['Content-Type'], 'application/json')
+  assert.deepEqual(request.data, {
+    name: 'Momo',
+    species: 'dog',
+    avatar_url: 'https://example.com/momo.png',
+  })
+})
+
 test('新增寵物功能會透過 store 與 Dashboard 串接 modal', () => {
   const dashboardView = readSource('../views/DashboardView.vue')
   const addPetButton = readSource('../components/pet/AddPetButton.vue')
@@ -86,6 +120,7 @@ test('新增寵物功能會透過 store 與 Dashboard 串接 modal', () => {
   assert.match(addPetButton, /defineEmits\(\['click'\]\)/)
   assert.match(addPetButton, /@click="emit\('click'\)"/)
   assert.match(addPetModal, /defineEmits\(\['close', 'submit'\]\)/)
+  assert.match(addPetModal, /avatarFile/)
   assert.match(dashboardView, /usePetStore/)
   assert.match(dashboardView, /AddPetModal/)
   assert.match(dashboardView, /@click="openAddPetModal"/)

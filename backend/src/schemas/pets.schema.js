@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PET_AVATAR_UPLOAD_INTENT_FIELD } from '../middlewares/upload_image.js'
 
 const createRequiredMessage = '寵物名稱與物種為必填欄位'
 
@@ -59,6 +60,11 @@ export const createPetSchema = z.object({
   species: requiredStringField(createRequiredMessage, 50, '物種字數過長'),
 })
 
-export const updatePetSchema = z.object(petFieldsSchema).refine((value) => Object.keys(value).length > 0, {
-  error: '請至少提供一個寵物欄位',
-})
+export const updatePetSchema = z
+  .object({
+    ...petFieldsSchema,
+    [PET_AVATAR_UPLOAD_INTENT_FIELD]: z.boolean().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    error: '請至少提供一個寵物欄位',
+  })
