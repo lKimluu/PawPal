@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useGrowthStore } from '@/stores/growth.js'
 import { useAuthStore } from '@/stores/auth.js'
@@ -23,11 +23,19 @@ const activeRange = ref('6 個月')
 const isModalOpen = ref(false)
 const isHistoryOpen = ref(false)
 
-onMounted(() => {
-  if (petStore.selectedPetId) {
-    growthStore.fetchRecords(petStore.selectedPetId, authStore.token)
-  }
+onMounted(async () => {
+  await petStore.fetchPets()
 })
+
+watch(
+  selectedPetId,
+  (newPetId) => {
+    if (newPetId != null) {
+      growthStore.fetchRecords(newPetId, authStore.token)
+    }
+  },
+  { immediate: true },
+)
 
 const handleSubmit = async (formData) => {
   const results = await growthStore.createRecordsFrom(
