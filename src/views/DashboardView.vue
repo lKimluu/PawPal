@@ -15,10 +15,12 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import memberBanner from '@/assets/images/member_banner_dashboard.png'
 import { useAuthStore } from '@/stores/auth.js'
 import { useCalendarStore } from '@/stores/calendar.js'
+import { useToastStore } from '@/stores/toast.js'
 
 const themeColors = ['green', 'orange', 'blue']
 const authStore = useAuthStore()
 const calendarStore = useCalendarStore()
+const toastStore = useToastStore()
 
 onMounted(() => calendarStore.fetchEvents())
 const selectedPet = ref(null)
@@ -36,8 +38,9 @@ const handleAddSubmit = async (payload) => {
   const result = await calendarStore.addEvent(payload)
   if (result.success) {
     showAddModal.value = false
+    toastStore.showToast(result.message || '新增成功', 'success')
   } else {
-    alert(result.message)
+    toastStore.showToast(result.message, 'error')
   }
 }
 
@@ -80,8 +83,9 @@ const handleEditSubmit = async (payload) => {
   const result = await calendarStore.updateEvent(editingEvent.value.id, payload)
   if (result.success) {
     showEditModal.value = false
+    toastStore.showToast(result.message || '更新成功', 'success')
   } else {
-    alert(result.message)
+    toastStore.showToast(result.message, 'error')
   }
 }
 
@@ -113,8 +117,9 @@ const handleConfirmDelete = async () => {
   const result = await calendarStore.deleteEvent(eventToDelete.value.id)
   if (result.success) {
     handleCloseDeleteModal()
+    toastStore.showToast(result.message || '刪除成功', 'success')
   } else {
-    alert(result.message)
+    toastStore.showToast(result.message, 'error')
   }
 }
 
