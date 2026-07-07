@@ -1,13 +1,12 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { pets as petsData } from '@/data/pets.js'
 import { medicalApi } from '@/api/medical.js'
 import { createPet as createPetApi, listPets as listPetsApi } from '@/api/pet.js'
 import defaultPetAvatar from '@/assets/images/pet_default.png'
 
 export const usePetStore = defineStore('pet', () => {
-  const pets = ref(petsData.map(normalizePet))
-  const selectedPetId = ref(pets.value[0]?.id ?? null)
+  const pets = ref([])
+  const selectedPetId = ref(null)
   const isLoading = ref(false)
 
   const currentPet = computed(() => pets.value.find((p) => p.id === selectedPetId.value) ?? null)
