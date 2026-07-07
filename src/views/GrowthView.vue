@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useGrowthStore } from '@/stores/growth.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { usePetStore } from '@/stores/petStore.js'
@@ -16,9 +17,12 @@ import GrowthHistoryModal from '@/components/growth/GrowthHistoryModal.vue'
 const growthStore = useGrowthStore()
 const authStore = useAuthStore()
 const petStore = usePetStore()
+const { pets, selectedPetId } = storeToRefs(petStore)
 const activeRange = ref('6 個月')
 
 const isModalOpen = ref(false)
+const isHistoryOpen = ref(false)
+
 onMounted(() => {
   if (petStore.selectedPetId) {
     growthStore.fetchRecords(petStore.selectedPetId, authStore.token)
@@ -37,7 +41,6 @@ const handleSubmit = async (formData) => {
     growthStore.fetchRecords(petStore.selectedPetId, authStore.token)
   }
 }
-const isHistoryOpen = ref(false)
 </script>
 
 <template>
@@ -46,7 +49,7 @@ const isHistoryOpen = ref(false)
     <div class="relative z-0 flex min-h-screen flex-col pt-14 lg:pt-17 lg:pl-52">
       <main class="min-w-0 flex-1 px-4 py-6 md:px-8 lg:px-10">
         <section class="mx-auto w-full">
-          <PetSwitcher />
+          <PetSwitcher :pets="pets" v-model="selectedPetId" />
           <div class="mb-2 flex items-center justify-between gap-4 md:mb-6">
             <h1 class="text-xl font-bold text-brand-navy md:text-2xl">成長歷程</h1>
             <div class="flex items-center gap-2">
