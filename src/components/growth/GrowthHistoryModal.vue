@@ -35,8 +35,12 @@ const filteredRecords = computed(() => {
 
   const recent = props.records.filter((r) => new Date(r.recorded_at) >= cutoff)
 
-  if (activeTab.value === '全部') return recent
-  return recent.filter((r) => METRIC_LABEL_MAP[r.metric_type] === activeTab.value)
+  const result =
+    activeTab.value === '全部'
+      ? recent
+      : recent.filter((r) => METRIC_LABEL_MAP[r.metric_type] === activeTab.value)
+
+  return result.sort((a, b) => new Date(b.recorded_at) - new Date(a.recorded_at))
 })
 
 const formatDate = (dateStr) => {
