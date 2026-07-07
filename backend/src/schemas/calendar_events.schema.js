@@ -18,14 +18,14 @@ const eventDateField = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, { error: '請輸入正確的日期格式（YYYY-MM-DD）' })
 
 export const createCalendarEventSchema = z.object({
-  petId: z.number({ error: '寵物 ID 為必填' }).int().positive({ error: '寵物 ID 必須為正整數' }),
+  pet_id: z.number({ error: '寵物 ID 為必填' }).int().positive({ error: '寵物 ID 必須為正整數' }),
   title: z
     .string({ error: '行程標題為必填' })
     .trim()
     .min(1, { error: '行程標題不得為空' })
     .max(255, { error: '行程標題過長，請重新輸入' }),
-  eventDate: eventDateField,
-  eventTime: eventTimeField,
+  event_date: eventDateField,
+  event_time: eventTimeField,
   type: typeField,
   location: z.string().max(255, { error: '行程地點過長，請重新輸入' }).optional(),
   notes: notesField,
@@ -38,14 +38,14 @@ export const calendarEventParamsSchema = z.object({
 export const updateCalendarEventSchema = z
   .object({
     title: z.string().trim().min(1, { error: '行程標題不得為空' }).optional(),
-    eventDate: z
+    event_date: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, { error: '請輸入正確的日期格式（YYYY-MM-DD）' })
       .optional(),
-    eventTime: eventTimeField,
+    event_time: eventTimeField,
     type: typeField.optional(),
     location: z.string().max(255, { error: '行程地點過長，請重新輸入' }).optional(),
     notes: notesField,
-    isCompleted: z.boolean().optional(),
+    is_completed: z.boolean().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, { message: '請至少提供一個要更新的欄位' })

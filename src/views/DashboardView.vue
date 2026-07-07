@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { calendarEvents } from '@/data/calendarEvents'
 import PetCard from '@/components/pet/PetCard.vue'
 import PetProfileModal from '@/components/pet/PetProfileModal.vue'
 import AddPetButton from '@/components/pet/AddPetButton.vue'
@@ -18,11 +17,13 @@ import memberBanner from '@/assets/images/member_banner_dashboard.png'
 import { useAuthStore } from '@/stores/auth.js'
 import { usePetStore } from '@/stores/petStore.js'
 import { useToastStore } from '@/stores/toast.js'
+import { useCalendarStore } from '@/stores/calendar.js'
 
 const themeColors = ['green', 'orange', 'blue']
 const authStore = useAuthStore()
 const petStore = usePetStore()
 const toastStore = useToastStore()
+const calendarStore = useCalendarStore()
 const { pets } = storeToRefs(petStore)
 const selectedPet = ref(null)
 const isPetProfileOpen = ref(false)
@@ -38,14 +39,21 @@ const openAddModal = (date = '') => {
   showAddModal.value = true
 }
 
-const handleAddSubmit = (payload) => {
-  showAddModal.value = false
+const handleAddSubmit = async (payload) => {
+  const result = await calendarStore.addEvent(payload)
+  if (result.success) {
+    showAddModal.value = false
+  } else {
+    alert(result.message)
+  }
 }
 
 const showDayModal = ref(false)
 const dayModalDate = ref('')
 
-const dayModalEvents = computed(() => calendarEvents.filter((e) => e.date === dayModalDate.value))
+const dayModalEvents = computed(() =>
+  calendarStore.events.filter((e) => e.eventDate === dayModalDate.value),
+)
 
 const openDayModal = (date) => {
   dayModalDate.value = date
@@ -75,12 +83,18 @@ const openEditModal = (event) => {
   showEditModal.value = true
 }
 
-const handleEditSubmit = (payload) => {
-  showEditModal.value = false
+const handleEditSubmit = async (payload) => {
+  const result = await calendarStore.updateEvent(editingEvent.value.id, payload)
+  if (result.success) {
+    showEditModal.value = false
+  } else {
+    alert(result.message)
+  }
 }
 
 const handleEditDelete = (event) => {
   showEditModal.value = false
+  handleDeleteRequest(event)
 }
 
 const dashboardPets = computed(() => pets.value.map((p) => ({
@@ -92,6 +106,8 @@ const dashboardPets = computed(() => pets.value.map((p) => ({
 const userName = computed(() => authStore.user?.name || '寵物家長')
 
 onMounted(() => {
+  calendarStore.fetchEvents()
+
   if (authStore.isLoggedIn) {
     petStore.fetchPets()
   }
@@ -108,9 +124,13 @@ const handleCloseDeleteModal = () => {
   showDeleteModal.value = false
   eventToDelete.value = null
 }
-const handleConfirmDelete = () => {
-  // TODO: 串接刪除行程 API 後，於此呼叫並更新 calendarEvents
-  handleCloseDeleteModal()
+const handleConfirmDelete = async () => {
+  const result = await calendarStore.deleteEvent(eventToDelete.value.id)
+  if (result.success) {
+    handleCloseDeleteModal()
+  } else {
+    alert(result.message)
+  }
 }
 
 const openPetProfile = (pet) => {
@@ -182,7 +202,7 @@ const handleCreatePet = async (payload) => {
           class="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden rounded-3xl border border-brand-lightblue bg-brand-white shadow-[0_8px_28px_rgba(61,74,122,0.08)] p-4"
         >
           <EventList
-            :events="calendarEvents"
+            :events="calendarStore.events"
             :compact="true"
             @add="openAddModal()"
             @edit="openEditModal"

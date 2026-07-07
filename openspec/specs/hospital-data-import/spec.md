@@ -206,41 +206,36 @@ tests:
 ---
 ### Requirement: Import is idempotent
 
-The import script SHALL upsert records by license_number. Re-running the import with the same source data MUST NOT create duplicate hospitals rows, and changed official basic fields MUST update the existing row.
+The import script SHALL upsert records by license_number. Re-running the import with the same source data MUST NOT create duplicate hospitals rows, and changed official basic fields MUST update the existing row. Re-running the import MUST NOT replace existing latitude or longitude values with NULL values from the official basic-data import.
 
 #### Scenario: Repeated import does not duplicate records
 
 - **WHEN** a row with license_number "九三府農畜字第21935號" already exists and the import receives the same license_number again
 - **THEN** the existing row is updated and the total row count for that license_number remains 1
 
+#### Scenario: Repeated import preserves geocoded coordinates
+
+- **WHEN** a row with license_number "九三府農畜字第21935號" already has latitude 25.033964 and longitude 121.564468
+- **AND** the MOA import receives the same license_number with latitude NULL and longitude NULL from normalized basic data
+- **THEN** the existing row keeps latitude 25.033964
+- **AND** the existing row keeps longitude 121.564468
+
 
 <!-- @trace
-source: import-moa-veterinary-hospitals
+source: geocode-hospital-addresses
 updated: 2026-07-05
 code:
-  - backend/database/schema/calendar_events.sql
-  - backend/scripts/setup-db.js
-  - .agents/skills/spectra-ingest/SKILL.md
-  - backend/database/seeds/medical_records.sql
-  - .agents/skills/spectra-audit/SKILL.md
-  - backend/database/schema/hospitals.sql
-  - .agents/skills/spectra-archive/SKILL.md
-  - backend/package.json
+  - backend/.env.example
   - backend/scripts/clear-seed.js
-  - AGENTS.md
-  - backend/database/seeds/calendar_events.sql
-  - .agents/skills/spectra-ask/SKILL.md
-  - .agents/skills/spectra-debug/SKILL.md
-  - .spectra.yaml
-  - .agents/skills/spectra-commit/SKILL.md
-  - .agents/skills/spectra-drift/SKILL.md
-  - backend/database/schema/growth_records.sql
-  - .agents/skills/spectra-discuss/SKILL.md
+  - backend/src/config/db.js
+  - backend/database/scripts/geocode_hospitals.js
   - backend/database/scripts/import_hospitals.js
-  - .agents/skills/spectra-propose/SKILL.md
-  - .agents/skills/spectra-apply/SKILL.md
-  - backend/database/seeds/growth_records.sql
+  - backend/scripts/setup-db.js
+  - backend/package.json
+  - backend/src/config/create_pool.js
 tests:
+  - backend/test/geocode_hospitals.test.js
+  - backend/test/db_pool_config.test.js
   - backend/test/import_hospitals.test.js
 -->
 

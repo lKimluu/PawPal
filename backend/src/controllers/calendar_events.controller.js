@@ -24,14 +24,14 @@ export function createCreateCalendarEvent({ createEvent }) {
   return async function createCalendarEvent(req, res) {
     const userId = req.userId
     if (!userId) return res.status(401).json({ message: '未授權，請重新登入' })
-    const { petId, title, eventDate, eventTime, type, location, notes } = req.body
+    const { pet_id, title, event_date, event_time, type, location, notes } = req.body
     try {
       const event = await createEvent({
-        petId,
+        pet_id,
         userId,
         title,
-        eventDate,
-        eventTime,
+        event_date,
+        event_time,
         type,
         location,
         notes,
@@ -52,16 +52,16 @@ export function createUpdateCalendarEvent({ updateEvent }) {
   return async function updateCalendarEvent(req, res) {
     const { id } = req.params
     const userId = req.userId
-    const { title, eventDate, eventTime, type, location, notes, isCompleted } = req.body
+    const { title, event_date, event_time, type, location, notes, is_completed } = req.body
 
     const fields = {
       ...(title !== undefined && { title }),
-      ...(eventDate !== undefined && { event_date: eventDate }),
-      ...(eventTime !== undefined && { event_time: eventTime }),
+      ...(event_date !== undefined && { event_date }),
+      ...(event_time !== undefined && { event_time }),
       ...(type !== undefined && { type }),
       ...(location !== undefined && { location }),
       ...(notes !== undefined && { notes }),
-      ...(isCompleted !== undefined && { is_completed: isCompleted }),
+      ...(is_completed !== undefined && { is_completed }),
     }
 
     if (Object.keys(fields).length === 0) {

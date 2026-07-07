@@ -76,7 +76,7 @@ test('新增行事曆行程：成功回傳 201 與新資料', async () => {
   }
   const createCalendarEvent = createCreateCalendarEvent({
     createEvent: async (data) => {
-      assert.equal(data.petId, 1)
+      assert.equal(data.pet_id, 1)
       assert.equal(data.title, '施打疫苗')
       return newEvent
     },
@@ -84,7 +84,7 @@ test('新增行事曆行程：成功回傳 201 與新資料', async () => {
 
   const req = {
     userId: 1,
-    body: { petId: 1, title: '施打疫苗', eventDate: '2026-07-10', type: 'vaccine' },
+    body: { pet_id: 1, title: '施打疫苗', event_date: '2026-07-10', type: 'vaccine' },
   }
   const res = createRes()
   await createCalendarEvent(req, res)
@@ -103,7 +103,7 @@ test('新增行事曆行程失敗時應回傳 500', async (t) => {
 
   const req = {
     userId: 1,
-    body: { petId: 1, title: '施打疫苗', eventDate: '2026-07-10', type: 'vaccine' },
+    body: { pet_id: 1, title: '施打疫苗', event_date: '2026-07-10', type: 'vaccine' },
   }
   const res = createRes()
   await createCalendarEvent(req, res)
