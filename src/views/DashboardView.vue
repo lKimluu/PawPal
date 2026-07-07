@@ -52,7 +52,7 @@ const showDayModal = ref(false)
 const dayModalDate = ref('')
 
 const dayModalEvents = computed(() =>
-  calendarStore.events.filter((e) => e.eventDate === dayModalDate.value),
+  calendarStore.filteredEvents.filter((e) => e.eventDate === dayModalDate.value),
 )
 
 const openDayModal = (date) => {
@@ -202,7 +202,7 @@ const handleCreatePet = async (payload) => {
           class="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden rounded-3xl border border-brand-lightblue bg-brand-white shadow-[0_8px_28px_rgba(61,74,122,0.08)] p-4"
         >
           <EventList
-            :events="calendarStore.events"
+            :events="calendarStore.filteredEvents"
             :compact="true"
             @add="openAddModal()"
             @edit="openEditModal"
