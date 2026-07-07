@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import { createPetController } from '../src/controllers/pets.controller.js'
+import { PET_AVATAR_UPLOAD_INTENT_FIELD } from '../src/middlewares/upload_image.js'
 
 test('應匯出可注入相依服務的寵物 controller factory', () => {
   assert.equal(typeof createPetController, 'function')
@@ -20,6 +21,37 @@ function createTestController(overrides = {}) {
     deletePetByIdAndUserId: notImplemented,
     ...overrides,
   })
+}
+
+function createTestControllerWithUpload(serviceOverrides = {}, uploadOverrides = {}) {
+  const uploadImages = async () => {
+    throw new Error('uploadImages should not be called')
+  }
+
+  return createPetController(
+    {
+      findPetsByUserId: async () => {
+        throw new Error('service method should not be called')
+      },
+      findPetByIdAndUserId: async () => {
+        throw new Error('service method should not be called')
+      },
+      createPetForUser: async () => {
+        throw new Error('service method should not be called')
+      },
+      updatePetByIdAndUserId: async () => {
+        throw new Error('service method should not be called')
+      },
+      deletePetByIdAndUserId: async () => {
+        throw new Error('service method should not be called')
+      },
+      ...serviceOverrides,
+    },
+    {
+      uploadImages,
+      ...uploadOverrides,
+    },
+  )
 }
 
 function createResponse() {
@@ -179,6 +211,87 @@ test('應為已驗證使用者建立寵物', async () => {
   assert.deepEqual(res.body, { pet: createdPet })
 })
 
+test('建立寵物時應將 Cloudinary avatar_url 交給 service 寫入', async () => {
+  const createdPet = {
+    id: 6,
+    user_id: 42,
+    name: 'Milo',
+    species: 'Cat',
+    avatar_url: 'https://res.cloudinary.com/demo/avatar.png',
+  }
+  const { createPet } = createTestController({
+    createPetForUser: async (userId, petData) => {
+      assert.equal(userId, 42)
+      assert.deepEqual(petData, {
+        name: 'Milo',
+        species: 'Cat',
+        avatar_url: 'https://res.cloudinary.com/demo/avatar.png',
+      })
+      return createdPet
+    },
+  })
+  const req = {
+    userId: 42,
+    body: {
+      name: 'Milo',
+      species: 'Cat',
+      avatar_url: 'https://res.cloudinary.com/demo/avatar.png',
+    },
+  }
+  const res = createResponse()
+
+  await createPet(req, res)
+
+  assert.equal(res.statusCode, 201)
+  assert.deepEqual(res.body, { pet: createdPet })
+})
+
+test('建立寵物時應在驗證後才上傳 avatar 並將 URL 寫入 service payload', async () => {
+  const createdPet = {
+    id: 7,
+    user_id: 42,
+    name: 'Milo',
+    species: 'Cat',
+    avatar_url: 'https://res.cloudinary.com/demo/avatar.png',
+  }
+  let uploadCalled = false
+  const { createPet } = createTestControllerWithUpload(
+    {
+      createPetForUser: async (userId, petData) => {
+        assert.equal(uploadCalled, true)
+        assert.equal(userId, 42)
+        assert.deepEqual(petData, {
+          name: 'Milo',
+          species: 'Cat',
+          avatar_url: 'https://res.cloudinary.com/demo/avatar.png',
+        })
+        return createdPet
+      },
+    },
+    {
+      uploadImages: async (files) => {
+        uploadCalled = true
+        assert.equal(files.length, 1)
+        return ['https://res.cloudinary.com/demo/avatar.png']
+      },
+    },
+  )
+  const req = {
+    userId: 42,
+    files: [{ buffer: Buffer.from('avatar') }],
+    body: {
+      name: 'Milo',
+      species: 'Cat',
+    },
+  }
+  const res = createResponse()
+
+  await createPet(req, res)
+
+  assert.equal(res.statusCode, 201)
+  assert.deepEqual(res.body, { pet: createdPet })
+})
+
 test('應更新已驗證使用者擁有的寵物', async () => {
   const updatedPet = { id: 4, user_id: 42, name: 'Nana', species: 'Rabbit', weight: '1.90' }
   const { updatePet } = createTestController({
@@ -193,6 +306,91 @@ test('應更新已驗證使用者擁有的寵物', async () => {
     userId: 42,
     params: { id: '4' },
     body: { weight: 1.9 },
+  }
+  const res = createResponse()
+
+  await updatePet(req, res)
+
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(res.body, { pet: updatedPet })
+})
+
+test('更新寵物 avatar 前若找不到使用者的寵物，不應上傳 Cloudinary', async () => {
+  let uploadCalled = false
+  const { updatePet } = createTestControllerWithUpload(
+    {
+      findPetByIdAndUserId: async (id, userId) => {
+        assert.equal(id, 99)
+        assert.equal(userId, 42)
+        return null
+      },
+    },
+    {
+      uploadImages: async () => {
+        uploadCalled = true
+        return ['https://res.cloudinary.com/demo/avatar.png']
+      },
+    },
+  )
+  const req = {
+    userId: 42,
+    params: { id: '99' },
+    files: [{ buffer: Buffer.from('avatar') }],
+    body: {
+      [PET_AVATAR_UPLOAD_INTENT_FIELD]: true,
+    },
+  }
+  const res = createResponse()
+
+  await updatePet(req, res)
+
+  assert.equal(uploadCalled, false)
+  assert.equal(res.statusCode, 404)
+  assert.deepEqual(res.body, { message: '找不到寵物' })
+})
+
+test('更新寵物 avatar 時應在確認擁有權後才上傳並寫入 avatar_url', async () => {
+  const updatedPet = {
+    id: 4,
+    user_id: 42,
+    name: 'Nana',
+    species: 'Rabbit',
+    avatar_url: 'https://res.cloudinary.com/demo/avatar.png',
+  }
+  let ownershipChecked = false
+  const { updatePet } = createTestControllerWithUpload(
+    {
+      findPetByIdAndUserId: async (id, userId) => {
+        assert.equal(id, 4)
+        assert.equal(userId, 42)
+        ownershipChecked = true
+        return { id: 4, user_id: 42 }
+      },
+      updatePetByIdAndUserId: async (id, userId, petData) => {
+        assert.equal(ownershipChecked, true)
+        assert.equal(id, 4)
+        assert.equal(userId, 42)
+        assert.deepEqual(petData, {
+          avatar_url: 'https://res.cloudinary.com/demo/avatar.png',
+        })
+        return updatedPet
+      },
+    },
+    {
+      uploadImages: async (files) => {
+        assert.equal(ownershipChecked, true)
+        assert.equal(files.length, 1)
+        return ['https://res.cloudinary.com/demo/avatar.png']
+      },
+    },
+  )
+  const req = {
+    userId: 42,
+    params: { id: '4' },
+    files: [{ buffer: Buffer.from('avatar') }],
+    body: {
+      [PET_AVATAR_UPLOAD_INTENT_FIELD]: true,
+    },
   }
   const res = createResponse()
 
