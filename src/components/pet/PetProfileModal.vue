@@ -323,7 +323,6 @@ watch(
               >
                 <option value="公">公</option>
                 <option value="母">母</option>
-                <option value="未知">未知</option>
               </select>
 
               <p v-if="!isEditingProfile" :class="profileAgeReadonlyFieldClass">
