@@ -3,7 +3,7 @@ import Header from '@/components/layout/AppHeader.vue'
 import Footer from '@/components/layout/AppFooter.vue'
 </script>
 <template>
-  <div class="min-h-screen flex flex-col bg-brand-orange">
+  <div class="min-h-screen flex flex-col bg-brand-orange pt-[10px] md:pt-[70px] lg:pt-[68px]">
     <Header variant="public" />
     <main class="flex-grow flex flex-col items-center justify-center">
       <div class="w-full">
@@ -24,7 +24,7 @@ import Footer from '@/components/layout/AppFooter.vue'
         />
       </div>
       <div
-        class="absolute top-[10%] right-[5%] text-right text-brand-white md:top-[7%] lg:top-[14%] lg:right-[7%]"
+        class="absolute top-[12%] right-[5%] text-right text-brand-white md:top-[10%] lg:top-[18%] lg:right-[7%]"
       >
         <p class="text-xs font-light opacity-80 mb-3 mr-1">404 NOT FOUND</p>
         <h1 class="text-4xl font-black tracking-wide">
