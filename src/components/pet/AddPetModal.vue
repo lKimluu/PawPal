@@ -27,7 +27,6 @@ const createDefaultForm = () => ({
   bloodType: '',
   furColor: '',
   note: '',
-  photoUrl: '',
   photo_files: [],
 })
 
@@ -91,7 +90,6 @@ const handleSubmit = () => {
     bloodType: normalizeOptionalValue(form.value.bloodType),
     furColor: normalizeOptionalValue(form.value.furColor),
     note: normalizeOptionalValue(form.value.note),
-    photoUrl: normalizeOptionalValue(form.value.photoUrl),
     avatarFile: form.value.photo_files[0] || null,
   }
 
@@ -276,17 +274,6 @@ watch(
                 v-model="form.furColor"
                 type="text"
                 placeholder="例如：黑色"
-                :class="inputClass"
-                :disabled="isLoading"
-              />
-            </div>
-
-            <div class="flex flex-col gap-2">
-              <label class="text-base font-bold text-brand-navy">照片網址</label>
-              <input
-                v-model="form.photoUrl"
-                type="url"
-                placeholder="https://..."
                 :class="inputClass"
                 :disabled="isLoading"
               />
