@@ -29,6 +29,12 @@ test('PetCard 會用 birthday 計算 Dashboard 年齡顯示', () => {
   assert.match(petCard, /props\.pet\?\.birthday/)
 })
 
+test('PetProfileModal 會用 birthday 計算詳細資料年齡顯示', () => {
+  assert.match(profileModal, /formatPetAge/)
+  assert.match(profileModal, /props\.pet\?\.birthday/)
+  assert.match(profileModal, /petAge/)
+})
+
 test('PetProfileModal 會顯示寵物詳細資料並使用 BaseButton 關閉', () => {
   assert.match(profileModal, /petPhoto/)
   assert.match(profileModal, /petImage/)
