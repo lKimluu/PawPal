@@ -13,9 +13,13 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  isSaving: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'delete'])
 
 const isEditingProfile = ref(false)
 const weightInputRef = ref(null)
@@ -167,7 +171,13 @@ function handleSaveEdit() {
   isEditingProfile.value = false
 }
 
+function handleDeleteProfile() {
+  emit('delete', props.pet)
+}
+
 function handleClose() {
+  if (props.isSaving) return
+
   isEditingProfile.value = false
   clearPhotoSelection()
   emit('close')
@@ -220,6 +230,7 @@ watch(
           type="button"
           class="absolute right-3 top-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-lg text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95"
           aria-label="關閉"
+          :disabled="isSaving"
           @click="handleClose"
         >
           ⨉
@@ -422,9 +433,31 @@ watch(
         </div>
 
         <div class="flex justify-end gap-3 border-t border-slate-100 pt-3">
-          <BaseButton v-if="!isEditingProfile" @click="handleStartEdit">修改資料</BaseButton>
+          <template v-if="!isEditingProfile">
+            <BaseButton
+              variant="orange"
+              class="min-w-[96px]"
+              :disabled="isSaving"
+              @click="handleDeleteProfile"
+            >
+              刪除資料
+            </BaseButton>
+            <BaseButton class="min-w-[96px]" :disabled="isSaving" @click="handleStartEdit">
+              修改資料
+            </BaseButton>
+          </template>
           <template v-else>
-            <BaseButton @click="handleSaveEdit">儲存修改</BaseButton>
+            <BaseButton
+              variant="orange"
+              class="min-w-[96px]"
+              :disabled="isSaving"
+              @click="handleCancelEdit"
+            >
+              取消
+            </BaseButton>
+            <BaseButton class="min-w-[96px]" :disabled="isSaving" @click="handleSaveEdit">
+              儲存修改
+            </BaseButton>
           </template>
         </div>
       </section>

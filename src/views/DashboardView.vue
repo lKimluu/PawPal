@@ -11,6 +11,7 @@ import AddEventModal from '@/components/calendar/AddEventModal.vue'
 import EditEventModal from '@/components/calendar/EditEventModal.vue'
 import DeleteEventModal from '@/components/calendar/DeleteEventModal.vue'
 import DayEventsModal from '@/components/calendar/DayEventsModal.vue'
+import DeleteConfirmModal from '@/components/common/DeleteConfirmModal.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import memberBanner from '@/assets/images/member_banner_dashboard.png'
@@ -30,6 +31,9 @@ const isPetProfileOpen = ref(false)
 const isAddPetModalOpen = ref(false)
 const isCreatingPet = ref(false)
 const addPetErrorMessage = ref('')
+const isPetDeleteModalOpen = ref(false)
+const petToDelete = ref(null)
+const isDeletingPet = ref(false)
 
 const showAddModal = ref(false)
 const addModalDate = ref('')
@@ -146,6 +150,35 @@ const openPetProfile = (pet) => {
 const closePetProfile = () => {
   isPetProfileOpen.value = false
   selectedPet.value = null
+}
+
+const handlePetDeleteRequest = (pet) => {
+  petToDelete.value = pet
+  isPetDeleteModalOpen.value = true
+}
+
+const handleClosePetDeleteModal = () => {
+  if (isDeletingPet.value) return
+
+  isPetDeleteModalOpen.value = false
+  petToDelete.value = null
+}
+
+const handleConfirmPetDelete = async () => {
+  if (!petToDelete.value?.id) return
+
+  isDeletingPet.value = true
+  const result = await petStore.deletePet(petToDelete.value.id, authStore.token)
+  isDeletingPet.value = false
+
+  if (result.success) {
+    handleClosePetDeleteModal()
+    closePetProfile()
+    toastStore.showToast(result.message || '寵物資料刪除成功', 'success')
+    return
+  }
+
+  toastStore.showToast(result.message || '寵物資料刪除失敗，請稍後再試', 'error')
 }
 
 const openAddPetModal = () => {
@@ -273,7 +306,20 @@ const handleCreatePet = async (payload) => {
     @confirm="handleConfirmDelete"
   />
 
-  <PetProfileModal :is-open="isPetProfileOpen" :pet="selectedPet" @close="closePetProfile" />
+  <PetProfileModal
+    :is-open="isPetProfileOpen"
+    :pet="selectedPet"
+    :is-saving="isDeletingPet"
+    @close="closePetProfile"
+    @delete="handlePetDeleteRequest"
+  />
+  <DeleteConfirmModal
+    :is-open="isPetDeleteModalOpen"
+    title="確認刪除寵物資料？"
+    :item-name="petToDelete?.name ?? ''"
+    @close="handleClosePetDeleteModal"
+    @confirm="handleConfirmPetDelete"
+  />
   <AddPetModal
     :is-open="isAddPetModalOpen"
     :is-loading="isCreatingPet"
