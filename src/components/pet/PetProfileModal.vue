@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import petPhoto from '@/assets/images/dog.png'
-import { formatPetBirthday, formatPetGender } from '@/utils/petDisplay.js'
+import { formatPetAge, formatPetBirthday, formatPetGender } from '@/utils/petDisplay.js'
 
 const props = defineProps({
   isOpen: {
@@ -71,6 +71,13 @@ const profileBirthdayInputClass =
 
 const petGender = computed(() => formatPetGender(props.pet?.gender))
 const petBirthday = computed(() => formatPetBirthday(props.pet?.birthday))
+const petAge = computed(() => {
+  if (props.pet?.age !== '' && props.pet?.age != null) {
+    return props.pet?.ageUnit ? `${props.pet.age} ${props.pet.ageUnit}` : props.pet.age
+  }
+
+  return formatPetAge(props.pet?.birthday)
+})
 
 function formatValue(value) {
   if (value === '' || value == null) return '-'
@@ -293,14 +300,14 @@ watch(
               </select>
 
               <p v-if="!isEditingProfile" :class="profileAgeReadonlyFieldClass">
-                <span class="whitespace-nowrap">{{ formatValue(pet.age) }}</span>
+                <span class="whitespace-nowrap">{{ petAge }}</span>
                 <span v-if="pet.birthday">{{ petBirthday }}</span>
               </p>
               <div
                 v-else
                 :class="profileAgeEditableFieldClass"
               >
-                <span v-if="pet.age" class="whitespace-nowrap">{{ formatValue(pet.age) }}</span>
+                <span v-if="petAge !== '-'" class="whitespace-nowrap">{{ petAge }}</span>
                 <input
                   v-model="editForm.birthday"
                   type="date"
