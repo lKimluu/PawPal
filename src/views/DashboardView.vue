@@ -207,7 +207,7 @@ const handleCreatePet = async (payload) => {
           class="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden rounded-3xl border border-brand-lightblue bg-brand-white shadow-[0_8px_28px_rgba(61,74,122,0.08)] p-4"
         >
           <EventList
-            :events="calendarStore.filteredEvents"
+            :events="calendarStore.upcomingEvents"
             :compact="true"
             @add="openAddModal()"
             @edit="openEditModal"
