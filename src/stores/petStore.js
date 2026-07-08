@@ -13,10 +13,13 @@ export const usePetStore = defineStore('pet', () => {
   const currentPet = computed(() => pets.value.find((p) => p.id === selectedPetId.value) ?? null)
 
   function normalizePet(pet) {
+    const photoUrl = pet.photoUrl || pet.photo_url || pet.avatar_url || pet.image
+
     return {
       ...pet,
       id: Number(pet.id),
-      photoUrl: pet.photoUrl || pet.photo_url || pet.avatar_url || pet.image || defaultPetAvatar,
+      hasCustomPhoto: Boolean(photoUrl),
+      photoUrl: photoUrl || defaultPetAvatar,
     }
   }
 
