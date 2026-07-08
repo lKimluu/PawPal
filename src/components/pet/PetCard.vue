@@ -32,7 +32,7 @@ const ageText = computed(() =>
 
 <template>
   <article
-    class="flex w-full cursor-pointer items-center gap-4 rounded-[28px] p-4 transition duration-200 active:scale-[0.99] md:max-w-[132px] md:flex-col md:items-center md:gap-3 md:px-5 md:py-6"
+    class="flex w-full cursor-pointer items-center gap-4 rounded-[28px] p-4 transition duration-200 active:scale-[0.99] md:max-w-[142px] md:flex-col md:items-center md:gap-3 md:px-5 md:py-6"
     :class="cardThemeClass"
     tabindex="0"
     role="button"
@@ -46,18 +46,22 @@ const ageText = computed(() =>
       <img :src="pet?.image" :alt="pet?.name || 'pet photo'" class="h-full w-full object-cover" />
     </div>
 
-    <div class="min-w-0 text-left md:text-center">
+    <div class="min-w-0 text-left md:w-full md:text-center">
       <h3
         class="truncate text-[18px] font-black tracking-[0.18em] text-[var(--color-brand-darkgray)] md:text-[15px]"
       >
         {{ pet?.name || '未命名' }}
       </h3>
-      <p class="mt-2 text-[12px] font-medium text-[var(--color-brand-gray)] md:mt-1.5">
-        品種 | {{ pet?.breed || '-' }}
-      </p>
-      <p class="mt-1 text-[12px] font-medium text-[var(--color-brand-gray)]">
-        年齡 | {{ ageText }}
-      </p>
+      <div
+        class="mt-2 grid max-w-full grid-cols-[2em_0.5rem_minmax(0,1fr)] gap-x-1 gap-y-1 text-[12px] font-medium text-[var(--color-brand-gray)] md:mt-1.5"
+      >
+        <span class="text-left">品種</span>
+        <span aria-hidden="true">|</span>
+        <span class="min-w-0 truncate text-left">{{ pet?.breed || '-' }}</span>
+        <span class="text-left">年齡</span>
+        <span aria-hidden="true">|</span>
+        <span class="min-w-0 truncate text-left">{{ ageText }}</span>
+      </div>
     </div>
   </article>
 </template>

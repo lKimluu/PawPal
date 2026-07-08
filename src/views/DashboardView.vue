@@ -246,13 +246,13 @@ const handleCreatePet = async (payload) => {
           <div
             class="flex flex-col md:flex-row gap-3 md:gap-4 overflow-y-auto max-h-[360px] md:overflow-y-hidden md:overflow-x-auto md:max-h-none pb-2"
           >
-            <AddPetButton class="md:min-w-[132px] md:flex-1" @click="openAddPetModal" />
+            <AddPetButton class="md:min-w-[142px] md:flex-1" @click="openAddPetModal" />
             <PetCard
               v-for="(pet, index) in dashboardPets"
               :key="pet.id"
               :pet="pet"
               :theme="themeColors[index % themeColors.length]"
-              class="md:min-w-[132px] md:flex-1"
+              class="md:min-w-[142px] md:flex-1"
               @click="openPetProfile(pet)"
             />
           </div>
