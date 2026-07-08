@@ -8,6 +8,11 @@ export function validate(schema, target = 'body') {
       })
     }
 
+    if (target === 'query') {
+      req.validated_query = result.data
+      return next()
+    }
+
     req[target] = result.data
     return next()
   }
