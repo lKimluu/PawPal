@@ -8,10 +8,7 @@ import CalendarEventItem from './CalendarEventItem.vue'
 const calendarStore = useCalendarStore()
 const petStore = usePetStore()
 
-const activePet = ref('all')
-
 // 「檢視全部」+ 由 petStore 動態產生各寵物分頁（petStore 之後改 API 也會自動跟著更新）
-// TODO: 依 activePet 篩選事件（檢視全部/單一寵物）另開 issue 實作
 const petTabs = computed(() => [
   { id: 'all', label: '檢視全部' },
   ...petStore.pets.map((pet) => ({ id: pet.id, label: pet.name })),
@@ -91,7 +88,7 @@ const calendarCells = computed(() => {
       hasEvent: false,
       isSunday: d.getDay() === 0,
       isSaturday: d.getDay() === 6,
-      events: calendarStore.events.filter((e) => e.eventDate === dateStr),
+      events: calendarStore.filteredEvents.filter((e) => e.eventDate === dateStr),
     })
   }
 
@@ -149,10 +146,10 @@ function selectCell(index, cell) {
       <button
         v-for="tab in petTabs"
         :key="tab.id"
-        @click="activePet = tab.id"
+        @click="calendarStore.setSelectedPet(tab.id)"
         class="px-2 py-1 text-xs rounded-full border-2 font-medium whitespace-nowrap cursor-pointer transition-all duration-200 md:px-4 md:py-2 md:text-sm lg:px-[18px] lg:py-2 lg:text-sm"
         :class="
-          tab.id === activePet
+          tab.id === calendarStore.selectedPetId
             ? 'border-brand-blue bg-brand-blue text-brand-white font-semibold'
             : 'border-brand-lightblue bg-white text-brand-gray hover:border-brand-blue hover:text-brand-darkgray'
         "

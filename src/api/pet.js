@@ -60,7 +60,7 @@ export function buildUpdatePetPayload(data = {}) {
   return mapPetToApi(data)
 }
 
-export function createPetRequestData(data) {
+export function createPetRequestData(data = {}) {
   const avatarFile = data.avatarFile || data.photoFile || data.photo_files?.[0] || null
   const payload = mapPetToApi(data)
 
@@ -84,6 +84,18 @@ export function createPetRequestData(data) {
   return {
     data: formData,
     headers: getAuthHeaders(),
+  }
+}
+
+export function updatePetRequestData(data = {}, token) {
+  const request = createPetRequestData(data)
+
+  return {
+    ...request,
+    headers: {
+      ...request.headers,
+      ...getAuthHeaders(token),
+    },
   }
 }
 
@@ -199,11 +211,9 @@ export async function createPet(data) {
 
 export async function updatePet(id, data, token) {
   try {
-    const response = await axios.patch(`${API_BASE_URL}/api/v1/pets/${id}`, buildUpdatePetPayload(data), {
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(token),
-      },
+    const request = updatePetRequestData(data, token)
+    const response = await axios.patch(`${API_BASE_URL}/api/v1/pets/${id}`, request.data, {
+      headers: request.headers,
     })
 
     return {

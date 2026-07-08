@@ -4,8 +4,8 @@ import { METRIC_TYPES } from '../schemas/growth_records.schema.js'
 export function createGrowthRecordsController(growthRecordsService) {
   async function getGrowthRecords(req, res) {
     const userId = req.userId
-    const petId = Number(req.query.pet_id ?? req.query.petId)
-    const { metricType } = req.query
+    const petId = Number(req.query.pet_id)
+    const metricType = req.query.metric_type
 
     if (!Number.isSafeInteger(petId) || petId <= 0) {
       return res.status(400).json({ message: '寵物 ID 不正確，請確認後再試' })

@@ -9,6 +9,7 @@ import {
   mapPetToApi,
   normalizePetFromApi,
   resolvePetUpdateErrorMessage,
+  updatePetRequestData,
 } from '../api/pet.js'
 
 function readSource(path) {
@@ -157,6 +158,27 @@ test('createPetRequestData keeps JSON payload when avatarFile is absent', () => 
     species: 'dog',
     avatar_url: 'https://example.com/momo.png',
   })
+})
+
+test('updatePetRequestData builds multipart FormData when photoFile is present', async () => {
+  const photoFile = new Blob(['avatar'], { type: 'image/png' })
+  const request = updatePetRequestData(
+    {
+      name: 'Momo',
+      weight: '7.2',
+      neutered: false,
+      photoFile,
+    },
+    'token-123',
+  )
+
+  assert.ok(request.data instanceof FormData)
+  assert.equal(request.headers['Content-Type'], undefined)
+  assert.equal(request.headers.Authorization, 'Bearer token-123')
+  assert.equal(request.data.get('name'), 'Momo')
+  assert.equal(request.data.get('weight'), '7.2')
+  assert.equal(request.data.get('neutered'), 'false')
+  assert.equal(await request.data.get('avatar').text(), 'avatar')
 })
 
 test('Dashboard wires pet store, add pet modal, and update pet modal', () => {
