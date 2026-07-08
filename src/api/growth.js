@@ -43,3 +43,14 @@ export function createGrowthRecord({ petId, metricType, value, unit, recordedAt 
     token,
   })
 }
+
+export function updateGrowthRecord(id, value, token) {
+  return request('patch', `/api/v1/growth-records/${id}`, {
+    payload: { value },
+    token,
+  })
+}
+
+export function deleteGrowthRecord(id, token) {
+  return request('delete', `/api/v1/growth-records/${id}`, { token })
+}

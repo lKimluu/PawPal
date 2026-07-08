@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { MEDICAL_IMAGE_UPLOAD_INTENT_FIELD } from '../middlewares/upload_image.js'
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/
 
@@ -77,6 +78,7 @@ export const updateRecordSchema = z
     diagnosis: z.string().trim().optional(),
     prescription: z.string().trim().optional(),
     image_url: z.array(z.url({ message: 'image_url 必須是有效網址' })).optional(),
+    [MEDICAL_IMAGE_UPLOAD_INTENT_FIELD]: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: '請至少提供一個欄位進行修改',

@@ -49,7 +49,7 @@ test('取得指定寵物的成長紀錄', async () => {
       return records
     },
   })
-  const req = { userId: 1, query: { petId: '1' } }
+  const req = { userId: 1, query: { pet_id: '1' } }
   const res = createResponse()
 
   await getGrowthRecords(req, res)
@@ -71,7 +71,7 @@ test('petId 無效時回傳 400', async () => {
 
 test('metricType 無效時回傳 400', async () => {
   const { getGrowthRecords } = createTestController()
-  const req = { userId: 1, query: { petId: '1', metricType: 'invalid_type' } }
+  const req = { userId: 1, query: { pet_id: '1', metric_type: 'invalid_type' } }
   const res = createResponse()
 
   await getGrowthRecords(req, res)
