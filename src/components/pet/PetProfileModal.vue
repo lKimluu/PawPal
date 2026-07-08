@@ -294,6 +294,7 @@ watch(
                 v-else
                 v-model="editForm.name"
                 type="text"
+                placeholder="請輸入寵物名稱"
                 :class="`${nameInputClass} w-full max-w-[180px]`"
                 aria-label="寵物名稱"
                 :disabled="isSaving"
@@ -306,6 +307,7 @@ watch(
                 v-else
                 v-model="editForm.breed"
                 type="text"
+                placeholder="請輸入寵物品種"
                 :class="`${profileMetaInputClass} w-full max-w-[180px]`"
                 aria-label="品種"
                 :disabled="isSaving"
@@ -321,6 +323,7 @@ watch(
                 aria-label="性別"
                 :disabled="isSaving"
               >
+                <option value="" disabled>請選擇寵物性別</option>
                 <option value="公">公</option>
                 <option value="母">母</option>
               </select>
