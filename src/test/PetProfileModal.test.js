@@ -37,7 +37,7 @@ test('PetProfileModal 會顯示寵物詳細資料並使用 BaseButton 關閉', (
 })
 
 test('PetProfileModal 會提供編輯模式並交由 Dashboard 呼叫 updatePet', () => {
-  assert.match(profileModal, /defineEmits\(\['close', 'update'\]\)/)
+  assert.match(profileModal, /defineEmits\(\['close', 'update', 'delete'\]\)/)
   assert.match(profileModal, /isEditingProfile/)
   assert.match(profileModal, /handleSaveEdit/)
   assert.match(profileModal, /buildUpdatePayload/)

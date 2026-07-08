@@ -23,7 +23,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['close', 'update'])
+const emit = defineEmits(['close', 'update', 'delete'])
 
 const isEditingProfile = ref(false)
 const weightInputRef = ref(null)
@@ -184,6 +184,10 @@ function handleSaveEdit() {
     id: props.pet?.id,
     data: buildUpdatePayload(),
   })
+}
+
+function handleDeleteProfile() {
+  emit('delete', props.pet)
 }
 
 function handleClose() {
@@ -462,10 +466,27 @@ watch(
         </div>
 
         <div class="flex justify-end gap-3 border-t border-slate-100 pt-3">
-          <BaseButton v-if="!isEditingProfile" @click="handleStartEdit">修改資料</BaseButton>
+          <template v-if="!isEditingProfile">
+            <BaseButton
+              variant="orange"
+              class="min-w-[96px]"
+              :disabled="isSaving"
+              @click="handleDeleteProfile"
+            >
+              刪除資料
+            </BaseButton>
+            <BaseButton class="min-w-[96px]" @click="handleStartEdit">修改資料</BaseButton>
+          </template>
           <template v-else>
-            <BaseButton variant="secondary" :disabled="isSaving" @click="handleCancelEdit">取消</BaseButton>
-            <BaseButton :disabled="isSaving" @click="handleSaveEdit">
+            <BaseButton
+              variant="orange"
+              class="min-w-[96px]"
+              :disabled="isSaving"
+              @click="handleCancelEdit"
+            >
+              取消
+            </BaseButton>
+            <BaseButton class="min-w-[96px]" :disabled="isSaving" @click="handleSaveEdit">
               {{ isSaving ? '儲存中...' : '儲存修改' }}
             </BaseButton>
           </template>
