@@ -43,8 +43,9 @@ const handleAddSubmit = async (payload) => {
   const result = await calendarStore.addEvent(payload)
   if (result.success) {
     showAddModal.value = false
+    toastStore.showToast(result.message || '新增成功', 'success')
   } else {
-    alert(result.message)
+    toastStore.showToast(result.message, 'error')
   }
 }
 
@@ -87,8 +88,9 @@ const handleEditSubmit = async (payload) => {
   const result = await calendarStore.updateEvent(editingEvent.value.id, payload)
   if (result.success) {
     showEditModal.value = false
+    toastStore.showToast(result.message || '更新成功', 'success')
   } else {
-    alert(result.message)
+    toastStore.showToast(result.message, 'error')
   }
 }
 
@@ -97,11 +99,13 @@ const handleEditDelete = (event) => {
   handleDeleteRequest(event)
 }
 
-const dashboardPets = computed(() => pets.value.map((p) => ({
-  ...p,
-  image: p.photoUrl ?? null,
-  ageUnit: '',
-})))
+const dashboardPets = computed(() =>
+  pets.value.map((p) => ({
+    ...p,
+    image: p.photoUrl ?? null,
+    ageUnit: '',
+  })),
+)
 
 const userName = computed(() => authStore.user?.name || '寵物家長')
 
@@ -128,8 +132,9 @@ const handleConfirmDelete = async () => {
   const result = await calendarStore.deleteEvent(eventToDelete.value.id)
   if (result.success) {
     handleCloseDeleteModal()
+    toastStore.showToast(result.message || '刪除成功', 'success')
   } else {
-    alert(result.message)
+    toastStore.showToast(result.message, 'error')
   }
 }
 
@@ -247,12 +252,14 @@ const handleCreatePet = async (payload) => {
   <AddEventModal
     :is-open="showAddModal"
     :selected-date="addModalDate"
+    :is-loading="calendarStore.isLoading"
     @close="showAddModal = false"
     @submit="handleAddSubmit"
   />
   <EditEventModal
     :is-open="showEditModal"
     :event="editingEvent"
+    :is-loading="calendarStore.isLoading"
     @close="showEditModal = false"
     @submit="handleEditSubmit"
     @delete="handleEditDelete"
@@ -261,15 +268,12 @@ const handleCreatePet = async (payload) => {
   <DeleteEventModal
     :is-open="showDeleteModal"
     :item-name="eventToDelete?.title ?? ''"
+    :is-loading="calendarStore.isLoading"
     @close="handleCloseDeleteModal"
     @confirm="handleConfirmDelete"
   />
 
-  <PetProfileModal
-    :is-open="isPetProfileOpen"
-    :pet="selectedPet"
-    @close="closePetProfile"
-  />
+  <PetProfileModal :is-open="isPetProfileOpen" :pet="selectedPet" @close="closePetProfile" />
   <AddPetModal
     :is-open="isAddPetModalOpen"
     :is-loading="isCreatingPet"
