@@ -1,5 +1,6 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useGrowthStore } from '@/stores/growth.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { usePetStore } from '@/stores/petStore.js'
@@ -18,6 +19,7 @@ import DeleteConfirmModal from '@/components/common/DeleteConfirmModal.vue'
 const growthStore = useGrowthStore()
 const authStore = useAuthStore()
 const petStore = usePetStore()
+const { pets, selectedPetId } = storeToRefs(petStore)
 const toastStore = useToastStore()
 const activeRange = ref('6 個月')
 
@@ -26,11 +28,19 @@ const isHistoryOpen = ref(false)
 const isDeleteOpen = ref(false)
 const pendingDeleteRecord = ref(null)
 
-onMounted(() => {
-  if (petStore.selectedPetId) {
-    growthStore.fetchRecords(petStore.selectedPetId, authStore.token)
-  }
+onMounted(async () => {
+  await petStore.fetchPets()
 })
+
+watch(
+  selectedPetId,
+  (newPetId) => {
+    if (newPetId != null) {
+      growthStore.fetchRecords(newPetId, authStore.token)
+    }
+  },
+  { immediate: true },
+)
 
 const handleSubmit = async (formData) => {
   const results = await growthStore.createRecordsFrom(
@@ -87,7 +97,7 @@ const deleteItemName = computed(() => {
     <div class="relative z-0 flex min-h-screen flex-col pt-14 lg:pt-17 lg:pl-52">
       <main class="min-w-0 flex-1 px-4 py-6 md:px-8 lg:px-10">
         <section class="mx-auto w-full">
-          <PetSwitcher />
+          <PetSwitcher :pets="pets" v-model="selectedPetId" />
           <div class="mb-2 flex items-center justify-between gap-4 md:mb-6">
             <h1 class="text-xl font-bold text-brand-navy md:text-2xl">成長歷程</h1>
             <div class="flex items-center gap-2">
