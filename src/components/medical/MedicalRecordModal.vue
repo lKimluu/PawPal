@@ -89,9 +89,10 @@ const removeImage = (index) => {
   const removedUrl = form.value.imageUrl[index]
   if (removedUrl?.startsWith('blob:')) {
     URL.revokeObjectURL(removedUrl)
-    const blobIndex = form.value.imageUrl
-      .slice(0, index + 1)
-      .filter((url) => typeof url === 'string' && url.startsWith('blob:')).length - 1
+    const blobIndex =
+      form.value.imageUrl
+        .slice(0, index + 1)
+        .filter((url) => typeof url === 'string' && url.startsWith('blob:')).length - 1
     if (blobIndex >= 0) {
       form.value.rawFiles.splice(blobIndex, 1)
     }
@@ -108,9 +109,9 @@ const removeImage = (index) => {
       @click.self="handleClose"
     >
       <div
-        class="modal-card relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white p-6 shadow-2xl flex flex-col gap-6 md:p-8 transform duration-300 scale-100"
+        class="modal-card relative flex max-h-[90vh] w-full max-w-2xl flex-col gap-6 overflow-hidden rounded-3xl bg-white pt-6 pb-6 pl-6 pr-2 shadow-2xl md:pt-8 md:pb-8 md:pr-2 md:pl-8"
       >
-        <div class="flex items-start justify-between">
+        <div class="flex items-start justify-between pr-4 md:pr-6">
           <div class="flex flex-col gap-1 pr-4 md:pr-6">
             <h2 class="text-2xl font-bold tracking-wide text-brand-navy">
               {{ isEditMode ? '編輯醫療紀錄' : '新增醫療紀錄' }}
