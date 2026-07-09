@@ -100,13 +100,38 @@ export async function googleLogin(req, res) {
   const { token } = req.body
 
   try {
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    })
+    let email = null
+    let name = null
+    let picture = null
 
-    const payload = ticket.getPayload()
-    const { email, name } = payload
+    if (!token) {
+      return res.status(400).json({ message: '前端未傳送 Google 驗證憑證' })
+    }
+
+    if (token.startsWith('ya29.')) {
+      const response = await fetch(
+        `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${token}`,
+      )
+
+      if (!response.ok) {
+        throw new Error('Google Access Token 驗證失敗')
+      }
+
+      const userData = await response.json()
+      email = userData.email
+      name = userData.name
+      picture = userData.picture
+    } else {
+      const ticket = await client.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      })
+
+      const payload = ticket.getPayload()
+      email = payload.email
+      name = payload.name
+      picture = payload.picture
+    }
 
     if (!email) {
       return res.status(400).json({ message: '無法從 Google 帳號獲取有效的 Email' })
@@ -126,6 +151,7 @@ export async function googleLogin(req, res) {
       user = await createUser({
         name: name || 'Google 用戶',
         email,
+        avatar_url: picture || null,
         password: hashedPassword,
       })
     }
@@ -153,5 +179,101 @@ export async function googleLogin(req, res) {
   } catch (error) {
     console.error('Google 憑證後端驗證失敗:', error)
     return res.status(401).json({ message: 'Google 身分驗證失敗，請稍後再試' })
+  }
+}
+
+export async function lineLogin(req, res) {
+  const { code } = req.body
+
+  try {
+    const lineChannelId = process.env.LINE_CHANNEL_ID
+    const lineChannelSecret = process.env.LINE_CHANNEL_SECRET
+    const redirectUri = process.env.LINE_REDIRECT_URI
+
+    if (!lineChannelId || !lineChannelSecret || !redirectUri) {
+      console.error(
+        '後端環境變數 LINE_CHANNEL_ID, LINE_CHANNEL_SECRET 或 LINE_REDIRECT_URI 未正確設定',
+      )
+      return res.status(500).json({ message: '登入失敗，伺服器配置錯誤' })
+    }
+
+    if (!JWT_SECRET) {
+      console.error('JWT_SECRET is not configured')
+      return res.status(500).json({ message: '登入失敗，請稍後再試' })
+    }
+
+    const tokenResponse = await fetch('https://api.line.me/oauth2/v2.1/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: redirectUri,
+        client_id: lineChannelId,
+        client_secret: lineChannelSecret,
+      }),
+    })
+
+    const tokenData = await tokenResponse.json()
+
+    if (!tokenResponse.ok) {
+      console.error('【後端偵錯】LINE 回傳錯誤了！詳細原因：', tokenData)
+      console.error('LINE Token 交換失敗:', tokenData)
+      return res.status(401).json({ message: 'LINE 身分驗證失效，請重新登入' })
+    }
+
+    const idToken = tokenData.id_token
+    if (!idToken) {
+      return res.status(400).json({ message: '未能從 LINE 取得正確的身份憑證' })
+    }
+
+    const payloadBase64 = idToken.split('.')[1]
+    const decodedPayload = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf-8'))
+
+    const { email, name, picture } = decodedPayload
+
+    if (!email) {
+      return res
+        .status(400)
+        .json({ message: '無法從您的 LINE 帳號獲取有效的 Email，請確認 LINE 授權設定' })
+    }
+
+    let user = await findUserByEmail(email)
+
+    if (!user) {
+      const randomPassword = Math.random().toString(36).substring(2, 15)
+      const hashedPassword = await bcrypt.hash(randomPassword, SALT_ROUNDS)
+
+      user = await createUser({
+        name: name || 'LINE 用戶',
+        email,
+        avatar_url: picture || null,
+        password: hashedPassword,
+      })
+    }
+
+    const pawpalToken = jwt.sign(
+      {
+        sub: user.id,
+        email: user.email,
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' },
+    )
+
+    return res.status(200).json({
+      message: 'LINE 登入成功',
+      token: pawpalToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatar_url: user.avatar_url,
+        created_at: user.created_at,
+      },
+    })
+  } catch (error) {
+    console.error('LINE 登入後端驗證失敗:', error)
+    return res.status(500).json({ message: 'LINE 登入失敗，請稍後再試' })
   }
 }

@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
+import { GoogleLogin } from 'vue3-google-login'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -43,6 +44,43 @@ async function handleSubmit() {
     router.push('/login')
   }, 1000)
 }
+
+const handleGoogleLoginCallback = async (response) => {
+  errorMessage.value = ''
+  isSubmitting.value = true
+
+  const googleIdToken = response?.credential || response?.access_token || response?.code
+
+  if (!googleIdToken) {
+    errorMessage.value = 'Google 認證失敗，未取得驗證憑證'
+    isSubmitting.value = false
+    return
+  }
+
+  try {
+    const result = await authStore.loginWithGoogle(googleIdToken)
+    isSubmitting.value = false
+
+    if (result?.success) {
+      router.push('/dashboard')
+    } else {
+      errorMessage.value = result?.message || 'Google 認證失敗'
+    }
+  } catch (err) {
+    isSubmitting.value = false
+    errorMessage.value = '伺服器連線失敗'
+  }
+}
+
+const loginWithLine = () => {
+  const clientID = import.meta.env.VITE_LINE_CHANNEL_ID
+  const redirectURI = encodeURIComponent(import.meta.env.VITE_LINE_REDIRECT_URI)
+  const state = 'pawpal_line_login_secure'
+
+  const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${clientID}&redirect_uri=${redirectURI}&state=${state}&scope=profile%20openid%20email`
+
+  window.location.href = lineAuthUrl
+}
 </script>
 
 <template>
@@ -52,9 +90,9 @@ async function handleSubmit() {
       @submit.prevent="handleSubmit"
     >
       <header class="mb-7 flex flex-col items-center text-center">
-        <h1 class="text-[22px] font-bold leading-tight text-brand-navy">加入PawPal</h1>
+        <h1 class="text-[22px] font-bold leading-tight text-brand-navy">建立新帳號</h1>
         <p class="mt-2 text-[13px] font-normal leading-relaxed text-brand-gray">
-          建立帳號開始記錄毛孩成長
+          加入 PawPal 開始記錄毛孩成長
         </p>
       </header>
 
@@ -67,6 +105,7 @@ async function handleSubmit() {
             placeholder="請輸入姓名"
             autocomplete="name"
             v-model="name"
+            required
           />
         </label>
 
@@ -78,6 +117,7 @@ async function handleSubmit() {
             placeholder="you@example.com"
             autocomplete="email"
             v-model="email"
+            required
           />
         </label>
 
@@ -89,6 +129,7 @@ async function handleSubmit() {
             placeholder="••••••••"
             autocomplete="current-password"
             v-model="password"
+            required
           />
         </label>
 
@@ -100,6 +141,7 @@ async function handleSubmit() {
             placeholder="••••••••"
             autocomplete="current-password"
             v-model="confirmPassword"
+            required
           />
         </label>
       </div>
@@ -113,7 +155,7 @@ async function handleSubmit() {
       </p>
 
       <button
-        class="mt-5 h-11 w-full rounded-xl bg-brand-orange text-[14px] font-bold text-brand-white shadow-[0_8px_18px_rgba(255,160,2,0.32)] transition hover:bg-[#e89000] focus:outline-none focus:ring-2 focus:ring-[#ffa002] focus:ring-offset-2"
+        class="mt-5 h-11 w-full rounded-xl bg-brand-orange text-[14px] font-bold text-brand-white shadow-[0_4px_18px_rgba(255,160,2,0.32)] transition hover:bg-[#e89000] focus:outline-none focus:ring-2 focus:ring-brand-orange focus:ring-offset-2 cursor-pointer"
         type="submit"
         :disabled="isSubmitting"
       >
@@ -126,27 +168,29 @@ async function handleSubmit() {
         <span class="h-px flex-1 bg-[#DDE5FC]"></span>
       </div>
 
-      <div class="flex items-center justify-center gap-5">
-        <button
-          class="grid h-12 w-12 place-items-center rounded-full bg-white text-[20px] font-bold shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-110 active:shadow-[0_7px_18px_rgba(31,41,55,0.16)] lg:hover:scale-110 lg:hover:shadow-[0_7px_18px_rgba(31,41,55,0.16)]"
-          type="button"
-          aria-label="使用 Google 登入"
+      <div class="w-full">
+        <GoogleLogin
+          :callback="handleGoogleLoginCallback"
+          popup-type="TOKEN"
+          v-slot="{ activate }"
+          class="w-full"
         >
-          <span><img src="https://assets.5xcampus.com/icons/google.svg" alt="google" /></span>
-        </button>
+          <button
+            class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer"
+            type="button"
+            @click="activate"
+          >
+            <img src="@/assets/icons/google.svg" alt="Google" class="w-5 h-5" />
+            使用 Google 帳戶註冊
+          </button>
+        </GoogleLogin>
+
         <button
-          class="grid h-12 w-12 place-items-center rounded-full bg-white shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-110 active:shadow-[0_7px_18px_rgba(31,41,55,0.16)] lg:hover:scale-110 lg:hover:shadow-[0_7px_18px_rgba(31,41,55,0.16)]"
+          class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer mt-3"
           type="button"
-          aria-label="使用 Apple 登入"
+          @click="loginWithLine"
         >
-          <img src="@/assets/icons/apple.svg" alt="apple" class="w-7" />
-        </button>
-        <button
-          class="grid h-12 w-12 place-items-center rounded-full bg-white text-[10px] font-black text-[#06c755] shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-110 active:shadow-[0_7px_18px_rgba(31,41,55,0.16)] lg:hover:scale-110 lg:hover:shadow-[0_7px_18px_rgba(31,41,55,0.16)]"
-          type="button"
-          aria-label="使用 LINE 登入"
-        >
-          LINE
+          <img src="@/assets/icons/line.svg" alt="LINE" class="w-5 h-5" /> 使用 LINE 帳戶註冊
         </button>
       </div>
 
@@ -156,7 +200,7 @@ async function handleSubmit() {
           <RouterLink
             class="text-brand-blue transition active:text-[#7F97EC] lg:hover:text-[#7F97EC]"
             to="/login"
-            >登入</RouterLink
+            >立即登入</RouterLink
           >
         </li>
       </ul>

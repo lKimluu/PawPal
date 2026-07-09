@@ -10,6 +10,9 @@ const requiredEnvVars = [
   'DB_PASSWORD',
   'JWT_SECRET',
   'GOOGLE_CLIENT_ID',
+  'LINE_CHANNEL_ID',
+  'LINE_CHANNEL_SECRET',
+  'LINE_REDIRECT_URI',
 ]
 
 const missingEnvVars = requiredEnvVars.filter((envVar) => {

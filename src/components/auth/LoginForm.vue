@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import { GoogleLogin } from 'vue3-google-login'
@@ -32,7 +32,7 @@ const handleGoogleLoginCallback = async (response) => {
   errorMessage.value = ''
   isSubmitting.value = true
 
-  const googleIdToken = response?.credential
+  const googleIdToken = response?.credential || response?.access_token || response?.code
 
   if (!googleIdToken) {
     errorMessage.value = 'Google 登入失敗，未取得驗證憑證'
@@ -40,20 +40,57 @@ const handleGoogleLoginCallback = async (response) => {
     return
   }
 
-  const result = await authStore.loginWithGoogle(googleIdToken)
+  try {
+    const result = await authStore.loginWithGoogle(googleIdToken)
 
-  isSubmitting.value = false
+    isSubmitting.value = false
 
-  if (result?.success) {
-    router.push('/dashboard')
-  } else {
-    errorMessage.value = result?.message || 'Google 登入失敗，請稍後再試'
+    if (result?.success) {
+      router.push('/dashboard')
+    } else {
+      errorMessage.value = result?.message || 'Google 登入失敗，請稍後再試'
+    }
+  } catch (err) {
+    isSubmitting.value = false
+    errorMessage.value = '伺服器連線失敗'
   }
 }
+
+const loginWithLine = () => {
+  const clientID = import.meta.env.VITE_LINE_CHANNEL_ID
+  const redirectURI = encodeURIComponent(import.meta.env.VITE_LINE_REDIRECT_URI)
+  const state = 'pawpal_line_login_secure'
+
+  const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${clientID}&redirect_uri=${redirectURI}&state=${state}&scope=profile%20openid%20email`
+
+  window.location.href = lineAuthUrl
+}
+
+onMounted(async () => {
+  const urlParams = new URLSearchParams(window.location.search)
+  const code = urlParams.get('code')
+
+  if (code) {
+    errorMessage.value = ''
+    isSubmitting.value = true
+
+    const result = await authStore.loginWithLine(code)
+
+    isSubmitting.value = false
+
+    if (result?.success) {
+      router.push('/dashboard')
+    } else {
+      errorMessage.value = result?.message || 'LINE 登入失敗，請稍後再試'
+    }
+
+    window.history.replaceState({}, document.title, window.location.pathname)
+  }
+})
 </script>
 
 <template>
-  <main class="login-form-page flex h-full items-center justify-center px-4 py-8 my-10">
+  <main class="login-form-page flex h-full items-center justify-center px-4 py-8">
     <form
       class="w-full max-w-[360px] rounded-[18px] bg-white px-8 py-7 shadow-[0_10px_35px_rgba(31,41,55,0.16)]"
       @submit.prevent="handleSubmit"
@@ -94,7 +131,7 @@ const handleGoogleLoginCallback = async (response) => {
       </p>
 
       <button
-        class="mt-5 h-11 w-full rounded-xl bg-brand-blue text-[14px] font-bold text-brand-white shadow-[0_8px_18px_rgba(146,168,245,0.36)] transition hover:bg-[#7F97EC] focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 cursor-pointer"
+        class="mt-5 h-11 w-full rounded-xl bg-brand-blue text-[14px] font-bold text-brand-white shadow-[0_4px_18px_rgba(146,168,245,0.36)] transition hover:bg-[#7F97EC] focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 cursor-pointer"
         type="submit"
         :disabled="isSubmitting"
       >
@@ -108,9 +145,14 @@ const handleGoogleLoginCallback = async (response) => {
       </div>
 
       <div class="w-full">
-        <GoogleLogin :callback="handleGoogleLoginCallback" v-slot="{ activate }" class="w-full">
+        <GoogleLogin
+          :callback="handleGoogleLoginCallback"
+          popup-type="TOKEN"
+          v-slot="{ activate }"
+          class="w-full"
+        >
           <button
-            class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] lg:hover:bg-[#F3F4F8] cursor-pointer"
+            class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer"
             type="button"
             @click="activate"
           >
@@ -118,6 +160,14 @@ const handleGoogleLoginCallback = async (response) => {
             使用 Google 帳戶登入
           </button>
         </GoogleLogin>
+
+        <button
+          class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer mt-3"
+          type="button"
+          @click="loginWithLine"
+        >
+          <img src="@/assets/icons/line.svg" alt="LINE" class="w-5 h-5" /> 使用 LINE 帳戶登入
+        </button>
       </div>
 
       <div class="mt-7 flex items-center justify-center gap-3 text-[13px] font-bold">

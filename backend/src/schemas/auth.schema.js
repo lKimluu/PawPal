@@ -6,6 +6,8 @@ const loginRequiredMessage = 'Email、密碼為必填欄位'
 const loginTypeMessage = 'Email、密碼格式不正確'
 const googleRequiredMessage = '缺少 Google 驗證憑證 (ID Token)'
 const googleTypeMessage = 'Google 驗證憑證格式不正確'
+const lineRequiredMessage = '缺少 LINE 授權碼 (Code)'
+const lineTypeMessage = 'LINE 授權碼格式不正確'
 
 function stringFieldError(requiredMessage, typeMessage) {
   return (issue) => (issue.input === undefined ? requiredMessage : typeMessage)
@@ -49,4 +51,11 @@ export const googleLoginSchema = z.object({
     .string({ error: stringFieldError(googleRequiredMessage, googleTypeMessage) })
     .trim()
     .min(1, { error: googleRequiredMessage }),
+})
+
+export const lineLoginSchema = z.object({
+  code: z
+    .string({ error: stringFieldError(lineRequiredMessage, lineTypeMessage) })
+    .trim()
+    .min(1, { error: lineRequiredMessage }),
 })
