@@ -27,6 +27,8 @@ const toastStore = useToastStore()
 const { pets } = storeToRefs(petStore)
 const selectedPet = ref(null)
 const isPetProfileOpen = ref(false)
+const isPetSaving = ref(false)
+const petUpdateError = ref('')
 const isAddPetModalOpen = ref(false)
 const isCreatingPet = ref(false)
 const addPetErrorMessage = ref('')
@@ -102,8 +104,8 @@ const handleEditDelete = (event) => {
 const dashboardPets = computed(() =>
   pets.value.map((p) => ({
     ...p,
-    image: p.photoUrl ?? null,
-    ageUnit: '',
+    image: p.photoUrl ?? p.image ?? null,
+    ageUnit: p.ageUnit ?? '',
   })),
 )
 
@@ -140,12 +142,37 @@ const handleConfirmDelete = async () => {
 
 const openPetProfile = (pet) => {
   selectedPet.value = pet
+  petUpdateError.value = ''
   isPetProfileOpen.value = true
 }
 
 const closePetProfile = () => {
   isPetProfileOpen.value = false
   selectedPet.value = null
+  petUpdateError.value = ''
+}
+
+const handlePetUpdate = async ({ id, data }) => {
+  if (!id) {
+    petUpdateError.value = '找不到要修改的寵物，請重新整理後再試'
+    return
+  }
+
+  isPetSaving.value = true
+  petUpdateError.value = ''
+
+  const result = await petStore.updatePet(id, data, authStore.token)
+
+  isPetSaving.value = false
+
+  if (!result.success) {
+    petUpdateError.value = result.message || '寵物資料更新失敗，請稍後再試'
+    return
+  }
+
+  selectedPet.value = dashboardPets.value.find((pet) => pet.id === Number(id)) ?? selectedPet.value
+  toastStore.showToast(result.message || '寵物資料更新成功')
+  closePetProfile()
 }
 
 const openAddPetModal = () => {
@@ -224,13 +251,13 @@ const handleCreatePet = async (payload) => {
           <div
             class="flex flex-col md:flex-row gap-3 md:gap-4 overflow-y-auto max-h-[360px] md:overflow-y-hidden md:overflow-x-auto md:max-h-none pb-2"
           >
-            <AddPetButton class="md:min-w-[132px] md:flex-1" @click="openAddPetModal" />
+            <AddPetButton class="md:min-w-[142px] md:flex-1" @click="openAddPetModal" />
             <PetCard
               v-for="(pet, index) in dashboardPets"
               :key="pet.id"
               :pet="pet"
               :theme="themeColors[index % themeColors.length]"
-              class="md:min-w-[132px] md:flex-1"
+              class="md:min-w-[142px] md:flex-1"
               @click="openPetProfile(pet)"
             />
           </div>
@@ -273,7 +300,14 @@ const handleCreatePet = async (payload) => {
     @confirm="handleConfirmDelete"
   />
 
-  <PetProfileModal :is-open="isPetProfileOpen" :pet="selectedPet" @close="closePetProfile" />
+  <PetProfileModal
+    :is-open="isPetProfileOpen"
+    :pet="selectedPet"
+    :is-saving="isPetSaving"
+    :error-message="petUpdateError"
+    @close="closePetProfile"
+    @update="handlePetUpdate"
+  />
   <AddPetModal
     :is-open="isAddPetModalOpen"
     :is-loading="isCreatingPet"

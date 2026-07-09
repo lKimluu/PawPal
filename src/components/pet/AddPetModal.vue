@@ -33,7 +33,7 @@ const createDefaultForm = () => ({
 const form = ref(createDefaultForm())
 
 const speciesOptions = ['狗', '貓', '其他']
-const genderOptions = ['公', '母', '未知']
+const genderOptions = ['公', '母']
 
 const inputClass =
   'w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-brand-darkgray placeholder-brand-gray/40 outline-none transition duration-200 hover:border-brand-blue hover:bg-brand-blue/5 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-blue/10 disabled:cursor-not-allowed disabled:opacity-60'
@@ -149,7 +149,7 @@ watch(
             :disabled="isLoading"
             @click="handleClose"
           >
-            x
+            ⨉
           </button>
         </div>
 

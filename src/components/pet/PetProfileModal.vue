@@ -13,9 +13,17 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  isSaving: {
+    type: Boolean,
+    default: false,
+  },
+  errorMessage: {
+    type: String,
+    default: '',
+  },
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'update', 'delete'])
 
 const isEditingProfile = ref(false)
 const weightInputRef = ref(null)
@@ -90,6 +98,12 @@ function normalizeGender(value) {
   return value ?? ''
 }
 
+function normalizeGenderForApi(value) {
+  if (value === '公') return 'male'
+  if (value === '母') return 'female'
+  return value
+}
+
 function formatBirthdayForDateInput(value) {
   if (!value) return ''
 
@@ -152,6 +166,15 @@ function resetEditForm() {
   editForm.value = createEditForm()
 }
 
+function buildUpdatePayload() {
+  return {
+    ...editForm.value,
+    gender: normalizeGenderForApi(editForm.value.gender),
+    neutered: editForm.value.neutered === '已結紮',
+    photoFile: selectedPhotoFile.value,
+  }
+}
+
 function handleStartEdit() {
   resetEditForm()
   isEditingProfile.value = true
@@ -164,10 +187,19 @@ function handleCancelEdit() {
 }
 
 function handleSaveEdit() {
-  isEditingProfile.value = false
+  emit('update', {
+    id: props.pet?.id,
+    data: buildUpdatePayload(),
+  })
+}
+
+function handleDeleteProfile() {
+  emit('delete', props.pet)
 }
 
 function handleClose() {
+  if (props.isSaving) return
+
   isEditingProfile.value = false
   clearPhotoSelection()
   emit('close')
@@ -178,7 +210,7 @@ function focusWeightInput() {
 }
 
 function triggerPhotoUpload() {
-  if (!isEditingProfile.value) return
+  if (!isEditingProfile.value || props.isSaving) return
   photoFileInputRef.value?.click()
 }
 
@@ -203,6 +235,7 @@ watch(
     resetEditForm()
     isEditingProfile.value = false
   },
+  { immediate: true },
 )
 </script>
 
@@ -218,8 +251,9 @@ watch(
       >
         <button
           type="button"
-          class="absolute right-3 top-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-lg text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95"
+          class="absolute right-3 top-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-lg text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           aria-label="關閉"
+          :disabled="isSaving"
           @click="handleClose"
         >
           ⨉
@@ -238,8 +272,9 @@ watch(
             <button
               v-if="isEditingProfile"
               type="button"
-              :class="`${profilePhotoClass} group relative cursor-pointer p-0 transition duration-200 hover:border-brand-blue focus:border-brand-blue focus:outline-none`"
+              :class="`${profilePhotoClass} group relative cursor-pointer p-0 transition duration-200 hover:border-brand-blue focus:border-brand-blue focus:outline-none disabled:cursor-not-allowed disabled:opacity-70`"
               aria-label="重新上傳寵物照片"
+              :disabled="isSaving"
               @click="triggerPhotoUpload"
             >
               <img
@@ -270,8 +305,10 @@ watch(
                 v-else
                 v-model="editForm.name"
                 type="text"
+                placeholder="請輸入寵物名稱"
                 :class="`${nameInputClass} w-full max-w-[180px]`"
                 aria-label="寵物名稱"
+                :disabled="isSaving"
               />
 
               <p v-if="!isEditingProfile" :class="profileMetaTextClass">
@@ -281,8 +318,10 @@ watch(
                 v-else
                 v-model="editForm.breed"
                 type="text"
+                placeholder="請輸入寵物品種"
                 :class="`${profileMetaInputClass} w-full max-w-[180px]`"
                 aria-label="品種"
+                :disabled="isSaving"
               />
 
               <p v-if="!isEditingProfile" :class="profileGenderReadonlyFieldClass">
@@ -293,10 +332,11 @@ watch(
                 v-model="editForm.gender"
                 :class="profileGenderSelectClass"
                 aria-label="性別"
+                :disabled="isSaving"
               >
+                <option value="" disabled>請選擇寵物性別</option>
                 <option value="公">公</option>
                 <option value="母">母</option>
-                <option value="未知">未知</option>
               </select>
 
               <p v-if="!isEditingProfile" :class="profileAgeReadonlyFieldClass">
@@ -313,6 +353,7 @@ watch(
                   type="date"
                   :class="profileBirthdayInputClass"
                   aria-label="生日"
+                  :disabled="isSaving"
                 />
               </div>
             </div>
@@ -336,6 +377,7 @@ watch(
                     type="text"
                     :class="`${detailInlineInputClass} w-8`"
                     aria-label="體重"
+                    :disabled="isSaving"
                   />
                   <span>kg</span>
                 </dd>
@@ -352,6 +394,7 @@ watch(
                     type="text"
                     :class="detailEditableFieldClass"
                     aria-label="晶片號碼"
+                    :disabled="isSaving"
                   />
                 </dd>
               </div>
@@ -366,6 +409,7 @@ watch(
                     v-model="editForm.neutered"
                     :class="detailSelectClass"
                     aria-label="結紮狀態"
+                    :disabled="isSaving"
                   >
                     <option value="已結紮">已結紮</option>
                     <option value="未結紮">未結紮</option>
@@ -384,6 +428,7 @@ watch(
                     type="text"
                     :class="detailEditableFieldClass"
                     aria-label="血型"
+                    :disabled="isSaving"
                   />
                 </dd>
               </div>
@@ -399,6 +444,7 @@ watch(
                     type="text"
                     :class="detailEditableFieldClass"
                     aria-label="毛色"
+                    :disabled="isSaving"
                   />
                 </dd>
               </div>
@@ -414,17 +460,42 @@ watch(
                     rows="2"
                     :class="`${detailTextareaClass} min-h-16`"
                     aria-label="備註"
+                    :disabled="isSaving"
                   ></textarea>
                 </dd>
               </div>
             </dl>
+
+            <p v-if="errorMessage" class="mt-3 text-sm font-semibold text-red-600">
+              {{ errorMessage }}
+            </p>
           </div>
         </div>
 
         <div class="flex justify-end gap-3 border-t border-slate-100 pt-3">
-          <BaseButton v-if="!isEditingProfile" @click="handleStartEdit">修改資料</BaseButton>
+          <template v-if="!isEditingProfile">
+            <BaseButton
+              variant="orange"
+              class="min-w-[96px]"
+              :disabled="isSaving"
+              @click="handleDeleteProfile"
+            >
+              刪除資料
+            </BaseButton>
+            <BaseButton class="min-w-[96px]" @click="handleStartEdit">修改資料</BaseButton>
+          </template>
           <template v-else>
-            <BaseButton @click="handleSaveEdit">儲存修改</BaseButton>
+            <BaseButton
+              variant="orange"
+              class="min-w-[96px]"
+              :disabled="isSaving"
+              @click="handleCancelEdit"
+            >
+              取消
+            </BaseButton>
+            <BaseButton class="min-w-[96px]" :disabled="isSaving" @click="handleSaveEdit">
+              {{ isSaving ? '儲存中...' : '儲存修改' }}
+            </BaseButton>
           </template>
         </div>
       </section>
