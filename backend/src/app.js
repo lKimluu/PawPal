@@ -7,6 +7,7 @@ import calendarEventRoutes from './routes/calendar_events.route.js'
 import growthRecordsRoutes from './routes/growth_records.route.js'
 import petRoutes from './routes/pets.route.js'
 import medicalRecordRoutes from './routes/medical_records.route.js'
+import hospitalRoutes from './routes/hospitals.route.js'
 import { apiRateLimiter } from './config/rate_limit.js'
 
 const app = express()
@@ -27,6 +28,7 @@ app.use(`${API_PREFIX}/calendar-events`, calendarEventRoutes)
 app.use(`${API_PREFIX}/growth-records`, growthRecordsRoutes)
 app.use(`${API_PREFIX}/pets`, petRoutes)
 app.use(`${API_PREFIX}/medical-records`, medicalRecordRoutes)
+app.use(`${API_PREFIX}/hospitals`, hospitalRoutes)
 
 app.get('/', (req, res) => {
   res.json({
