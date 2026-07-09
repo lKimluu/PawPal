@@ -43,7 +43,10 @@ export const useMedicalStore = defineStore('medical', () => {
   }
 
   async function fetchRecords(petId, recordType = '全部') {
-    if (!petId) return
+    if (!petId) {
+      records.value = []
+      return
+    }
 
     isLoading.value = true
     errorMsg.value = ''
@@ -155,6 +158,12 @@ export const useMedicalStore = defineStore('medical', () => {
     }
   }
 
+  function reset() {
+    records.value = []
+    isLoading.value = false
+    errorMsg.value = ''
+  }
+
   return {
     records,
     isLoading,
@@ -163,5 +172,6 @@ export const useMedicalStore = defineStore('medical', () => {
     addRecord,
     updateRecord,
     deleteRecord,
+    reset,
   }
 })

@@ -2,6 +2,7 @@
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import { useSidebarStore } from '@/stores/sidebar'
+import { useMedicalStore } from '@/stores/medical.js'
 import home from '@/assets/icons/home.svg'
 import home_o from '@/assets/icons/home_o.svg'
 import location from '@/assets/icons/location_gray.svg'
@@ -27,6 +28,7 @@ const sidebarStore = useSidebarStore()
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const medicalStore = useMedicalStore()
 
 function isActive(item) {
   return route.path === item.to
@@ -38,6 +40,7 @@ function getIcon(item) {
 
 function handleLogout() {
   authStore.logout()
+  medicalStore.reset()
   sidebarStore.closeSidebar()
   router.push('/login')
 }

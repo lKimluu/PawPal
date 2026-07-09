@@ -149,7 +149,7 @@ watch(
             :disabled="isLoading"
             @click="handleClose"
           >
-            x
+            ⨉
           </button>
         </div>
 

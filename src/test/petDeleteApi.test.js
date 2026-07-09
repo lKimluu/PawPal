@@ -26,7 +26,7 @@ test('pet store 刪除成功後同步移除前端寵物列表', () => {
 test('PetProfileModal 提供刪除資料按鈕並發出 delete 事件', () => {
   assert.match(baseButton, /'orange'/)
   assert.match(profileModal, /isSaving/)
-  assert.match(profileModal, /defineEmits\(\['close', 'delete'\]\)/)
+  assert.match(profileModal, /defineEmits\(\['close', 'update', 'delete'\]\)/)
   assert.match(profileModal, /function handleDeleteProfile\(\)/)
   assert.match(profileModal, /emit\('delete', props\.pet\)/)
   assert.match(profileModal, /variant="orange"[\s\S]*@click="handleDeleteProfile"/)

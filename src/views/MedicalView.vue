@@ -108,7 +108,7 @@ const onModalSubmit = async ({ mode, data }) => {
   <div class="min-h-screen bg-brand-white">
     <AppHeader variant="member" />
 
-    <div class="relative z-0 flex min-h-screen flex-col pt-14 md:pt-12 lg:pl-52">
+    <div class="relative z-0 flex min-h-screen flex-col pt-14 md:pt-17 lg:pl-52">
       <div
         v-if="medicalStore.isLoading"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/10 backdrop-blur-sm"
