@@ -11,10 +11,6 @@ import diagnostic from '@/assets/icons/diagnostic_gray.svg'
 import diagnostic_o from '@/assets/icons/diagnostic.svg'
 import growth from '@/assets/icons/pet-growth.svg'
 import growth_o from '@/assets/icons/pet-growth_o.svg'
-import notice from '@/assets/icons/notice.svg'
-import notice_o from '@/assets/icons/notice_o.svg'
-import setting from '@/assets/icons/setting.svg'
-import setting_o from '@/assets/icons/setting_o.svg'
 import logoutIcon from '@/assets/icons/login.svg'
 
 const props = defineProps({
@@ -50,8 +46,6 @@ const navItems = [
   { key: 'map', icon: location, activeIcon: location_o, label: '醫院地圖', to: '/hospital' },
   { key: 'records', icon: diagnostic, activeIcon: diagnostic_o, label: '醫療紀錄', to: '/medical' },
   { key: 'growth', icon: growth, activeIcon: growth_o, label: '成長歷程', to: '/growth' },
-  { key: 'notifications', icon: notice, activeIcon: notice_o, label: '通知中心' },
-  { key: 'setting', icon: setting, activeIcon: setting_o, label: '設定' },
 ]
 </script>
 
@@ -242,6 +236,7 @@ const navItems = [
       <ul class="flex flex-col">
         <li v-for="item in navItems" :key="item.key">
           <RouterLink
+            v-if="item.to"
             :to="item.to"
             class="flex items-center gap-3 px-5 py-3 text-base font-medium hover:bg-[#e6eaf4]"
             :class="
@@ -253,6 +248,13 @@ const navItems = [
             <img :src="getIcon(item)" :alt="item.label + ' icon'" class="h-5 w-5 shrink-0" />
             {{ item.label }}
           </RouterLink>
+          <div
+            v-else
+            class="flex items-center gap-3 px-5 py-3 text-base font-medium text-brand-gray"
+          >
+            <img :src="item.icon" :alt="item.label + ' icon'" class="h-5 w-5 shrink-0" />
+            {{ item.label }}
+          </div>
         </li>
       </ul>
       <div class="mt-auto px-5 pt-6">
