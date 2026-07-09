@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import { GoogleLogin } from 'vue3-google-login'
+import TermsModal from '@/components/auth/TermsModal.vue'
 
 const email = ref('')
 const password = ref('')
@@ -11,6 +12,14 @@ const isSubmitting = ref(false)
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+const isModalOpen = ref(false)
+const modalType = ref('privacy')
+
+const handleOpenModal = (type) => {
+  modalType.value = type
+  isModalOpen.value = true
+}
 
 async function handleSubmit() {
   errorMessage.value = ''
@@ -169,6 +178,24 @@ onMounted(async () => {
           <img src="@/assets/icons/line.svg" alt="LINE" class="w-5 h-5" /> 使用 LINE 帳戶登入
         </button>
       </div>
+      <p class="mt-6 text-center text-[11px] font-medium leading-relaxed text-brand-gray/75">
+        登入帳號，即表示您已閱讀並同意 PawPal 之
+        <button
+          type="button"
+          @click="handleOpenModal('terms')"
+          class="text-brand-blue underline cursor-pointer hover:text-[#7F97EC]"
+        >
+          會員條款
+        </button>
+        與
+        <button
+          type="button"
+          @click="handleOpenModal('privacy')"
+          class="text-brand-blue underline cursor-pointer hover:text-[#7F97EC]"
+        >
+          客戶隱私權條款
+        </button>
+      </p>
 
       <div class="mt-7 flex items-center justify-center gap-3 text-[13px] font-bold">
         <RouterLink
@@ -184,5 +211,6 @@ onMounted(async () => {
         >
       </div>
     </form>
+    <TermsModal :is-open="isModalOpen" :type="modalType" @close="isModalOpen = false" />
   </main>
 </template>
