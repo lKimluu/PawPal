@@ -154,7 +154,10 @@ const getChartOptions = (record) => ({
     </button>
   </div>
 
-  <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full px-4 py-7 md:py-10">
+  <div
+    v-else
+    class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full px-2 py-6 md:px-4 md:py-10"
+  >
     <div
       v-for="record in displayRecords"
       :key="record.metric_type"
