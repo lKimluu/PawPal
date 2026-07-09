@@ -142,12 +142,12 @@ function selectCell(index, cell) {
     class="overflow-hidden rounded-3xl border border-brand-lightblue bg-brand-white shadow-[0_8px_28px_rgba(61,74,122,0.08)] p-3 md:p-4 lg:p-6"
   >
     <!-- 寵物篩選按鈕 -->
-    <div class="flex flex-wrap gap-2 mb-5">
+    <div class="flex gap-2 overflow-x-auto pb-1 mb-5">
       <button
         v-for="tab in petTabs"
         :key="tab.id"
         @click="calendarStore.setSelectedPet(tab.id)"
-        class="px-2 py-1 text-xs rounded-full border-2 font-medium whitespace-nowrap cursor-pointer transition-all duration-200 md:px-4 md:py-2 md:text-sm lg:px-[18px] lg:py-2 lg:text-sm"
+        class="shrink-0 px-2 py-1 text-xs rounded-full border-2 font-medium whitespace-nowrap cursor-pointer transition-all duration-200 md:px-4 md:py-2 md:text-sm lg:px-[18px] lg:py-2 lg:text-sm"
         :class="
           tab.id === calendarStore.selectedPetId
             ? 'border-brand-blue bg-brand-blue text-brand-white font-semibold'
