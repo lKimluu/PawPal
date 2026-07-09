@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth.js'
+import { useSessionStore } from '@/stores/session.js'
 
 const email = ref('')
 const password = ref('')
@@ -9,13 +9,13 @@ const errorMessage = ref('')
 const isSubmitting = ref(false)
 
 const router = useRouter()
-const authStore = useAuthStore()
+const sessionStore = useSessionStore()
 
 async function handleSubmit() {
   errorMessage.value = ''
   isSubmitting.value = true
 
-  const result = await authStore.login(email.value, password.value)
+  const result = await sessionStore.login(email.value, password.value)
 
   if (!result.success) {
     errorMessage.value = result.message || '登入失敗，請稍後再試'

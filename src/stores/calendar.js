@@ -100,6 +100,13 @@ export const useCalendarStore = defineStore('calendar', () => {
     }
   }
 
+  function reset() {
+    events.value = []
+    isLoading.value = false
+    error.value = null
+    selectedPetId.value = 'all'
+  }
+
   return {
     events,
     isLoading,
@@ -111,5 +118,6 @@ export const useCalendarStore = defineStore('calendar', () => {
     addEvent,
     updateEvent,
     deleteEvent,
+    reset,
   }
 })

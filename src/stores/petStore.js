@@ -106,6 +106,12 @@ export const usePetStore = defineStore('pet', () => {
     return result
   }
 
+  function reset() {
+    pets.value = []
+    selectedPetId.value = null
+    isLoading.value = false
+  }
+
   return {
     pets,
     selectedPetId,
@@ -116,5 +122,6 @@ export const usePetStore = defineStore('pet', () => {
     fetchPets,
     createPet,
     updatePet,
+    reset,
   }
 })

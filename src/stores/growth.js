@@ -87,6 +87,13 @@ export const useGrowthStore = defineStore('growth', () => {
     return result
   }
 
+  function reset() {
+    records.value = []
+    isLoading.value = false
+    isSubmitting.value = false
+    errorMessage.value = null
+  }
+
   return {
     records,
     isLoading,
@@ -96,5 +103,6 @@ export const useGrowthStore = defineStore('growth', () => {
     createRecordsFrom,
     updateRecord,
     deleteRecord,
+    reset,
   }
 })
