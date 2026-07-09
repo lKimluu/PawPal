@@ -180,6 +180,7 @@ onMounted(async () => {
       </div>
       <p class="mt-6 text-center text-[11px] font-medium leading-relaxed text-brand-gray/75">
         登入帳號，即表示您已閱讀並同意 PawPal 之
+        <br />
         <button
           type="button"
           @click="handleOpenModal('terms')"
