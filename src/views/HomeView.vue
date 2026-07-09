@@ -32,7 +32,7 @@ const services = [
     path: '/#',
   },
   {
-    icon: 'pet.svg',
+    icon: 'paw-orange.svg',
     title: '寵物健康護照',
     desc: '紀錄基本資料、病歷與成長歷程',
     path: '/#',
@@ -59,7 +59,7 @@ const getIconUrl = (name) => {
       <span
         class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs rounded-full bg-brand-lightblue text-brand-blue"
       >
-        ✨ 24 小時陪伴每一個緊急時刻
+        24 小時陪伴每一個緊急時刻
       </span>
       <div class="w-full max-w-3xl mx-auto mt-7 px-4 text-center">
         <h1
@@ -125,9 +125,9 @@ const getIconUrl = (name) => {
           <div
             class="flex flex-wrap justify-center items-center gap-4 md:gap-8 mt-6 mb-8 relative z-2 text-xs md:text-sm font-medium text-brand-gray"
           >
-            <span class="flex items-center gap-1.5">⏱️ 即時營業狀態</span>
-            <span class="flex items-center gap-1.5">⭐ 真實飼主評論</span>
-            <span class="flex items-center gap-1.5">🛡️ 專業急救指南</span>
+            <span class="flex items-center gap-1.5">即時營業狀態</span>
+            <span class="flex items-center gap-1.5">真實飼主評論</span>
+            <span class="flex items-center gap-1.5">專業急救指南</span>
           </div>
           <!-- 手機版附近醫院卡片列表 -->
           <div class="md:hidden flex flex-col gap-3 mt-4 mb-8 relative z-2 w-full">
@@ -166,7 +166,7 @@ const getIconUrl = (name) => {
               <div
                 class="w-12 h-12 rounded-full bg-white/20 items-center justify-center text-2xl shrink-0 hidden md:flex"
               >
-                ❤️
+                ❤
               </div>
               <div>
                 <h3 class="text-lg md:text-xl font-bold text-white leading-snug">
