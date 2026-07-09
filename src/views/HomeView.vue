@@ -1,10 +1,16 @@
 <script setup>
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import bgImage from '@/assets/images/home-bg.png'
 import visualImage from '@/assets/images/home-visual.png'
 import aboutImage from '@/assets/images/home-about.png'
 import IconLocation from '@/assets/icons/location_o.svg'
 import Header from '@/components/layout/AppHeader.vue'
 import Footer from '@/components/layout/AppFooter.vue'
+import { useLocationStore } from '@/stores/location.js'
+
+const locationStore = useLocationStore()
+const { userLocation, isLocating, locationError, hasRequestedLocation } = storeToRefs(locationStore)
 
 const services = [
   {
@@ -48,6 +54,10 @@ const services = [
 const getIconUrl = (name) => {
   return new URL(`../assets/icons/${name}`, import.meta.url).href
 }
+
+onMounted(() => {
+  locationStore.requestCurrentLocation()
+})
 </script>
 
 <template>
@@ -111,6 +121,15 @@ const getIconUrl = (name) => {
                 </span>
               </div>
             </RouterLink>
+          </div>
+          <div
+            v-if="hasRequestedLocation || isLocating || locationError || userLocation"
+            class="relative z-2 mx-auto mt-4 inline-flex max-w-full items-center justify-center rounded-full bg-white/75 px-4 py-2 text-xs font-bold shadow-[0_6px_18px_rgba(61,74,122,0.12)] backdrop-blur text-brand-navy"
+            aria-live="polite"
+          >
+            <span v-if="isLocating">正在取得目前位置</span>
+            <span v-else-if="locationError" class="text-brand-orange">{{ locationError }}</span>
+            <span v-else-if="userLocation">已取得目前位置</span>
           </div>
           <div
             class="-mx-4 md:mx-auto w-[calc(100%+2rem)] md:max-w-[600px] lg:max-w-none lg:w-full relative z-1 -mt-6 md:-mt-12"
