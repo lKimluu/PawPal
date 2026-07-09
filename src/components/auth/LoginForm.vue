@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
+import { GoogleLogin } from 'vue3-google-login'
 
 const email = ref('')
 const password = ref('')
@@ -25,6 +26,29 @@ async function handleSubmit() {
 
   isSubmitting.value = false
   router.push('/dashboard')
+}
+
+const handleGoogleLoginCallback = async (response) => {
+  errorMessage.value = ''
+  isSubmitting.value = true
+
+  const googleIdToken = response?.credential
+
+  if (!googleIdToken) {
+    errorMessage.value = 'Google 登入失敗，未取得驗證憑證'
+    isSubmitting.value = false
+    return
+  }
+
+  const result = await authStore.loginWithGoogle(googleIdToken)
+
+  isSubmitting.value = false
+
+  if (result?.success) {
+    router.push('/dashboard')
+  } else {
+    errorMessage.value = result?.message || 'Google 登入失敗，請稍後再試'
+  }
 }
 </script>
 
@@ -70,7 +94,7 @@ async function handleSubmit() {
       </p>
 
       <button
-        class="mt-5 h-11 w-full rounded-xl bg-brand-blue text-[14px] font-bold text-brand-white shadow-[0_8px_18px_rgba(146,168,245,0.36)] transition hover:bg-[#7F97EC] focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2"
+        class="mt-5 h-11 w-full rounded-xl bg-brand-blue text-[14px] font-bold text-brand-white shadow-[0_8px_18px_rgba(146,168,245,0.36)] transition hover:bg-[#7F97EC] focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 cursor-pointer"
         type="submit"
         :disabled="isSubmitting"
       >
@@ -83,28 +107,17 @@ async function handleSubmit() {
         <span class="h-px flex-1 bg-[#DDE5FC]"></span>
       </div>
 
-      <div class="flex items-center justify-center gap-5">
-        <button
-          class="grid h-12 w-12 place-items-center rounded-full bg-white text-[20px] font-bold shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-110 active:shadow-[0_7px_18px_rgba(31,41,55,0.16)] lg:hover:scale-110 lg:hover:shadow-[0_7px_18px_rgba(31,41,55,0.16)]"
-          type="button"
-          aria-label="使用 Google 登入"
-        >
-          <span><img src="https://assets.5xcampus.com/icons/google.svg" alt="google" /></span>
-        </button>
-        <button
-          class="grid h-12 w-12 place-items-center rounded-full bg-white shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-110 active:shadow-[0_7px_18px_rgba(31,41,55,0.16)] lg:hover:scale-110 lg:hover:shadow-[0_7px_18px_rgba(31,41,55,0.16)]"
-          type="button"
-          aria-label="使用 Apple 登入"
-        >
-          <img src="@/assets/icons/apple.svg" alt="apple" class="w-7" />
-        </button>
-        <button
-          class="grid h-12 w-12 place-items-center rounded-full bg-white text-[10px] font-black text-[#06c755] shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-110 active:shadow-[0_7px_18px_rgba(31,41,55,0.16)] lg:hover:scale-110 lg:hover:shadow-[0_7px_18px_rgba(31,41,55,0.16)]"
-          type="button"
-          aria-label="使用 LINE 登入"
-        >
-          LINE
-        </button>
+      <div class="w-full">
+        <GoogleLogin :callback="handleGoogleLoginCallback" v-slot="{ activate }" class="w-full">
+          <button
+            class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] lg:hover:bg-[#F3F4F8] cursor-pointer"
+            type="button"
+            @click="activate"
+          >
+            <img src="@/assets/icons/google.svg" alt="Google" class="w-5 h-5" />
+            使用 Google 帳戶登入
+          </button>
+        </GoogleLogin>
       </div>
 
       <div class="mt-7 flex items-center justify-center gap-3 text-[13px] font-bold">

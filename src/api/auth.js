@@ -31,3 +31,7 @@ export function register(payload) {
 export function login(payload) {
   return request('/api/v1/auth/login', payload)
 }
+
+export function loginWithGoogleApi(googleIdToken) {
+  return request('/api/v1/auth/google-login', { token: googleIdToken })
+}
