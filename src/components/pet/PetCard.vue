@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { formatPetAge } from '@/utils/petDisplay.js'
 
 const props = defineProps({
   pet: {
@@ -31,11 +32,13 @@ const cardThemeClass = computed(() => themeClassMap[props.theme] ?? themeClassMa
 const pawThemeClass = computed(() => pawThemeClassMap[props.theme] ?? pawThemeClassMap.green)
 const hasPetImage = computed(() => props.pet?.hasCustomPhoto !== false && Boolean(props.pet?.image))
 
-const ageText = computed(() =>
-  props.pet?.age === '' || props.pet?.age == null
-    ? '-'
-    : `${props.pet.age} ${props.pet?.ageUnit ?? '歲'}`,
-)
+const ageText = computed(() => {
+  if (props.pet?.age !== '' && props.pet?.age != null) {
+    return props.pet?.ageUnit ? `${props.pet.age} ${props.pet.ageUnit}` : props.pet.age
+  }
+
+  return formatPetAge(props.pet?.birthday)
+})
 </script>
 
 <template>
