@@ -109,12 +109,27 @@ export async function googleLogin(req, res) {
     }
 
     if (token.startsWith('ya29.')) {
+      const tokenInfoResponse = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?access_token=${token}`,
+      )
+
+      if (!tokenInfoResponse.ok) {
+        return res.status(401).json({ message: 'Google Access Token 驗證失敗' })
+      }
+
+      const tokenInfo = await tokenInfoResponse.json()
+      const targetClientID = process.env.GOOGLE_CLIENT_ID
+
+      if (tokenInfo.aud !== targetClientID && tokenInfo.azp !== targetClientID) {
+        return res.status(403).json({ message: '安全性檢查失敗：憑證核發對象不符' })
+      }
+
       const response = await fetch(
         `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${token}`,
       )
 
       if (!response.ok) {
-        throw new Error('Google Access Token 驗證失敗')
+        throw new Error('無法取得 Google 用戶資料')
       }
 
       const userData = await response.json()
@@ -156,14 +171,9 @@ export async function googleLogin(req, res) {
       })
     }
 
-    const pawpalToken = jwt.sign(
-      {
-        sub: user.id,
-        email: user.email,
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' },
-    )
+    const pawpalToken = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, {
+      expiresIn: '7d',
+    })
 
     return res.status(200).json({
       message: 'Google 登入成功',
@@ -191,9 +201,7 @@ export async function lineLogin(req, res) {
     const redirectUri = process.env.LINE_REDIRECT_URI
 
     if (!lineChannelId || !lineChannelSecret || !redirectUri) {
-      console.error(
-        '後端環境變數 LINE_CHANNEL_ID, LINE_CHANNEL_SECRET 或 LINE_REDIRECT_URI 未正確設定',
-      )
+      console.error('後端環境變數 LINE 未正確設定')
       return res.status(500).json({ message: '登入失敗，伺服器配置錯誤' })
     }
 
@@ -217,7 +225,6 @@ export async function lineLogin(req, res) {
     const tokenData = await tokenResponse.json()
 
     if (!tokenResponse.ok) {
-      console.error('【後端偵錯】LINE 回傳錯誤了！詳細原因：', tokenData)
       console.error('LINE Token 交換失敗:', tokenData)
       return res.status(401).json({ message: 'LINE 身分驗證失效，請重新登入' })
     }
@@ -227,15 +234,26 @@ export async function lineLogin(req, res) {
       return res.status(400).json({ message: '未能從 LINE 取得正確的身份憑證' })
     }
 
-    const payloadBase64 = idToken.split('.')[1]
-    const decodedPayload = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf-8'))
+    const verifyResponse = await fetch('https://api.line.me/oauth2/v2.1/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        id_token: idToken,
+        client_id: lineChannelId,
+      }),
+    })
 
-    const { email, name, picture } = decodedPayload
+    const verifiedPayload = await verifyResponse.json()
+
+    if (!verifyResponse.ok) {
+      console.error('LINE ID Token 官方驗證失敗:', verifiedPayload)
+      return res.status(403).json({ message: '安全性檢查失敗：LINE 憑證驗證無效' })
+    }
+
+    const { email, name, picture } = verifiedPayload
 
     if (!email) {
-      return res
-        .status(400)
-        .json({ message: '無法從您的 LINE 帳號獲取有效的 Email，請確認 LINE 授權設定' })
+      return res.status(400).json({ message: '無法從您的 LINE 帳號獲取有效的 Email' })
     }
 
     let user = await findUserByEmail(email)
@@ -252,14 +270,9 @@ export async function lineLogin(req, res) {
       })
     }
 
-    const pawpalToken = jwt.sign(
-      {
-        sub: user.id,
-        email: user.email,
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' },
-    )
+    const pawpalToken = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, {
+      expiresIn: '7d',
+    })
 
     return res.status(200).json({
       message: 'LINE 登入成功',
