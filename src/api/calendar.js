@@ -38,7 +38,7 @@ function toUpdateBody(form) {
   const body = {}
   if (form.title !== undefined) body.title = form.title
   if (form.eventDate !== undefined) body.event_date = form.eventDate
-  if (form.eventTime) body.event_time = form.eventTime
+  if (form.eventTime !== undefined) body.event_time = form.eventTime || null
   if (form.type !== undefined) body.type = form.type
   if (form.location !== undefined) body.location = form.location
   if (form.notes !== undefined) body.notes = form.notes
