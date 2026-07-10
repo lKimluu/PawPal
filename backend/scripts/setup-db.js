@@ -17,6 +17,7 @@ export const TABLES_IN_ORDER = [
   'calendar_events',
   'medical_records',
   'growth_records',
+  'google_calendar_connections',
   'hospitals',
   'animal_types',
   'hospital_animal_types',
