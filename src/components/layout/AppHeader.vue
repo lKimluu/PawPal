@@ -1,9 +1,18 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import PublicSidebar from '@/components/layout/PublicSidebar.vue'
 import DashboardSidebar from '@/components/layout/DashboardSidebar.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useMedicalStore } from '@/stores/medical.js'
 import { useSidebarStore } from '@/stores/sidebar'
+import {
+  getUserAvatarUrl,
+  getUserDisplayEmail,
+  getUserDisplayName,
+  hasUserAvatar,
+} from '@/utils/userProfile.js'
+import defaultProfileIcon from '@/assets/icons/account-profile-icon.svg'
 
 const props = defineProps({
   variant: {
@@ -15,9 +24,47 @@ const props = defineProps({
 
 const sidebarStore = useSidebarStore()
 const authStore = useAuthStore()
+const medicalStore = useMedicalStore()
+const router = useRouter()
+const memberMenuRef = ref(null)
+const isMemberMenuOpen = ref(false)
 
 const isMemberVariant = computed(() => props.variant === 'member')
 const shouldUseMemberSidebarOnMobile = computed(() => authStore.isLoggedIn)
+const memberAvatarUrl = computed(() => getUserAvatarUrl(authStore.user))
+const hasUploadedAvatar = computed(() => hasUserAvatar(authStore.user))
+const memberDisplayName = computed(() => getUserDisplayName(authStore.user))
+const memberDisplayEmail = computed(() => getUserDisplayEmail(authStore.user))
+
+function toggleMemberMenu() {
+  isMemberMenuOpen.value = !isMemberMenuOpen.value
+}
+
+function closeMemberMenu() {
+  isMemberMenuOpen.value = false
+}
+
+function handleDocumentClick(event) {
+  if (!memberMenuRef.value?.contains(event.target)) {
+    closeMemberMenu()
+  }
+}
+
+function handleLogout() {
+  authStore.logout()
+  medicalStore.reset()
+  sidebarStore.closeSidebar()
+  closeMemberMenu()
+  router.push('/login')
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+})
 
 const navGroups = [
   {
@@ -121,16 +168,113 @@ const navGroups = [
             <img src="@/assets/icons/location.svg" class="size-5" />
             搜尋附近醫院
           </RouterLink>
+
+          <span class="ml-2 mr-0 h-8 w-px bg-[#D9DEE8]" aria-hidden="true" />
+
           <RouterLink
+            v-if="!authStore.isLoggedIn"
             to="/login"
-            class="flex items-center justify-center px-4 py-2 text-brand-gray transition hover:text-brand-darkgray"
+            class="group flex h-12 items-center justify-center gap-2 rounded-full py-2 pl-2 pr-3 text-base font-medium text-brand-gray transition hover:text-brand-orange"
           >
-            <img
-              src="@/assets/icons/member.svg"
-              class="member-icon size-11 transition duration-150"
-              alt="member"
-            />
+            <svg
+              class="login-icon size-6 shrink-0"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" y1="12" x2="3" y2="12" />
+            </svg>
+            <span>登入</span>
           </RouterLink>
+
+          <div v-else ref="memberMenuRef" class="relative">
+            <button
+              type="button"
+              class="grid size-11 place-items-center rounded-full border border-[#D6DDE8] bg-white transition hover:border-brand-orange"
+              aria-label="開啟會員選單"
+              :aria-expanded="isMemberMenuOpen"
+              @click.stop="toggleMemberMenu"
+            >
+              <img
+                v-if="hasUploadedAvatar"
+                :src="memberAvatarUrl"
+                alt="會員頭像"
+                class="size-9 rounded-full object-cover"
+              />
+              <img
+                v-else
+                :src="defaultProfileIcon"
+                alt="預設會員頭像"
+                class="size-6"
+              />
+            </button>
+
+            <div
+              v-if="isMemberMenuOpen"
+              class="absolute right-0 top-full z-50 mt-3 w-[255px] overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-[0_14px_35px_rgba(31,41,55,0.16)]"
+            >
+              <button
+                type="button"
+                class="group flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-[#F8FAFC]"
+                aria-label="查看個人資料"
+              >
+                <div
+                  class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border border-[#D6DDE8] bg-white transition group-hover:border-brand-orange"
+                >
+                  <img
+                    v-if="hasUploadedAvatar"
+                    :src="memberAvatarUrl"
+                    alt="會員頭像"
+                    class="size-full object-cover"
+                  />
+                  <img
+                    v-else
+                    :src="defaultProfileIcon"
+                    alt="預設會員頭像"
+                    class="size-6"
+                  />
+                </div>
+                <div class="min-w-0">
+                  <p class="truncate text-lg font-semibold text-brand-navy transition group-hover:text-brand-orange">
+                    {{ memberDisplayName }}
+                  </p>
+                  <p class="truncate text-base font-medium text-brand-gray transition group-hover:text-brand-orange">
+                    {{ memberDisplayEmail }}
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                class="group flex w-full items-center gap-2 border-t border-[#EEF1F5] px-4 py-3 text-sm font-medium text-brand-gray transition hover:bg-[#F8FAFC] hover:text-brand-orange"
+                @click="handleLogout"
+              >
+                <svg
+                  class="logout-icon size-4 shrink-0"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                  <polyline points="10 17 15 12 10 7" />
+                  <line x1="15" y1="12" x2="3" y2="12" />
+                </svg>
+                登出
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -165,16 +309,6 @@ const navGroups = [
 
 .group:hover .arrow-icon {
   filter: invert(63%) sepia(95%) saturate(700%) hue-rotate(1deg) brightness(103%) contrast(101%);
-}
-
-.member-icon {
-  filter: brightness(0) invert(47%) sepia(8%) saturate(546%) hue-rotate(202deg) brightness(91%)
-    contrast(87%);
-}
-
-.member-icon:hover {
-  filter: brightness(0) invert(38%) sepia(0%) saturate(1%) hue-rotate(198deg) brightness(94%)
-    contrast(92%);
 }
 
 .slide-enter-active,
