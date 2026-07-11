@@ -6,6 +6,7 @@ defineProps({
   isOpen: { type: Boolean, default: false },
   title: { type: String, default: '建立新檔案' },
   subtitle: { type: String, default: '請依序填寫以下欄位資訊' },
+  titleContentClass: { type: String, default: '' },
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -52,7 +53,7 @@ const handleFileChange = (event) => {
       >
         <!-- 頂部標頭與 X 關閉鈕 -->
         <div class="flex items-start justify-between pr-4 md:pr-6">
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col gap-1" :class="titleContentClass">
             <h2 class="text-2xl font-bold tracking-wide text-brand-navy">{{ title }}</h2>
             <span v-if="subtitle" class="text-xs text-brand-gray pt-1">{{ subtitle }}</span>
           </div>
