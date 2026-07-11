@@ -209,6 +209,26 @@ export async function createPet(data) {
   }
 }
 
+export async function deletePet(id, token) {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/api/v1/pets/${id}`, {
+      headers: getAuthHeaders(token),
+    })
+
+    return {
+      success: true,
+      message: response.data?.message || '寵物資料刪除成功',
+      data: response.data || null,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error, '寵物資料刪除失敗，請稍後再試'),
+      data: error.response?.data || null,
+    }
+  }
+}
+
 export async function updatePet(id, data, token) {
   try {
     const request = updatePetRequestData(data, token)

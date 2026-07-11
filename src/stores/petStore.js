@@ -1,7 +1,12 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { medicalApi } from '@/api/medical.js'
-import { createPet as createPetApi, listPets as listPetsApi, updatePet as updatePetApi } from '@/api/pet.js'
+import {
+  createPet as createPetApi,
+  deletePet as deletePetApi,
+  listPets as listPetsApi,
+  updatePet as updatePetApi,
+} from '@/api/pet.js'
 import defaultPetAvatar from '@/assets/images/pet_default.png'
 
 export const usePetStore = defineStore('pet', () => {
@@ -106,6 +111,21 @@ export const usePetStore = defineStore('pet', () => {
     return result
   }
 
+  async function deletePet(id, token) {
+    const petId = Number(id)
+    const result = await deletePetApi(petId, token)
+
+    if (result.success) {
+      pets.value = pets.value.filter((pet) => pet.id !== petId)
+
+      if (selectedPetId.value === petId) {
+        selectedPetId.value = pets.value[0]?.id ?? null
+      }
+    }
+
+    return result
+  }
+
   return {
     pets,
     selectedPetId,
@@ -116,5 +136,6 @@ export const usePetStore = defineStore('pet', () => {
     fetchPets,
     createPet,
     updatePet,
+    deletePet,
   }
 })
