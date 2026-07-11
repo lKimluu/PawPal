@@ -7,6 +7,7 @@ import {
   deleteEvent as deleteEventApi,
 } from '@/api/calendar.js'
 import { useAuthStore } from '@/stores/auth.js'
+import { formatLocalDate } from '@/utils/dateFormat.js'
 
 export const useCalendarStore = defineStore('calendar', () => {
   const authStore = useAuthStore()
@@ -24,6 +25,20 @@ export const useCalendarStore = defineStore('calendar', () => {
       ? events.value
       : events.value.filter((e) => e.petId === selectedPetId.value),
   )
+
+  // 只顯示「今天起算三天內（含當天）」的行程，依日期由近到遠排序（同日再依時間）
+  const upcomingEvents = computed(() => {
+    const today = new Date()
+    const startStr = formatLocalDate(today)
+    const end = new Date(today)
+    end.setDate(end.getDate() + 2)
+    const endStr = formatLocalDate(end)
+    return filteredEvents.value
+      .filter((e) => e.eventDate >= startStr && e.eventDate <= endStr)
+      .sort((a, b) =>
+        (a.eventDate + (a.eventTime || '')).localeCompare(b.eventDate + (b.eventTime || '')),
+      )
+  })
 
   function setSelectedPet(id) {
     selectedPetId.value = id
@@ -156,6 +171,7 @@ export const useCalendarStore = defineStore('calendar', () => {
     error,
     selectedPetId,
     filteredEvents,
+    upcomingEvents,
     setSelectedPet,
     fetchEvents,
     addEvent,

@@ -32,6 +32,8 @@ const props = defineProps({
   range: { type: String, default: '6 個月' },
 })
 
+const emit = defineEmits(['add-record'])
+
 const RANGE_DAYS = { '3 個月': 90, '6 個月': 180, '1 年': 365 }
 
 const METRIC_META = {
@@ -126,14 +128,36 @@ const getChartOptions = (record) => ({
 </script>
 
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full p-4">
+  <div
+    v-if="displayRecords.length === 0"
+    class="flex flex-col items-center justify-center py-12 px-4 text-center md:py-24"
+  >
     <div
-      v-if="displayRecords.length === 0"
-      class="md:col-span-2 flex items-center justify-center py-16 text-sm text-brand-gray"
+      class="mb-5 flex h-24 w-24 items-center justify-center rounded-full bg-brand-blue/20 md:h-32 md:w-32 md:mb-5"
     >
-      目前沒有紀錄
+      <img
+        class="w-12 h-12 md:w-20 md:h-20 object-contain"
+        src="@/assets/icons/pet-growth_b.svg"
+        alt="無成長紀錄"
+      />
     </div>
+    <h3 class="text-base font-bold text-brand-navy md:text-xl">目前尚無成長紀錄</h3>
+    <p class="mt-1.5 text-xs font-medium text-brand-gray md:text-sm">
+      此區間暫無紀錄，<br class="md:hidden" />快來記錄毛孩的成長吧！
+    </p>
+    <button
+      type="button"
+      @click="emit('add-record')"
+      class="mt-5 flex cursor-pointer items-center justify-center gap-2 rounded-full bg-brand-blue px-5 py-2 text-xs font-bold text-white shadow-md shadow-brand-blue/20 transition duration-200 hover:bg-[#7F97EC] hover:shadow-lg active:scale-95 md:mt-6 md:px-6 md:py-3 md:text-sm"
+    >
+      <span class="text-base font-normal -mt-0.5">＋</span>立即新增第一筆紀錄
+    </button>
+  </div>
 
+  <div
+    v-else
+    class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full px-2 py-6 md:px-4 md:py-10"
+  >
     <div
       v-for="record in displayRecords"
       :key="record.metric_type"

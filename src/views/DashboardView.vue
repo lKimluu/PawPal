@@ -11,6 +11,7 @@ import AddEventModal from '@/components/calendar/AddEventModal.vue'
 import EditEventModal from '@/components/calendar/EditEventModal.vue'
 import DeleteEventModal from '@/components/calendar/DeleteEventModal.vue'
 import DayEventsModal from '@/components/calendar/DayEventsModal.vue'
+import DeleteConfirmModal from '@/components/common/DeleteConfirmModal.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import memberBanner from '@/assets/images/member_banner_dashboard.png'
@@ -32,6 +33,9 @@ const petUpdateError = ref('')
 const isAddPetModalOpen = ref(false)
 const isCreatingPet = ref(false)
 const addPetErrorMessage = ref('')
+const isPetDeleteModalOpen = ref(false)
+const petToDelete = ref(null)
+const isDeletingPet = ref(false)
 
 const showAddModal = ref(false)
 const addModalDate = ref('')
@@ -175,6 +179,35 @@ const handlePetUpdate = async ({ id, data }) => {
   closePetProfile()
 }
 
+const handlePetDeleteRequest = (pet) => {
+  petToDelete.value = pet
+  isPetDeleteModalOpen.value = true
+}
+
+const handleClosePetDeleteModal = () => {
+  if (isDeletingPet.value) return
+
+  isPetDeleteModalOpen.value = false
+  petToDelete.value = null
+}
+
+const handleConfirmPetDelete = async () => {
+  if (!petToDelete.value?.id) return
+
+  isDeletingPet.value = true
+  const result = await petStore.deletePet(petToDelete.value.id, authStore.token)
+  isDeletingPet.value = false
+
+  if (result.success) {
+    handleClosePetDeleteModal()
+    closePetProfile()
+    toastStore.showToast(result.message || '寵物資料刪除成功', 'success')
+    return
+  }
+
+  toastStore.showToast(result.message || '寵物資料刪除失敗，請稍後再試', 'error')
+}
+
 const openAddPetModal = () => {
   addPetErrorMessage.value = ''
   isAddPetModalOpen.value = true
@@ -234,7 +267,7 @@ const handleCreatePet = async (payload) => {
           class="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden rounded-3xl border border-brand-lightblue bg-brand-white shadow-[0_8px_28px_rgba(61,74,122,0.08)] p-4"
         >
           <EventList
-            :events="calendarStore.filteredEvents"
+            :events="calendarStore.upcomingEvents"
             :compact="true"
             @add="openAddModal()"
             @edit="openEditModal"
@@ -303,10 +336,19 @@ const handleCreatePet = async (payload) => {
   <PetProfileModal
     :is-open="isPetProfileOpen"
     :pet="selectedPet"
-    :is-saving="isPetSaving"
+    :is-saving="isPetSaving || isDeletingPet"
     :error-message="petUpdateError"
     @close="closePetProfile"
     @update="handlePetUpdate"
+    @delete="handlePetDeleteRequest"
+  />
+  <DeleteConfirmModal
+    :is-open="isPetDeleteModalOpen"
+    title="確認刪除寵物資料？"
+    :item-name="petToDelete?.name ?? ''"
+    :is-loading="isDeletingPet"
+    @close="handleClosePetDeleteModal"
+    @confirm="handleConfirmPetDelete"
   />
   <AddPetModal
     :is-open="isAddPetModalOpen"
