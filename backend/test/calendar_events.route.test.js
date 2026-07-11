@@ -36,3 +36,10 @@ test('應註冊 DELETE /:id 路由並掛上 authenticateToken', () => {
   // authenticateToken + validate(params) + controller = 3
   assert.equal(route.route.stack.length, 3)
 })
+
+test('應註冊 POST /:id/resync 路由並掛上 authenticateToken 與 validate', () => {
+  const route = findRoute('/:id/resync', 'post')
+  assert.ok(route)
+  // authenticateToken + validate(params) + controller = 3
+  assert.equal(route.route.stack.length, 3)
+})
