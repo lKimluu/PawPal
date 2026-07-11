@@ -15,6 +15,21 @@ export async function getEventsByUserId(userId) {
   return result.rows
 }
 
+export async function getEventByIdAndUserId(id, userId) {
+  const result = await pool.query(
+    `
+      SELECT ce.*
+      FROM calendar_events ce
+      JOIN pets p ON ce.pet_id = p.id
+      WHERE ce.id = $1 AND p.user_id = $2
+      LIMIT 1
+    `,
+    [id, userId],
+  )
+
+  return result.rows[0] ?? null
+}
+
 export async function createEvent({
   pet_id,
   userId,
@@ -83,7 +98,7 @@ export async function deleteEvent(id, userId) {
       WHERE ce.id = $1
         AND ce.pet_id = p.id
         AND p.user_id = $2
-      RETURNING ce.id
+      RETURNING ce.id, ce.google_event_id
     `,
     [id, userId],
   )
