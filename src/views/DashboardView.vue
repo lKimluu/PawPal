@@ -106,6 +106,15 @@ const handleEditDelete = (event) => {
   handleDeleteRequest(event)
 }
 
+const handleResync = async (event) => {
+  const result = await calendarStore.resyncEvent(event.id)
+  if (result.success) {
+    toastStore.showToast(result.message || '重新同步成功')
+  } else {
+    toastStore.showToast(result.message || '重新同步失敗，請稍後再試', 'error')
+  }
+}
+
 const dashboardPets = computed(() =>
   pets.value.map((p) => ({
     ...p,
@@ -276,6 +285,7 @@ const handleCreatePet = async (payload) => {
             @add="openAddModal()"
             @edit="openEditModal"
             @delete="handleDeleteRequest"
+            @resync="handleResync"
           />
         </div>
 
@@ -312,6 +322,7 @@ const handleCreatePet = async (payload) => {
     @add="handleDayModalAdd"
     @edit="handleDayModalEdit"
     @delete="handleDayModalDelete"
+    @resync="handleResync"
   />
   <AddEventModal
     :is-open="showAddModal"
