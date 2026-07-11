@@ -5,6 +5,7 @@ import aboutImage from '@/assets/images/home-about.png'
 import IconLocation from '@/assets/icons/location_o.svg'
 import Header from '@/components/layout/AppHeader.vue'
 import Footer from '@/components/layout/AppFooter.vue'
+import AiAssistantPanel from '@/components/ai/AiAssistantPanel.vue'
 
 const services = [
   {
@@ -257,4 +258,5 @@ const getIconUrl = (name) => {
     </section>
   </main>
   <Footer />
+  <AiAssistantPanel />
 </template>
