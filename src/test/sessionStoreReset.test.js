@@ -191,8 +191,60 @@ function assertSessionDataReset({ medical, growth, pet, calendar }) {
   assert.equal(calendar.error, null)
 }
 
-test('session lifecycle 實際隔離帳號狀態', async (t) => {
+function createDeferred() {
+  let resolve
+  let reject
+  const promise = new Promise((promiseResolve, promiseReject) => {
+    resolve = promiseResolve
+    reject = promiseReject
+  })
+
+  return { promise, resolve, reject }
+}
+
+function createQueuedApiMock() {
+  const calls = []
+
+  function mock(...args) {
+    const deferred = createDeferred()
+    calls.push({ args, deferred })
+    return deferred.promise
+  }
+
+  return { calls, mock }
+}
+
+async function createStoresWithMockedApis(t) {
   globalThis.localStorage = createStorage()
+
+  const apiMocks = {
+    medical: {
+      getUserPets: createQueuedApiMock(),
+      getRecordsByPet: createQueuedApiMock(),
+      createRecord: createQueuedApiMock(),
+      updateRecord: createQueuedApiMock(),
+      deleteRecord: createQueuedApiMock(),
+    },
+    growth: {
+      getGrowthRecords: createQueuedApiMock(),
+      createGrowthRecord: createQueuedApiMock(),
+      updateGrowthRecord: createQueuedApiMock(),
+      deleteGrowthRecord: createQueuedApiMock(),
+    },
+    pet: {
+      listPets: createQueuedApiMock(),
+      createPet: createQueuedApiMock(),
+      updatePet: createQueuedApiMock(),
+    },
+    calendar: {
+      getEvents: createQueuedApiMock(),
+      createEvent: createQueuedApiMock(),
+      updateEvent: createQueuedApiMock(),
+      deleteEvent: createQueuedApiMock(),
+    },
+  }
+
+  globalThis.__sessionStoreResetApiMocks = apiMocks
 
   const vite = await createServer({
     configFile: false,
@@ -205,8 +257,83 @@ test('session lifecycle 實際隔離帳號狀態', async (t) => {
         '@': resolve('src'),
       },
     },
+    plugins: [
+      {
+        name: 'session-store-reset-api-mocks',
+        enforce: 'pre',
+        resolveId(id) {
+          if (id === '@/api/medical.js' || id.endsWith('/src/api/medical.js')) {
+            return '\0session-store-reset-api-mock:medical'
+          }
+
+          if (id === '@/api/growth.js' || id.endsWith('/src/api/growth.js')) {
+            return '\0session-store-reset-api-mock:growth'
+          }
+
+          if (id === '@/api/pet.js' || id.endsWith('/src/api/pet.js')) {
+            return '\0session-store-reset-api-mock:pet'
+          }
+
+          if (id === '@/api/calendar.js' || id.endsWith('/src/api/calendar.js')) {
+            return '\0session-store-reset-api-mock:calendar'
+          }
+
+          return null
+        },
+        load(id) {
+          if (id === '\0session-store-reset-api-mock:medical') {
+            return `
+              const mocks = globalThis.__sessionStoreResetApiMocks.medical
+              export const medicalApi = {
+                getUserPets: (...args) => mocks.getUserPets.mock(...args),
+                getRecordsByPet: (...args) => mocks.getRecordsByPet.mock(...args),
+                createRecord: (...args) => mocks.createRecord.mock(...args),
+                updateRecord: (...args) => mocks.updateRecord.mock(...args),
+                deleteRecord: (...args) => mocks.deleteRecord.mock(...args),
+              }
+            `
+          }
+
+          if (id === '\0session-store-reset-api-mock:growth') {
+            return `
+              const mocks = globalThis.__sessionStoreResetApiMocks.growth
+              export const getGrowthRecords = (...args) => mocks.getGrowthRecords.mock(...args)
+              export const createGrowthRecord = (...args) => mocks.createGrowthRecord.mock(...args)
+              export const updateGrowthRecord = (...args) => mocks.updateGrowthRecord.mock(...args)
+              export const deleteGrowthRecord = (...args) => mocks.deleteGrowthRecord.mock(...args)
+            `
+          }
+
+          if (id === '\0session-store-reset-api-mock:pet') {
+            return `
+              const mocks = globalThis.__sessionStoreResetApiMocks.pet
+              export const listPets = (...args) => mocks.listPets.mock(...args)
+              export const createPet = (...args) => mocks.createPet.mock(...args)
+              export const updatePet = (...args) => mocks.updatePet.mock(...args)
+            `
+          }
+
+          if (id === '\0session-store-reset-api-mock:calendar') {
+            return `
+              const mocks = globalThis.__sessionStoreResetApiMocks.calendar
+              export const getEvents = (...args) => mocks.getEvents.mock(...args)
+              export const createEvent = (...args) => mocks.createEvent.mock(...args)
+              export const updateEvent = (...args) => mocks.updateEvent.mock(...args)
+              export const deleteEvent = (...args) => mocks.deleteEvent.mock(...args)
+            `
+          }
+
+          return null
+        },
+      },
+    ],
   })
-  t.after(() => vite.close())
+  t.after(async () => {
+    await new Promise((resolveImmediate) => setImmediate(resolveImmediate))
+    await vite.close()
+    await new Promise((resolveImmediate) => setImmediate(resolveImmediate))
+    delete globalThis.__sessionStoreResetApiMocks
+  })
 
   const [
     { useAuthStore },
@@ -228,7 +355,7 @@ test('session lifecycle 實際隔離帳號狀態', async (t) => {
     localStorage.clear()
     setActivePinia(createPinia())
 
-    return {
+    const stores = {
       auth: useAuthStore(),
       calendar: useCalendarStore(),
       growth: useGrowthStore(),
@@ -236,7 +363,23 @@ test('session lifecycle 實際隔離帳號狀態', async (t) => {
       pet: usePetStore(),
       session: useSessionStore(),
     }
+    stores.auth.token = 'account-a-token'
+    return stores
   }
+
+  return { apiMocks, setup }
+}
+
+function resetApiMockCalls(apiMocks) {
+  for (const moduleMocks of Object.values(apiMocks)) {
+    for (const apiMock of Object.values(moduleMocks)) {
+      apiMock.calls.length = 0
+    }
+  }
+}
+
+test('session lifecycle 實際隔離帳號狀態', async (t) => {
+  const { apiMocks, setup } = await createStoresWithMockedApis(t)
 
   await t.test('A 帳號登出後清除資料與 auth storage', () => {
     const stores = setup()
@@ -282,5 +425,210 @@ test('session lifecycle 實際隔離帳號狀態', async (t) => {
     assert.deepEqual(stores.pet.pets, [{ id: 'pet-3' }])
     assert.equal(stores.pet.selectedPetId, 'pet-3')
     assert.deepEqual(stores.calendar.events, [{ id: 'event-5' }])
+  })
+
+  await t.test('reset 後舊請求完成不會回填帳號資料', async () => {
+    resetApiMockCalls(apiMocks)
+    const stores = setup()
+
+    const oldMedicalPromise = stores.medical.fetchRecords(1)
+    const oldGrowthPromise = stores.growth.fetchRecords(1, 'account-a-token')
+    const oldPetPromise = stores.pet.fetchPets()
+    const oldCalendarPromise = stores.calendar.fetchEvents()
+
+    stores.session.resetSessionStores()
+
+    apiMocks.medical.getRecordsByPet.calls[0].deferred.resolve({
+      data: {
+        data: [
+          {
+            id: 'medical-a',
+            title: 'A medical',
+            record_type: '檢查',
+            record_date: '2026-07-10T00:00:00.000Z',
+          },
+        ],
+      },
+    })
+    apiMocks.growth.getGrowthRecords.calls[0].deferred.resolve({
+      success: true,
+      data: { records: [{ id: 'growth-a' }] },
+    })
+    apiMocks.pet.listPets.calls[0].deferred.resolve({
+      success: true,
+      data: { pets: [{ id: 'pet-a', name: 'A pet' }] },
+    })
+    apiMocks.calendar.getEvents.calls[0].deferred.resolve({
+      success: true,
+      data: [{ id: 'event-a' }],
+    })
+
+    await Promise.all([oldMedicalPromise, oldGrowthPromise, oldPetPromise, oldCalendarPromise])
+
+    assertSessionDataReset(stores)
+  })
+
+  await t.test('reset 後新請求有效且舊請求不覆蓋新 session loading 或資料', async () => {
+    resetApiMockCalls(apiMocks)
+    const stores = setup()
+
+    const oldMedicalPromise = stores.medical.fetchRecords(1)
+    const oldGrowthPromise = stores.growth.fetchRecords(1, 'account-a-token')
+    const oldPetPromise = stores.pet.fetchPets()
+    const oldCalendarPromise = stores.calendar.fetchEvents()
+
+    stores.session.resetSessionStores()
+    stores.auth.token = 'account-b-token'
+
+    const newMedicalPromise = stores.medical.fetchRecords(2)
+    const newGrowthPromise = stores.growth.fetchRecords(2, 'account-b-token')
+    const newPetPromise = stores.pet.fetchPets()
+    const newCalendarPromise = stores.calendar.fetchEvents()
+
+    apiMocks.medical.getRecordsByPet.calls[0].deferred.resolve({
+      data: { data: [{ id: 'medical-a', title: 'A medical' }] },
+    })
+    apiMocks.growth.getGrowthRecords.calls[0].deferred.resolve({
+      success: true,
+      data: { records: [{ id: 'growth-a' }] },
+    })
+    apiMocks.pet.listPets.calls[0].deferred.resolve({
+      success: true,
+      data: { pets: [{ id: 'pet-a', name: 'A pet' }] },
+    })
+    apiMocks.calendar.getEvents.calls[0].deferred.resolve({
+      success: true,
+      data: [{ id: 'event-a' }],
+    })
+
+    await Promise.all([oldMedicalPromise, oldGrowthPromise, oldPetPromise, oldCalendarPromise])
+
+    assert.deepEqual(stores.medical.records, [])
+    assert.deepEqual(stores.growth.records, [])
+    assert.deepEqual(stores.pet.pets, [])
+    assert.deepEqual(stores.calendar.events, [])
+    assert.equal(stores.medical.isLoading, true)
+    assert.equal(stores.growth.isLoading, true)
+    assert.equal(stores.pet.isLoading, true)
+    assert.equal(stores.calendar.isLoading, true)
+
+    apiMocks.medical.getRecordsByPet.calls[1].deferred.resolve({
+      data: {
+        data: [
+          {
+            id: 'medical-b',
+            title: 'B medical',
+            record_type: '檢查',
+            record_date: '2026-07-10T00:00:00.000Z',
+          },
+        ],
+      },
+    })
+    apiMocks.growth.getGrowthRecords.calls[1].deferred.resolve({
+      success: true,
+      data: { records: [{ id: 'growth-b' }] },
+    })
+    apiMocks.pet.listPets.calls[1].deferred.resolve({
+      success: true,
+      data: { pets: [{ id: 20, name: 'B pet' }] },
+    })
+    apiMocks.calendar.getEvents.calls[1].deferred.resolve({
+      success: true,
+      data: [{ id: 'event-b' }],
+    })
+
+    await Promise.all([newMedicalPromise, newGrowthPromise, newPetPromise, newCalendarPromise])
+
+    assert.equal(stores.medical.records[0].id, 'medical-b')
+    assert.equal(stores.growth.records[0].id, 'growth-b')
+    assert.equal(stores.pet.pets[0].id, 20)
+    assert.equal(stores.pet.selectedPetId, 20)
+    assert.equal(stores.calendar.events[0].id, 'event-b')
+    assert.equal(stores.medical.isLoading, false)
+    assert.equal(stores.growth.isLoading, false)
+    assert.equal(stores.pet.isLoading, false)
+    assert.equal(stores.calendar.isLoading, false)
+  })
+
+  await t.test('stale request error 被忽略但 current-session error 維持既有處理', async () => {
+    resetApiMockCalls(apiMocks)
+    const originalConsoleError = console.error
+    console.error = () => {}
+    const stores = setup()
+
+    try {
+      const staleMedicalPromise = stores.medical.fetchRecords(1)
+      const staleGrowthPromise = stores.growth.fetchRecords(1, 'account-a-token')
+      const stalePetPromise = stores.pet.fetchUserPets()
+      const staleCalendarPromise = stores.calendar.fetchEvents()
+
+      stores.session.resetSessionStores()
+
+      apiMocks.medical.getRecordsByPet.calls[0].deferred.reject({
+        response: { data: { message: 'medical stale error' } },
+      })
+      apiMocks.growth.getGrowthRecords.calls[0].deferred.resolve({
+        success: false,
+        message: 'growth stale error',
+      })
+      apiMocks.medical.getUserPets.calls[0].deferred.reject({
+        response: { data: { message: 'pet stale error' } },
+      })
+      apiMocks.calendar.getEvents.calls[0].deferred.resolve({
+        success: false,
+        message: 'calendar stale error',
+      })
+
+      await Promise.allSettled([
+        staleMedicalPromise,
+        staleGrowthPromise,
+        stalePetPromise,
+        staleCalendarPromise,
+      ])
+
+      assert.equal(stores.medical.errorMsg, '')
+      assert.equal(stores.growth.errorMessage, null)
+      assert.deepEqual(stores.pet.pets, [])
+      assert.equal(stores.pet.selectedPetId, null)
+      assert.equal(stores.calendar.error, null)
+
+      stores.pet.pets = [{ id: 'pet-before-error' }]
+      stores.pet.selectedPetId = 'pet-before-error'
+
+      const currentMedicalPromise = stores.medical.fetchRecords(2)
+      const currentGrowthPromise = stores.growth.fetchRecords(2, 'account-b-token')
+      const currentPetPromise = stores.pet.fetchUserPets()
+      const currentCalendarPromise = stores.calendar.fetchEvents()
+
+      apiMocks.medical.getRecordsByPet.calls[1].deferred.reject({
+        response: { data: { message: 'medical current error' } },
+      })
+      apiMocks.growth.getGrowthRecords.calls[1].deferred.resolve({
+        success: false,
+        message: 'growth current error',
+      })
+      apiMocks.medical.getUserPets.calls[1].deferred.reject({
+        response: { data: { message: 'pet current error' } },
+      })
+      apiMocks.calendar.getEvents.calls[1].deferred.resolve({
+        success: false,
+        message: 'calendar current error',
+      })
+
+      await Promise.allSettled([
+        currentMedicalPromise,
+        currentGrowthPromise,
+        currentPetPromise,
+        currentCalendarPromise,
+      ])
+
+      assert.equal(stores.medical.errorMsg, 'medical current error')
+      assert.equal(stores.growth.errorMessage, 'growth current error')
+      assert.deepEqual(stores.pet.pets, [])
+      assert.equal(stores.pet.selectedPetId, null)
+      assert.equal(stores.calendar.error, 'calendar current error')
+    } finally {
+      console.error = originalConsoleError
+    }
   })
 })

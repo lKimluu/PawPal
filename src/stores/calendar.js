@@ -14,6 +14,7 @@ export const useCalendarStore = defineStore('calendar', () => {
   const events = ref([])
   const isLoading = ref(false)
   const error = ref(null)
+  let requestGeneration = 0
 
   // 'all' = 檢視全部；否則為某隻寵物的 id（number）
   const selectedPetId = ref('all')
@@ -28,11 +29,20 @@ export const useCalendarStore = defineStore('calendar', () => {
     selectedPetId.value = id
   }
 
+  function isCurrentRequest(generation) {
+    return generation === requestGeneration
+  }
+
   async function fetchEvents() {
+    const generation = requestGeneration
+
     isLoading.value = true
     error.value = null
     try {
       const result = await getEvents(authStore.token)
+      if (!isCurrentRequest(generation)) {
+        return { success: false, stale: true }
+      }
 
       if (result.success) {
         events.value = result.data
@@ -42,65 +52,98 @@ export const useCalendarStore = defineStore('calendar', () => {
 
       return result
     } finally {
-      isLoading.value = false
+      if (isCurrentRequest(generation)) {
+        isLoading.value = false
+      }
     }
   }
 
   async function addEvent(form) {
+    const generation = requestGeneration
+
     isLoading.value = true
     error.value = null
     try {
       const result = await createEvent(form, authStore.token)
+      if (!isCurrentRequest(generation)) {
+        return { success: false, stale: true }
+      }
 
       if (result.success) {
         await fetchEvents()
+        if (!isCurrentRequest(generation)) {
+          return { success: false, stale: true }
+        }
       } else {
         error.value = result.message
       }
 
       return result
     } finally {
-      isLoading.value = false
+      if (isCurrentRequest(generation)) {
+        isLoading.value = false
+      }
     }
   }
 
   async function updateEvent(id, form) {
+    const generation = requestGeneration
+
     isLoading.value = true
     error.value = null
     try {
       const result = await updateEventApi(id, form, authStore.token)
+      if (!isCurrentRequest(generation)) {
+        return { success: false, stale: true }
+      }
 
       if (result.success) {
         await fetchEvents()
+        if (!isCurrentRequest(generation)) {
+          return { success: false, stale: true }
+        }
       } else {
         error.value = result.message
       }
 
       return result
     } finally {
-      isLoading.value = false
+      if (isCurrentRequest(generation)) {
+        isLoading.value = false
+      }
     }
   }
 
   async function deleteEvent(id) {
+    const generation = requestGeneration
+
     isLoading.value = true
     error.value = null
     try {
       const result = await deleteEventApi(id, authStore.token)
+      if (!isCurrentRequest(generation)) {
+        return { success: false, stale: true }
+      }
 
       if (result.success) {
         await fetchEvents()
+        if (!isCurrentRequest(generation)) {
+          return { success: false, stale: true }
+        }
       } else {
         error.value = result.message
       }
 
       return result
     } finally {
-      isLoading.value = false
+      if (isCurrentRequest(generation)) {
+        isLoading.value = false
+      }
     }
   }
 
   function reset() {
+    requestGeneration += 1
     events.value = []
     isLoading.value = false
     error.value = null
