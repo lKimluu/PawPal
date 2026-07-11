@@ -348,3 +348,37 @@ test('resync controller：synced 應回 200 與行程資料', async () => {
   assert.equal(res.statusCode, 200)
   assert.deepEqual(res.body, { message: '重新同步成功', data: syncedEvent })
 })
+
+// --- syncDeletedEvents（刪除寵物的批次清理）---
+
+test('syncDeletedEvents：空陣列時不查連接也不動作', async () => {
+  const { syncDeletedEvents } = createSync()
+
+  await syncDeletedEvents(42, [])
+})
+
+test('syncDeletedEvents：未連接時不打 Google', async () => {
+  const { syncDeletedEvents } = createSync({
+    getConnectionByUserId: async () => null,
+  })
+
+  await syncDeletedEvents(42, ['google-event-1'])
+})
+
+test('syncDeletedEvents：應逐筆刪除且單筆失敗仍繼續', async (t) => {
+  t.mock.method(console, 'error', () => {})
+  const deleteCalls = []
+  const { syncDeletedEvents } = createSync({
+    getConnectionByUserId: async () => connection,
+    deleteGoogleCalendarEvent: async (conn, googleEventId) => {
+      deleteCalls.push(googleEventId)
+      if (googleEventId === 'google-event-1') {
+        throw new Error('Google API error')
+      }
+    },
+  })
+
+  await syncDeletedEvents(42, ['google-event-1', 'google-event-2'])
+
+  assert.deepEqual(deleteCalls, ['google-event-1', 'google-event-2'])
+})
