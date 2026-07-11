@@ -6,6 +6,7 @@ import PetProfileModal from '@/components/pet/PetProfileModal.vue'
 import AddPetButton from '@/components/pet/AddPetButton.vue'
 import AddPetModal from '@/components/pet/AddPetModal.vue'
 import CalendarGrid from '@/components/calendar/CalendarGrid.vue'
+import GoogleCalendarSyncButton from '@/components/calendar/GoogleCalendarSyncButton.vue'
 import EventList from '@/components/calendar/EventList.vue'
 import AddEventModal from '@/components/calendar/AddEventModal.vue'
 import EditEventModal from '@/components/calendar/EditEventModal.vue'
@@ -195,6 +196,9 @@ const handleCreatePet = async (payload) => {
     </section>
 
     <div class="w-full px-4 lg:px-8 pb-16 mt-2 md:mt-6">
+      <div class="mb-3 flex justify-end">
+        <GoogleCalendarSyncButton />
+      </div>
       <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 lg:gap-x-6 lg:gap-y-8">
         <CalendarGrid @open-add-modal="openAddModal" @open-day-modal="openDayModal" />
 
