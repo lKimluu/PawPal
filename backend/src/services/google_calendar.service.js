@@ -68,20 +68,22 @@ export function buildGoogleEventPayload(event) {
 
   const dateString = toDateString(event.event_date)
 
+  // patch 是欄位合併：date 與 dateTime 擇一使用時，須將另一個明確設為 null 清除，
+  // 否則行程在「全天 ↔ 有時間」間切換後，合併結果兩者並存會被 Google 拒絕（Invalid start time）
   if (event.event_time) {
     const time = event.event_time.length === 5 ? `${event.event_time}:00` : event.event_time
     const start = new Date(`${dateString}T${time}`)
     const end = new Date(start.getTime() + EVENT_DURATION_MS)
 
-    payload.start = { dateTime: toLocalDateTimeString(start), timeZone: SYNC_TIME_ZONE }
-    payload.end = { dateTime: toLocalDateTimeString(end), timeZone: SYNC_TIME_ZONE }
+    payload.start = { dateTime: toLocalDateTimeString(start), timeZone: SYNC_TIME_ZONE, date: null }
+    payload.end = { dateTime: toLocalDateTimeString(end), timeZone: SYNC_TIME_ZONE, date: null }
   } else {
     // Google 全天事件的結束日為「不含」的隔天
     const nextDay = new Date(`${dateString}T00:00:00`)
     nextDay.setDate(nextDay.getDate() + 1)
 
-    payload.start = { date: dateString }
-    payload.end = { date: toDateString(nextDay) }
+    payload.start = { date: dateString, dateTime: null }
+    payload.end = { date: toDateString(nextDay), dateTime: null }
   }
 
   return payload

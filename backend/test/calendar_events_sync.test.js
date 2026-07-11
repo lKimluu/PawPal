@@ -55,8 +55,16 @@ test('payload：有時間的行程應為 1 小時的 Asia/Taipei 事件', () => 
   assert.equal(payload.summary, '打疫苗')
   assert.equal(payload.location, '毛毛動物醫院')
   assert.equal(payload.description, '記得帶手冊')
-  assert.deepEqual(payload.start, { dateTime: '2026-07-15T14:30:00', timeZone: 'Asia/Taipei' })
-  assert.deepEqual(payload.end, { dateTime: '2026-07-15T15:30:00', timeZone: 'Asia/Taipei' })
+  assert.deepEqual(payload.start, {
+    dateTime: '2026-07-15T14:30:00',
+    timeZone: 'Asia/Taipei',
+    date: null,
+  })
+  assert.deepEqual(payload.end, {
+    dateTime: '2026-07-15T15:30:00',
+    timeZone: 'Asia/Taipei',
+    date: null,
+  })
 })
 
 test('payload：23:30 的行程結束時間應跨到隔天', () => {
@@ -77,8 +85,8 @@ test('payload：沒有時間的行程應為全天事件且結束日為隔天', (
     event_time: null,
   })
 
-  assert.deepEqual(payload.start, { date: '2026-07-31' })
-  assert.deepEqual(payload.end, { date: '2026-08-01' })
+  assert.deepEqual(payload.start, { date: '2026-07-31', dateTime: null })
+  assert.deepEqual(payload.end, { date: '2026-08-01', dateTime: null })
 })
 
 test('payload：event_date 為 pg 的 Date 物件時應正確轉為本地日期字串', () => {
