@@ -30,6 +30,22 @@ export async function getEventByIdAndUserId(id, userId) {
   return result.rows[0] ?? null
 }
 
+export async function getGoogleEventIdsByPetId(petId, userId) {
+  const result = await pool.query(
+    `
+      SELECT ce.google_event_id
+      FROM calendar_events ce
+      JOIN pets p ON ce.pet_id = p.id
+      WHERE ce.pet_id = $1
+        AND p.user_id = $2
+        AND ce.google_event_id IS NOT NULL
+    `,
+    [petId, userId],
+  )
+
+  return result.rows.map((row) => row.google_event_id)
+}
+
 export async function createEvent({
   pet_id,
   userId,

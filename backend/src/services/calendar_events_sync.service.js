@@ -96,6 +96,26 @@ export function createCalendarEventsSync({
     }
   }
 
+  // 刪除寵物前收集到的整批 google_event_id；單筆失敗仍繼續刪其餘
+  async function syncDeletedEvents(userId, googleEventIds) {
+    if (!googleEventIds || googleEventIds.length === 0) return
+
+    try {
+      const connection = await getConnectionByUserId(userId)
+      if (!connection) return
+
+      for (const googleEventId of googleEventIds) {
+        try {
+          await deleteGoogleCalendarEvent(connection, googleEventId)
+        } catch (error) {
+          await handleSyncError(userId, error)
+        }
+      }
+    } catch (error) {
+      await handleSyncError(userId, error)
+    }
+  }
+
   async function resyncEvent(userId, eventId) {
     const event = await getEventByIdAndUserId(eventId, userId)
     if (!event) return { status: 'not_found' }
@@ -114,10 +134,10 @@ export function createCalendarEventsSync({
     }
   }
 
-  return { syncCreatedEvent, syncUpdatedEvent, syncDeletedEvent, resyncEvent }
+  return { syncCreatedEvent, syncUpdatedEvent, syncDeletedEvent, syncDeletedEvents, resyncEvent }
 }
 
-export const { syncCreatedEvent, syncUpdatedEvent, syncDeletedEvent, resyncEvent } =
+export const { syncCreatedEvent, syncUpdatedEvent, syncDeletedEvent, syncDeletedEvents, resyncEvent } =
   createCalendarEventsSync({
     getConnectionByUserId,
     deleteConnectionByUserId,
