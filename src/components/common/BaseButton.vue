@@ -7,7 +7,7 @@ defineProps({
   variant: {
     type: String,
     default: 'primary',
-    validator: (value) => ['primary', 'secondary', 'ghost'].includes(value),
+    validator: (value) => ['primary', 'secondary', 'ghost', 'orange'].includes(value),
   },
 })
 
@@ -17,6 +17,8 @@ const variantClassMap = {
   secondary:
     'border border-slate-200 bg-white text-brand-gray hover:bg-brand-blue/10 hover:text-brand-navy',
   ghost: 'text-brand-gray hover:bg-slate-100 hover:text-brand-navy',
+  orange:
+    'bg-brand-orange text-white shadow-md shadow-brand-orange/20 hover:bg-brand-orange/90 hover:shadow-lg',
 }
 </script>
 

@@ -24,6 +24,17 @@ test('PetCard 會發出 click 事件讓父層開啟寵物資料彈窗', () => {
   assert.match(petCard, /@click="emit\('click'\)"/)
 })
 
+test('PetCard 會用 birthday 計算 Dashboard 年齡顯示', () => {
+  assert.match(petCard, /formatPetAge/)
+  assert.match(petCard, /props\.pet\?\.birthday/)
+})
+
+test('PetProfileModal 會用 birthday 計算詳細資料年齡顯示', () => {
+  assert.match(profileModal, /formatPetAge/)
+  assert.match(profileModal, /props\.pet\?\.birthday/)
+  assert.match(profileModal, /petAge/)
+})
+
 test('PetProfileModal 會顯示寵物詳細資料並使用 BaseButton 關閉', () => {
   assert.match(profileModal, /petPhoto/)
   assert.match(profileModal, /petImage/)
@@ -34,6 +45,21 @@ test('PetProfileModal 會顯示寵物詳細資料並使用 BaseButton 關閉', (
   assert.match(profileModal, /pet\.bloodType/)
   assert.match(profileModal, /pet\.furColor/)
   assert.match(profileModal, /pet\.note/)
+})
+
+test('PetProfileModal 會提供編輯模式並交由 Dashboard 呼叫 updatePet', () => {
+  assert.match(profileModal, /defineEmits\(\['close', 'update', 'delete'\]\)/)
+  assert.match(profileModal, /isEditingProfile/)
+  assert.match(profileModal, /handleSaveEdit/)
+  assert.match(profileModal, /buildUpdatePayload/)
+  assert.match(profileModal, /v-model="editForm\.microchipNumber"/)
+  assert.match(profileModal, /v-model="editForm\.bloodType"/)
+  assert.match(profileModal, /v-model="editForm\.furColor"/)
+  assert.match(profileModal, /photoFile: selectedPhotoFile\.value/)
+  assert.match(profileModal, /v-model="editForm\.note"/)
+  assert.match(dashboardView, /petStore\.updatePet/)
+  assert.match(dashboardView, /handlePetUpdate/)
+  assert.match(dashboardView, /@update="handlePetUpdate"/)
 })
 
 test('Dashboard 只渲染一個緊湊行程清單並串接新增、編輯、刪除事件', () => {

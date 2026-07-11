@@ -27,14 +27,13 @@ const createDefaultForm = () => ({
   bloodType: '',
   furColor: '',
   note: '',
-  photoUrl: '',
   photo_files: [],
 })
 
 const form = ref(createDefaultForm())
 
 const speciesOptions = ['狗', '貓', '其他']
-const genderOptions = ['公', '母', '未知']
+const genderOptions = ['公', '母']
 
 const inputClass =
   'w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-brand-darkgray placeholder-brand-gray/40 outline-none transition duration-200 hover:border-brand-blue hover:bg-brand-blue/5 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-blue/10 disabled:cursor-not-allowed disabled:opacity-60'
@@ -91,7 +90,6 @@ const handleSubmit = () => {
     bloodType: normalizeOptionalValue(form.value.bloodType),
     furColor: normalizeOptionalValue(form.value.furColor),
     note: normalizeOptionalValue(form.value.note),
-    photoUrl: normalizeOptionalValue(form.value.photoUrl),
     avatarFile: form.value.photo_files[0] || null,
   }
 
@@ -151,7 +149,7 @@ watch(
             :disabled="isLoading"
             @click="handleClose"
           >
-            x
+            ⨉
           </button>
         </div>
 
@@ -276,17 +274,6 @@ watch(
                 v-model="form.furColor"
                 type="text"
                 placeholder="例如：黑色"
-                :class="inputClass"
-                :disabled="isLoading"
-              />
-            </div>
-
-            <div class="flex flex-col gap-2">
-              <label class="text-base font-bold text-brand-navy">照片網址</label>
-              <input
-                v-model="form.photoUrl"
-                type="url"
-                placeholder="https://..."
                 :class="inputClass"
                 :disabled="isLoading"
               />

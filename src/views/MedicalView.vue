@@ -8,6 +8,7 @@ import AddMedicalButton from '@/components/medical/AddMedicalButton.vue'
 import PetSwitcher from '@/components/pet/PetSwitcher.vue'
 import MedicalRecordModal from '@/components/medical/MedicalRecordModal.vue'
 import DeleteConfirmModal from '@/components/common/DeleteConfirmModal.vue'
+import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 import { useMedicalStore } from '@/stores/medical.js'
 import { usePetStore } from '@/stores/petStore.js'
 
@@ -108,16 +109,8 @@ const onModalSubmit = async ({ mode, data }) => {
   <div class="min-h-screen bg-brand-white">
     <AppHeader variant="member" />
 
-    <div class="relative z-0 flex min-h-screen flex-col pt-14 md:pt-12 lg:pl-52">
-      <div
-        v-if="medicalStore.isLoading"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/10 backdrop-blur-sm"
-      >
-        <div class="rounded-xl bg-white p-4 shadow-lg flex items-center gap-3">
-          <span class="animate-spin text-xl">⏳</span>
-          <span class="text-sm font-medium text-brand-navy">資料同步中...</span>
-        </div>
-      </div>
+    <div class="relative z-0 flex min-h-screen flex-col pt-14 md:pt-17 lg:pl-52">
+      <LoadingOverlay v-if="medicalStore.isLoading" />
       <main class="min-w-0 flex-1 px-3 py-4 md:px-8 md:py-6 lg:px-10">
         <section class="mx-auto w-full">
           <PetSwitcher :pets="petStore.pets" v-model="currentPetId" />

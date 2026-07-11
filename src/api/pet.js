@@ -23,9 +23,7 @@ function normalizeWeight(weight) {
   return Number.isNaN(numericWeight) ? weight : numericWeight
 }
 
-function getAuthHeaders() {
-  const token = globalThis.localStorage?.getItem(TOKEN_STORAGE_KEY) || ''
-
+function getAuthHeaders(token = globalThis.localStorage?.getItem(TOKEN_STORAGE_KEY) || '') {
   return token
     ? {
         Authorization: `Bearer ${token}`,
@@ -39,7 +37,7 @@ function appendIfPresent(formData, key, value) {
   }
 }
 
-export function mapPetToApi(data) {
+export function mapPetToApi(data = {}) {
   const payload = {}
 
   assignIfPresent(payload, 'name', data.name?.trim?.() ?? data.name)
@@ -58,7 +56,11 @@ export function mapPetToApi(data) {
   return payload
 }
 
-export function createPetRequestData(data) {
+export function buildUpdatePetPayload(data = {}) {
+  return mapPetToApi(data)
+}
+
+export function createPetRequestData(data = {}) {
   const avatarFile = data.avatarFile || data.photoFile || data.photo_files?.[0] || null
   const payload = mapPetToApi(data)
 
@@ -85,6 +87,18 @@ export function createPetRequestData(data) {
   }
 }
 
+export function updatePetRequestData(data = {}, token) {
+  const request = createPetRequestData(data)
+
+  return {
+    ...request,
+    headers: {
+      ...request.headers,
+      ...getAuthHeaders(token),
+    },
+  }
+}
+
 export function mapPetFromApi(pet) {
   if (!pet) {
     return null
@@ -96,17 +110,21 @@ export function mapPetFromApi(pet) {
     bloodType: pet.blood_type ?? pet.bloodType,
     furColor: pet.fur_color ?? pet.furColor,
     note: pet.notes ?? pet.note,
-    photoUrl: pet.avatar_url ?? pet.photoUrl,
-    image: pet.avatar_url ?? pet.photoUrl ?? pet.image ?? null,
+    photoUrl: pet.avatar_url ?? pet.photoUrl ?? pet.avatarUrl,
+    image: pet.avatar_url ?? pet.photoUrl ?? pet.avatarUrl ?? pet.image ?? null,
     ageUnit: pet.ageUnit ?? '',
   }
+}
+
+export function normalizePetFromApi(pet = {}) {
+  return mapPetFromApi(pet) ?? null
 }
 
 function getErrorMessage(error, fallbackMessage) {
   const status = error.response?.status
   const backendMessage = error.response?.data?.message
 
-  if (status === 400) {
+  if (status === 400 || status === 422) {
     return backendMessage || '請確認必填欄位與資料格式是否正確'
   }
 
@@ -119,6 +137,29 @@ function getErrorMessage(error, fallbackMessage) {
   }
 
   return backendMessage || fallbackMessage
+}
+
+export function resolvePetUpdateErrorMessage(error) {
+  if (!error?.response) {
+    return '無法連線到伺服器，請確認後端服務是否已啟動'
+  }
+
+  const status = error.response.status
+  const backendMessage = error.response.data?.message || ''
+
+  if (status === 404) {
+    return '找不到這隻寵物，請重新整理後再試'
+  }
+
+  if (status === 409 || backendMessage.includes('microchip') || backendMessage.includes('晶片')) {
+    return '晶片號碼已被使用，請確認後再送出'
+  }
+
+  if (status === 400 || status === 422) {
+    return '寵物資料格式不正確，請檢查必填欄位與體重格式'
+  }
+
+  return backendMessage || '寵物資料更新失敗，請稍後再試'
 }
 
 export async function listPets() {
@@ -163,6 +204,50 @@ export async function createPet(data) {
     return {
       success: false,
       message: getErrorMessage(error, '寵物資料新增失敗，請稍後再試'),
+      data: error.response?.data || null,
+    }
+  }
+}
+
+export async function deletePet(id, token) {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/api/v1/pets/${id}`, {
+      headers: getAuthHeaders(token),
+    })
+
+    return {
+      success: true,
+      message: response.data?.message || '寵物資料刪除成功',
+      data: response.data || null,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error, '寵物資料刪除失敗，請稍後再試'),
+      data: error.response?.data || null,
+    }
+  }
+}
+
+export async function updatePet(id, data, token) {
+  try {
+    const request = updatePetRequestData(data, token)
+    const response = await axios.patch(`${API_BASE_URL}/api/v1/pets/${id}`, request.data, {
+      headers: request.headers,
+    })
+
+    return {
+      success: true,
+      message: response.data?.message || '寵物資料更新成功',
+      data: {
+        ...response.data,
+        pet: mapPetFromApi(response.data?.pet),
+      },
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: resolvePetUpdateErrorMessage(error),
       data: error.response?.data || null,
     }
   }

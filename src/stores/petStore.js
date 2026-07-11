@@ -1,22 +1,29 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { pets as petsData } from '@/data/pets.js'
 import { medicalApi } from '@/api/medical.js'
-import { createPet as createPetApi, listPets as listPetsApi } from '@/api/pet.js'
+import {
+  createPet as createPetApi,
+  deletePet as deletePetApi,
+  listPets as listPetsApi,
+  updatePet as updatePetApi,
+} from '@/api/pet.js'
 import defaultPetAvatar from '@/assets/images/pet_default.png'
 
 export const usePetStore = defineStore('pet', () => {
-  const pets = ref(petsData.map(normalizePet))
-  const selectedPetId = ref(pets.value[0]?.id ?? null)
+  const pets = ref([])
+  const selectedPetId = ref(null)
   const isLoading = ref(false)
 
   const currentPet = computed(() => pets.value.find((p) => p.id === selectedPetId.value) ?? null)
 
   function normalizePet(pet) {
+    const photoUrl = pet.photoUrl || pet.photo_url || pet.avatar_url || pet.image
+
     return {
       ...pet,
       id: Number(pet.id),
-      photoUrl: pet.photoUrl || pet.photo_url || pet.avatar_url || pet.image || defaultPetAvatar,
+      hasCustomPhoto: Boolean(photoUrl),
+      photoUrl: photoUrl || defaultPetAvatar,
     }
   }
 
@@ -79,6 +86,46 @@ export const usePetStore = defineStore('pet', () => {
     return result
   }
 
+  async function updatePet(id, payload, token) {
+    const petId = Number(id)
+    const result = await updatePetApi(id, payload, token)
+
+    if (result.success) {
+      const updatedPet = result.data.pet ?? { id: petId, ...payload }
+      let hasUpdatedPet = false
+
+      pets.value = pets.value.map((pet) => {
+        if (pet.id !== petId) {
+          return pet
+        }
+
+        hasUpdatedPet = true
+        return normalizePet({ ...pet, ...updatedPet })
+      })
+
+      if (!hasUpdatedPet) {
+        pets.value = [normalizePet(updatedPet), ...pets.value]
+      }
+    }
+
+    return result
+  }
+
+  async function deletePet(id, token) {
+    const petId = Number(id)
+    const result = await deletePetApi(petId, token)
+
+    if (result.success) {
+      pets.value = pets.value.filter((pet) => pet.id !== petId)
+
+      if (selectedPetId.value === petId) {
+        selectedPetId.value = pets.value[0]?.id ?? null
+      }
+    }
+
+    return result
+  }
+
   return {
     pets,
     selectedPetId,
@@ -88,5 +135,7 @@ export const usePetStore = defineStore('pet', () => {
     fetchUserPets,
     fetchPets,
     createPet,
+    updatePet,
+    deletePet,
   }
 })

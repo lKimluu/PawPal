@@ -1,5 +1,6 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useGrowthStore } from '@/stores/growth.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { usePetStore } from '@/stores/petStore.js'
@@ -14,10 +15,12 @@ import GrowthRecordModal from '@/components/growth/GrowthRecordModal.vue'
 import GrowthHistoryButton from '@/components/growth/GrowthHistoryButton.vue'
 import GrowthHistoryModal from '@/components/growth/GrowthHistoryModal.vue'
 import DeleteConfirmModal from '@/components/common/DeleteConfirmModal.vue'
+import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 
 const growthStore = useGrowthStore()
 const authStore = useAuthStore()
 const petStore = usePetStore()
+const { pets, selectedPetId } = storeToRefs(petStore)
 const toastStore = useToastStore()
 const activeRange = ref('6 個月')
 
@@ -26,11 +29,19 @@ const isHistoryOpen = ref(false)
 const isDeleteOpen = ref(false)
 const pendingDeleteRecord = ref(null)
 
-onMounted(() => {
-  if (petStore.selectedPetId) {
-    growthStore.fetchRecords(petStore.selectedPetId, authStore.token)
-  }
+onMounted(async () => {
+  await petStore.fetchPets()
 })
+
+watch(
+  selectedPetId,
+  (newPetId) => {
+    if (newPetId != null) {
+      growthStore.fetchRecords(newPetId, authStore.token)
+    }
+  },
+  { immediate: true },
+)
 
 const handleSubmit = async (formData) => {
   const results = await growthStore.createRecordsFrom(
@@ -84,11 +95,12 @@ const deleteItemName = computed(() => {
 <template>
   <div class="min-h-screen bg-brand-white">
     <AppHeader variant="member" />
-    <div class="relative z-0 flex min-h-screen flex-col pt-14 lg:pt-17 lg:pl-52">
-      <main class="min-w-0 flex-1 px-4 py-6 md:px-8 lg:px-10">
+    <div class="relative z-0 flex min-h-screen flex-col pt-14 md:pt-17 lg:pl-52">
+      <LoadingOverlay v-if="growthStore.isLoading" />
+      <main class="min-w-0 flex-1 px-3 py-4 md:px-8 md:py-6 lg:px-10">
         <section class="mx-auto w-full">
-          <PetSwitcher />
-          <div class="mb-2 flex items-center justify-between gap-4 md:mb-6">
+          <PetSwitcher :pets="pets" v-model="selectedPetId" />
+          <div class="mb-3 flex items-center justify-between gap-4 md:mb-6">
             <h1 class="text-xl font-bold text-brand-navy md:text-2xl">成長歷程</h1>
             <div class="flex items-center gap-2">
               <GrowthHistoryButton @click="isHistoryOpen = true" />
@@ -96,14 +108,16 @@ const deleteItemName = computed(() => {
             </div>
           </div>
           <div
-            class="overflow-hidden rounded-3xl border border-brand-lightblue bg-brand-white shadow-[0_8px_28px_rgba(61,74,122,0.08)]"
+            class="overflow-hidden rounded-2xl border border-brand-lightblue bg-brand-white shadow-[0_8px_28px_rgba(61,74,122,0.08)] md:rounded-3xl"
           >
             <div class="border-b border-brand-lightblue bg-brand-lightblue px-2 py-1 md:px-8">
               <GrowthRangeTabs @change="activeRange = $event" />
             </div>
-            <div class="py-3 md:py-6">
-              <GrowthChartCard :records="growthStore.records" :range="activeRange" />
-            </div>
+            <GrowthChartCard
+              :records="growthStore.records"
+              :range="activeRange"
+              @add-record="isModalOpen = true"
+            />
           </div>
         </section>
       </main>

@@ -10,6 +10,7 @@ const props = defineProps({
   title: { type: String, default: '新增寵物行程' },
   subtitle: { type: String, default: '' },
   selectedDate: { type: String, default: '' },
+  isLoading: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -54,14 +55,23 @@ const resetForm = () => {
 }
 
 const handleClose = () => {
-  resetForm()
+  if (props.isLoading) return
   emit('close')
 }
 
 const handleSubmit = () => {
+  if (props.isLoading) return
   emit('submit', { ...form.value })
-  resetForm()
 }
+
+// isOpen 從 true → false 代表送出成功後關閉或使用者取消，兩者都清空表單；
+// 送出失敗時 isOpen 維持 true，不會觸發，藉此保留使用者輸入
+watch(
+  () => props.isOpen,
+  (val, oldVal) => {
+    if (!val && oldVal) resetForm()
+  },
+)
 </script>
 
 <template>
@@ -83,6 +93,7 @@ const handleSubmit = () => {
           <button
             type="button"
             @click="handleClose"
+            :disabled="isLoading"
             class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-lg text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95"
           >
             ⨉
@@ -236,15 +247,17 @@ const handleSubmit = () => {
             <button
               type="button"
               @click="handleClose"
+              :disabled="isLoading"
               class="cursor-pointer rounded-xl border border-slate-200 px-6 py-2.5 text-sm font-semibold text-slate-500 transition duration-200 hover:bg-slate-50 hover:text-slate-700 active:scale-95"
             >
               取消
             </button>
             <button
               type="submit"
+              :disabled="isLoading"
               class="cursor-pointer rounded-xl bg-brand-blue px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-brand-blue/20 transition duration-200 hover:bg-[#7b94ee] hover:shadow-lg active:scale-95"
             >
-              新增
+              {{ isLoading ? '新增中...' : '新增' }}
             </button>
           </div>
         </form>

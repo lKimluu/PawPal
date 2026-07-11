@@ -1,10 +1,16 @@
 <script setup>
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import bgImage from '@/assets/images/home-bg.png'
 import visualImage from '@/assets/images/home-visual.png'
 import aboutImage from '@/assets/images/home-about.png'
 import IconLocation from '@/assets/icons/location_o.svg'
 import Header from '@/components/layout/AppHeader.vue'
 import Footer from '@/components/layout/AppFooter.vue'
+import { useLocationStore } from '@/stores/location.js'
+
+const locationStore = useLocationStore()
+const { userLocation, isLocating, locationError, hasRequestedLocation } = storeToRefs(locationStore)
 
 const services = [
   {
@@ -32,7 +38,7 @@ const services = [
     path: '/#',
   },
   {
-    icon: 'pet.svg',
+    icon: 'paw-orange.svg',
     title: '寵物健康護照',
     desc: '紀錄基本資料、病歷與成長歷程',
     path: '/#',
@@ -48,6 +54,10 @@ const services = [
 const getIconUrl = (name) => {
   return new URL(`../assets/icons/${name}`, import.meta.url).href
 }
+
+onMounted(() => {
+  locationStore.requestCurrentLocation()
+})
 </script>
 
 <template>
@@ -59,7 +69,7 @@ const getIconUrl = (name) => {
       <span
         class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs rounded-full bg-brand-lightblue text-brand-blue"
       >
-        ✨ 24 小時陪伴每一個緊急時刻
+        24 小時陪伴每一個緊急時刻
       </span>
       <div class="w-full max-w-3xl mx-auto mt-7 px-4 text-center">
         <h1
@@ -113,6 +123,15 @@ const getIconUrl = (name) => {
             </RouterLink>
           </div>
           <div
+            v-if="hasRequestedLocation || isLocating || locationError || userLocation"
+            class="relative z-2 mx-auto mt-4 inline-flex max-w-full items-center justify-center rounded-full bg-white/75 px-4 py-2 text-xs font-bold shadow-[0_6px_18px_rgba(61,74,122,0.12)] backdrop-blur text-brand-navy"
+            aria-live="polite"
+          >
+            <span v-if="isLocating">正在取得目前位置</span>
+            <span v-else-if="locationError" class="text-brand-orange">{{ locationError }}</span>
+            <span v-else-if="userLocation">已取得目前位置</span>
+          </div>
+          <div
             class="-mx-4 md:mx-auto w-[calc(100%+2rem)] md:max-w-[600px] lg:max-w-none lg:w-full relative z-1 -mt-6 md:-mt-12"
           >
             <img
@@ -125,9 +144,9 @@ const getIconUrl = (name) => {
           <div
             class="flex flex-wrap justify-center items-center gap-4 md:gap-8 mt-6 mb-8 relative z-2 text-xs md:text-sm font-medium text-brand-gray"
           >
-            <span class="flex items-center gap-1.5">⏱️ 即時營業狀態</span>
-            <span class="flex items-center gap-1.5">⭐ 真實飼主評論</span>
-            <span class="flex items-center gap-1.5">🛡️ 專業急救指南</span>
+            <span class="flex items-center gap-1.5">即時營業狀態</span>
+            <span class="flex items-center gap-1.5">真實飼主評論</span>
+            <span class="flex items-center gap-1.5">專業急救指南</span>
           </div>
           <!-- 手機版附近醫院卡片列表 -->
           <div class="md:hidden flex flex-col gap-3 mt-4 mb-8 relative z-2 w-full">
@@ -166,7 +185,7 @@ const getIconUrl = (name) => {
               <div
                 class="w-12 h-12 rounded-full bg-white/20 items-center justify-center text-2xl shrink-0 hidden md:flex"
               >
-                ❤️
+                ❤
               </div>
               <div>
                 <h3 class="text-lg md:text-xl font-bold text-white leading-snug">

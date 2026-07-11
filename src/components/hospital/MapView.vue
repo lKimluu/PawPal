@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
-import { LMap, LTileLayer } from '@vue-leaflet/vue-leaflet'
+import { LMap, LMarker, LPopup, LTileLayer } from '@vue-leaflet/vue-leaflet'
+import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { hospitals as defaultHospitals } from '@/data/hospitals.js'
 import HospitalMarker from '@/components/hospital/HospitalMarker.vue'
@@ -8,6 +9,10 @@ import HospitalMarker from '@/components/hospital/HospitalMarker.vue'
 const props = defineProps({
   hospitals: {
     type: Array,
+    default: null,
+  },
+  userLocation: {
+    type: Object,
     default: null,
   },
 })
@@ -24,8 +29,25 @@ const openCount = computed(() => validHospitals.value.filter((hospital) => hospi
 const emergencyCount = computed(
   () => validHospitals.value.filter((hospital) => hospital.is24H).length,
 )
+const isValidUserLocation = computed(
+  () =>
+    props.userLocation &&
+    Number.isFinite(props.userLocation.lat) &&
+    Number.isFinite(props.userLocation.lng),
+)
+const userPosition = computed(() =>
+  isValidUserLocation.value ? [props.userLocation.lat, props.userLocation.lng] : null,
+)
+const userLocationIcon = L.divIcon({
+  className: 'user-location-marker-icon',
+  html: '<span class="user-location-marker-halo"><span class="user-location-marker-pin"></span></span>',
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+  popupAnchor: [0, -14],
+})
 
 const center = computed(() => {
+  if (userPosition.value) return userPosition.value
   if (validHospitals.value.length === 0) return TAIPEI_CENTER
 
   const total = validHospitals.value.reduce(
@@ -81,6 +103,11 @@ const center = computed(() => {
           :key="hospital.id"
           :hospital="hospital"
         />
+        <LMarker v-if="userPosition" :lat-lng="userPosition" :icon="userLocationIcon">
+          <LPopup>
+            <div class="px-1 py-0.5 text-sm font-bold text-brand-navy">你目前的位置</div>
+          </LPopup>
+        </LMarker>
       </LMap>
     </div>
   </section>
@@ -96,5 +123,31 @@ const center = computed(() => {
   color: #717182;
   font-size: 10px;
   padding: 2px 8px;
+}
+
+:deep(.user-location-marker-icon) {
+  background: transparent;
+  border: 0;
+}
+
+:deep(.user-location-marker-pin) {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 3px solid #ffffff;
+  border-radius: 999px;
+  background: #92a8f5;
+  box-shadow: 0 4px 12px rgba(61, 74, 122, 0.28);
+}
+
+:deep(.user-location-marker-halo) {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(146, 168, 245, 0.42);
+  border-radius: 999px;
+  background: rgba(146, 168, 245, 0.18);
 }
 </style>
