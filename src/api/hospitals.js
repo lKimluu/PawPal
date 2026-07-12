@@ -1,0 +1,220 @@
+import axios from 'axios'
+
+const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? ''
+const API_PREFIX = '/api/v1'
+
+export const TAIPEI_CENTER = [25.033, 121.5654]
+
+function isPresent(value) {
+  return value !== undefined && value !== null && value !== ''
+}
+
+function toNumberOrNull(value) {
+  if (!isPresent(value)) {
+    return null
+  }
+
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? numberValue : null
+}
+
+function normalizeAnimalTypes(animalTypes) {
+  if (!Array.isArray(animalTypes)) {
+    return []
+  }
+
+  return animalTypes.map((animalType) => {
+    if (typeof animalType === 'string') {
+      return {
+        slug: animalType,
+        name: animalType,
+      }
+    }
+
+    return {
+      slug: animalType.slug ?? animalType.name ?? '',
+      name: animalType.name ?? animalType.slug ?? '',
+      verificationStatus: animalType.verification_status ?? animalType.verificationStatus ?? '',
+      source: animalType.source ?? '',
+    }
+  })
+}
+
+export function buildHospitalListQuery(filters = {}) {
+  const query = {
+    keyword: filters.keyword,
+    city: filters.city,
+    district: filters.district,
+    animal_type: filters.animal_type ?? filters.animalType,
+    is_24h: filters.is_24h ?? filters.is24H,
+    sort: filters.sort,
+    lat: filters.lat,
+    lng: filters.lng,
+    page: filters.page,
+    limit: filters.limit,
+  }
+
+  return Object.fromEntries(Object.entries(query).filter(([, value]) => isPresent(value)))
+}
+
+export function buildHospitalMapQuery(bounds = {}) {
+  const query = { north: bounds.north, south: bounds.south, east: bounds.east, west: bounds.west }
+  return Object.fromEntries(Object.entries(query).filter(([, value]) => isPresent(value)))
+}
+
+export function buildNearbyHospitalQuery(options = {}) {
+  const location = options.location ?? {}
+  const lat = options.lat ?? location.lat ?? TAIPEI_CENTER[0]
+  const lng = options.lng ?? location.lng ?? TAIPEI_CENTER[1]
+
+  const query = {
+    lat,
+    lng,
+    radius: options.radius,
+    limit: options.limit,
+    animal_type: options.animal_type ?? options.animalType,
+  }
+
+  return Object.fromEntries(Object.entries(query).filter(([, value]) => isPresent(value)))
+}
+
+export function normalizeHospital(hospital = {}) {
+  const latitude = toNumberOrNull(hospital.latitude ?? hospital.lat)
+  const longitude = toNumberOrNull(hospital.longitude ?? hospital.lng)
+  const distanceKm = toNumberOrNull(hospital.distance_km ?? hospital.distanceKm ?? hospital.distance)
+  const animalTypes = normalizeAnimalTypes(hospital.animal_types ?? hospital.animalTypes)
+  const categories = hospital.categories ?? animalTypes.map((animalType) => animalType.name).filter(Boolean)
+  const is24H = Boolean(hospital.is_24h ?? hospital.is24H ?? hospital.is24h)
+  const businessHours = hospital.business_hours ?? hospital.businessHours ?? (is24H ? '24 小時營業' : '請洽醫院')
+
+  return {
+    ...hospital,
+    id: hospital.id,
+    name: hospital.name ?? '未命名醫院',
+    city: hospital.city ?? '',
+    district: hospital.district ?? '',
+    address: hospital.address ?? '',
+    phone: hospital.phone ?? '',
+    latitude,
+    longitude,
+    lat: latitude,
+    lng: longitude,
+    animalTypes,
+    categories,
+    distanceKm,
+    distance: distanceKm ?? hospital.distance ?? '—',
+    isOpen: Boolean(hospital.is_open ?? hospital.isOpen ?? is24H),
+    is24H,
+    businessHours,
+    rating: Number(hospital.rating ?? 0),
+    reviewCount: Number(hospital.review_count ?? hospital.reviewCount ?? 0),
+  }
+}
+
+function normalizeHospitalResponse(data = {}, fallbackPagination = {}) {
+  const rawHospitals = Array.isArray(data)
+    ? data
+    : Array.isArray(data.hospitals)
+      ? data.hospitals
+      : Array.isArray(data.data?.hospitals)
+        ? data.data.hospitals
+        : []
+
+  const rawPagination = data.pagination ?? data.data?.pagination ?? fallbackPagination
+
+  return {
+    hospitals: rawHospitals.map(normalizeHospital),
+    pagination: {
+      page: Number(rawPagination.page ?? fallbackPagination.page ?? 1),
+      limit: Number(rawPagination.limit ?? fallbackPagination.limit ?? 20),
+      total: Number(rawPagination.total ?? rawHospitals.length),
+      totalPages: Number(rawPagination.total_pages ?? rawPagination.totalPages ?? 1),
+    },
+  }
+}
+
+function getErrorMessage(error, fallbackMessage) {
+  return error.response?.data?.message || error.message || fallbackMessage
+}
+
+export async function fetchHospitals(filters = {}) {
+  const params = buildHospitalListQuery(filters)
+
+  try {
+    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals`, { params })
+    const normalized = normalizeHospitalResponse(response.data, {
+      page: params.page,
+      limit: params.limit,
+    })
+
+    return {
+      success: true,
+      ...normalized,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error, '取得醫院清單失敗，請稍後再試'),
+      hospitals: [],
+      pagination: {
+        page: Number(params.page ?? 1),
+        limit: Number(params.limit ?? 20),
+        total: 0,
+        totalPages: 0,
+      },
+    }
+  }
+}
+
+export async function fetchNearbyHospitals(options = {}) {
+  const params = buildNearbyHospitalQuery(options)
+
+  try {
+    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/nearby`, { params })
+    const normalized = normalizeHospitalResponse(response.data, {
+      page: 1,
+      limit: params.limit,
+    })
+
+    return {
+      success: true,
+      ...normalized,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error, '取得附近醫院失敗，請稍後再試'),
+      hospitals: [],
+      pagination: {
+        page: 1,
+        limit: Number(params.limit ?? 20),
+        total: 0,
+        totalPages: 0,
+      },
+    }
+  }
+}
+
+export async function fetchHospitalRegions() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/regions`)
+    return { success: true, regions: Array.isArray(response.data?.regions) ? response.data.regions : [] }
+  } catch (error) {
+    return { success: false, regions: [], message: getErrorMessage(error, '取得醫院地區失敗，請稍後再試') }
+  }
+}
+
+export async function fetchMapHospitals(bounds = {}) {
+  const params = buildHospitalMapQuery(bounds)
+  try {
+    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/map`, { params })
+    return {
+      success: true,
+      hospitals: (response.data?.hospitals ?? []).map(normalizeHospital),
+      total: Number(response.data?.total ?? 0),
+      truncated: Boolean(response.data?.truncated),
+    }
+  } catch (error) {
+    return { success: false, hospitals: [], total: 0, truncated: false, message: getErrorMessage(error, '取得地圖醫院失敗，請稍後再試') }
+  }
+}
