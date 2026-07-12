@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import axios from 'axios'
 import { createPinia, setActivePinia } from 'pinia'
+import { buildHospitalPopupHtml } from '../utils/hospitalPopup.js'
 import { useHospitalStore } from '../stores/hospital.js'
 import {
   buildHospitalListQuery,
@@ -338,4 +339,74 @@ test('Hospital store separates list mode, nearby mode, pagination and Taipei fal
   assert.match(store, /TAIPEI_CENTER\[1\]/)
   assert.match(store, /locationFallbackMessage/)
   assert.doesNotMatch(store, /navigator\.geolocation/)
+})
+
+test('Hospital components use store-owned data for list, map, selection, and states', () => {
+  const hospitalView = readSource('../views/HospitalView.vue')
+  const hospitalList = readSource('../components/hospital/HospitalList.vue')
+  const mapView = readSource('../components/hospital/MapView.vue')
+  const marker = readSource('../components/hospital/HospitalMarker.vue')
+  const searchBar = readSource('../components/hospital/SearchBar.vue')
+
+  assert.match(hospitalView, /useHospitalStore/)
+  assert.match(hospitalView, /hospitalStore\.loadNearbyHospitals/)
+  assert.match(hospitalView, /loadNearbyHospitals\(\{ requestLocation: false \}\)/)
+  assert.match(hospitalView, /:hospitals="visibleHospitals"/)
+  assert.match(hospitalView, /@select-hospital="selectHospital"/)
+
+  assert.match(hospitalList, /defineProps\(\{[\s\S]*hospitals/)
+  assert.match(hospitalList, /isLoading/)
+  assert.match(hospitalList, /errorMessage/)
+  assert.match(hospitalList, /isEmpty/)
+  assert.match(hospitalList, /重新查詢/)
+
+  assert.match(mapView, /const merged = \[\.\.\.props\.hospitals\]/)
+  assert.match(mapView, /Number\.isFinite\(hospital\.latitude\)/)
+  assert.match(mapView, /Number\.isFinite\(hospital\.longitude\)/)
+  assert.match(mapView, /selectedHospital/)
+  assert.match(marker, /emit\('select'\)/)
+  assert.match(marker, /props\.hospital\.latitude/)
+  assert.match(marker, /props\.hospital\.longitude/)
+
+  assert.match(searchBar, /hospitalStore\.setKeyword/)
+  assert.match(searchBar, /hospitalStore\.setLocationFilter/)
+  assert.match(searchBar, /hospitalStore\.setAnimalType/)
+  assert.match(searchBar, /hospitalStore\.set24H/)
+  assert.doesNotMatch(searchBar, /只顯示營業中/)
+})
+
+test('Hospital page no longer imports static hospital data for page results', () => {
+  const hospitalView = readSource('../views/HospitalView.vue')
+  const hospitalList = readSource('../components/hospital/HospitalList.vue')
+  const mapView = readSource('../components/hospital/MapView.vue')
+
+  assert.doesNotMatch(hospitalView, /@\/data\/hospitals/)
+  assert.doesNotMatch(hospitalList, /@\/data\/hospitals/)
+  assert.doesNotMatch(mapView, /@\/data\/hospitals/)
+})
+
+test('Clustered hospital popup restores compact branded content and safe actions', () => {
+  const html = buildHospitalPopupHtml({
+    name: '安心 <script>alert(1)</script>',
+    address: '仁愛路 "一段"',
+    phone: '02-1234-5678',
+    latitude: 25.033,
+    longitude: 121.5654,
+    is24H: true,
+  })
+  assert.match(html, /hospital-popup-card__address/)
+  assert.match(html, /安心 &lt;script&gt;alert\(1\)&lt;\/script&gt;/)
+  assert.doesNotMatch(html, /<script>/)
+  assert.match(html, /hospital-popup-card__badge">24H/)
+  assert.match(html, /href="tel:0212345678"/)
+  assert.match(html, /google\.com\/maps\/dir\/\?api=1&amp;destination=/)
+  assert.match(html, /target="_blank" rel="noopener noreferrer"/)
+})
+
+test('Clustered hospital popup omits unavailable optional content', () => {
+  const html = buildHospitalPopupHtml({ name: '安心醫院', latitude: 25, longitude: 121 })
+  assert.match(html, /地址資訊未提供/)
+  assert.doesNotMatch(html, /撥打電話/)
+  assert.doesNotMatch(html, /hospital-popup-card__badge/)
+  assert.match(html, /Google Maps 導航/)
 })
