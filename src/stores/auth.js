@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { login as loginApi, register as registerApi } from '@/api/auth.js'
+import {
+  login as loginApi,
+  register as registerApi,
+  loginWithGoogleApi,
+  loginWithLineApi,
+} from '@/api/auth.js'
 
 const TOKEN_STORAGE_KEY = 'pawpal_token'
 const USER_STORAGE_KEY = 'pawpal_user'
@@ -21,6 +26,34 @@ export const useAuthStore = defineStore('auth', () => {
       return result
     }
 
+    token.value = result.data.token || ''
+    user.value = result.data.user || null
+
+    persistAuthState()
+
+    return result
+  }
+
+  async function loginWithGoogle(googleIdToken) {
+    const result = await loginWithGoogleApi(googleIdToken)
+
+    if (!result.success) {
+      return result
+    }
+    token.value = result.data.token || ''
+    user.value = result.data.user || null
+
+    persistAuthState()
+
+    return result
+  }
+
+  async function loginWithLine(code) {
+    const result = await loginWithLineApi(code)
+
+    if (!result.success) {
+      return result
+    }
     token.value = result.data.token || ''
     user.value = result.data.user || null
 
@@ -108,5 +141,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     logout,
+    loginWithGoogle,
+    loginWithLine,
   }
 })
