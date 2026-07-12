@@ -113,3 +113,16 @@ test('listNearbyHospitals 發生非預期錯誤時應回傳 500 message', async 
   assert.equal(res.statusCode, 500)
   assert.deepEqual(res.body, { message: '取得附近醫院失敗，請稍後再試' })
 })
+
+test('regions 與 map controller 應回傳 service 結果', async () => {
+  const controller = createHospitalsController({
+    findHospitalRegions: async () => [{ city: '台北市', districts: ['大安區'] }],
+    findMapHospitals: async (query) => ({ hospitals: [], total: query.north, truncated: false }),
+  })
+  const regionsRes = createResponse()
+  const mapRes = createResponse()
+  await controller.listHospitalRegions({}, regionsRes)
+  await controller.listMapHospitals({ validated_query: { north: 26 } }, mapRes)
+  assert.deepEqual(regionsRes.body, { regions: [{ city: '台北市', districts: ['大安區'] }] })
+  assert.deepEqual(mapRes.body, { hospitals: [], total: 26, truncated: false })
+})
