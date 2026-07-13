@@ -1,10 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAiAssistantStore } from '@/stores/aiAssistant.js'
 import AiAssistantMessageList from '@/components/ai/AiAssistantMessageList.vue'
 import AiAssistantInput from '@/components/ai/AiAssistantInput.vue'
 
 const aiAssistantStore = useAiAssistantStore()
+const route = useRoute()
 const isOpen = ref(false)
 
 function togglePanel() {
@@ -18,6 +20,13 @@ function closePanel() {
 function handleSend(text) {
   aiAssistantStore.sendMessage(text)
 }
+
+watch(
+  () => route.fullPath,
+  () => {
+    closePanel()
+  },
+)
 </script>
 
 <template>
