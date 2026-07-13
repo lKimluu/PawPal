@@ -7,9 +7,22 @@ import EyeBall from '@/components/about/EyeBall.vue'
 // 自動眨眼與大圖加載連動校正
 const isBlinking = ref(false)
 let blinkTimer = null
+let scrollTimer = null
 
 const leftEye = ref(null)
 const rightEye = ref(null)
+
+const triggerEyesMeasure = () => {
+  if (leftEye.value) leftEye.value.measure()
+  if (rightEye.value) rightEye.value.measure()
+}
+
+const handleScrollThrottled = () => {
+  if (scrollTimer) clearTimeout(scrollTimer)
+  scrollTimer = setTimeout(() => {
+    triggerEyesMeasure()
+  }, 100)
+}
 
 const startBlinkingLoop = () => {
   blinkTimer = setInterval(() => {
@@ -21,15 +34,20 @@ const startBlinkingLoop = () => {
 }
 
 const onCatImageLoad = () => {
-  if (leftEye.value) leftEye.value.measure()
-  if (rightEye.value) rightEye.value.measure()
+  triggerEyesMeasure()
 }
 
 onMounted(() => {
   startBlinkingLoop()
+
+  window.addEventListener('scroll', handleScrollThrottled, { passive: true })
 })
+
 onUnmounted(() => {
   if (blinkTimer) clearInterval(blinkTimer)
+  if (scrollTimer) clearTimeout(scrollTimer)
+
+  window.removeEventListener('scroll', handleScrollThrottled)
 })
 
 // 核心功能
@@ -145,7 +163,6 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
   <Header variant="public" />
 
   <main class="bg-white min-h-screen flex flex-col items-center pt-18 md:pt-24 overflow-x-hidden">
-    <!-- 貓主視覺 -->
     <section class="w-full flex flex-col items-center">
       <div class="text-center md:-mb-10 px-4">
         <p class="text-xs text-brand-blue font-medium uppercase">PET INSTANT CARE PLATFORM</p>
@@ -181,7 +198,6 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
       </div>
     </section>
 
-    <!-- 品牌故事 -->
     <section class="max-w-5xl w-full mx-auto py-20 md:py-40 px-6">
       <div class="w-full text-center">
         <h2 class="text-brand-blue font-black text-xl md:text-3xl lg:text-[2.5rem] leading-[1.4]">
@@ -191,7 +207,7 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
           class="text-sm md:text-base mt-15 space-y-6 text-center text-brand-gray leading-loose max-w-3xl mx-auto"
         >
           <p>
-            每個養寵物的家庭,或許都曾經歷過這樣的時刻:在寧靜的深夜或是放假的週末,毛孩突然有些不對勁。看著牠們充滿信任卻又無助的眼神,我們的心跳總是漏了一拍,慌亂地在上網搜尋「現在還有開的獸醫院嗎?」
+            每個養寵物的家庭,或許都曾經經歷過這樣的時刻:在寧靜的深夜或是放假的週末,毛孩突然有些不對勁。看著牠們充滿信任卻又無助的眼神,我們的心跳總是漏了一拍,慌亂地在上網搜尋「現在還有開的獸醫院嗎?」
           </p>
           <p>
             <span class="text-brand-orange font-semibold">PawPal 的誕生</span
@@ -206,20 +222,7 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
       </div>
     </section>
 
-    <!-- 關於品牌 -->
-    <section class="w-full flex flex-col py-12 md:py-20">
-      <div class="w-full bg-brand-blue/20 py-20 flex flex-row items-center justify-center gap-6">
-        <img
-          :src="getImageUrl('PawPal_mark_p.webp')"
-          class="h-15 md:h-32 object-contain"
-          alt="PawPal Mark"
-        />
-        <img
-          :src="getImageUrl('PawPal_type_p.webp')"
-          class="h-12 md:h-28 object-contain"
-          alt="PawPal Type"
-        />
-      </div>
+    <section class="w-full flex flex-col py-8 md:py-14">
       <div class="w-full py-20 px-6">
         <div class="max-w-3xl mx-auto text-center">
           <div class="inline-block pb-4 border-b border-gray-200">
@@ -234,19 +237,39 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
               ABOUT PAWPAL
             </p>
           </div>
-          <p class="text-brand-gray leading-[1.9] text-sm md:text-base mt-6">
-            PawPal 的名字由 <span class="font-semibold text-brand-orange">Paw（毛掌）</span> 與
-            <span class="font-semibold text-brand-orange">Pal（夥伴）</span>
-            結合而成，象徵著我們想成為毛孩與家長最貼心的夥伴，在日常裡溫馨陪伴，在需要時挺身而出；而我們的
-            Logo 設計也緊扣著這個信念，流暢的線條勾勒出一個溫柔的手臂，將毛孩緊緊包覆，象徵著 PawPal
-            平台想帶給家長的「安心感」——不論何時，我們都會與你緊緊相依，給予毛孩全方位的即時照護與深夜陪伴。
-          </p>
+
+          <div
+            class="w-full flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10 text-center md:text-left"
+          >
+            <div
+              class="flex flex-row items-center justify-center md:justify-start gap-4 flex-shrink-0 mt-4"
+            >
+              <img
+                :src="getImageUrl('PawPal_mark_p.webp')"
+                class="h-15 md:h-45 object-contain"
+                alt="PawPal Mark"
+              />
+              <img
+                :src="getImageUrl('PawPal_type_p.webp')"
+                class="h-12 object-contain md:hidden"
+                alt="PawPal Type"
+              />
+            </div>
+
+            <p class="text-brand-gray leading-[1.9] text-sm md:text-base mt-4 md:mt-6">
+              PawPal 的名字由 <span class="font-semibold text-brand-orange">Paw（毛掌）</span> 與
+              <span class="font-semibold text-brand-orange">Pal（夥伴）</span>
+              結合而成，象徵著我們想成為毛孩與家長最貼心的夥伴，在日常裡溫馨陪伴，在需要時挺身而出；而我們的
+              Logo 設計也緊扣著這個信念，流暢的線條勾勒出一個溫柔的手臂，將毛孩緊緊包覆，象徵著
+              PawPal
+              平台想帶給家長的「安心感」——不論何時，我們都會與你緊緊相依，給予毛孩全方位的即時照護與深夜陪伴。
+            </p>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- 功能簡介 -->
-    <section class="w-full py-12 md:py-20 px-6">
+    <section class="w-full py-8 md:py-14 px-6">
       <div class="max-w-5xl mx-auto">
         <div class="text-center mb-16">
           <div class="inline-block pb-4 border-b border-gray-200">
@@ -289,7 +312,7 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
     </section>
 
     <!-- 團隊成員 -->
-    <section class="w-full py-12 md:py-20 px-6 mb-20 overflow-hidden">
+    <section class="w-full py-8 md:py-14 px-6 mb-20 overflow-hidden">
       <div class="max-w-5xl mx-auto text-center">
         <div class="text-center mb-16">
           <div class="inline-block pb-4 border-b border-gray-200">
@@ -407,7 +430,7 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
     </section>
 
     <!-- 結尾CTA -->
-    <section class="relative w-full bg-brand-navy text-white pt-20 pb-0 px-0">
+    <section class="relative w-full bg-brand-navy text-white pt-20 pb-0">
       <div class="relative z-10 max-w-5xl mx-auto text-center px-6">
         <img
           :src="getImageUrl('PawPal_mark_w.webp')"

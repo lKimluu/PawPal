@@ -15,8 +15,8 @@ const pupil = ref({ x: 0, y: 0 })
 const pupilSize = ref(24)
 
 let cachedRect = null
-
 let observer = null
+let scrollTimer = null
 
 const measure = () => {
   if (!eyeRef.value) return
@@ -26,12 +26,24 @@ const measure = () => {
   const currentHeight = cachedRect.height
   if (currentHeight <= 10) {
     pupilSize.value = 24
+  } else {
+    pupilSize.value = currentHeight * 0.65
   }
-  pupilSize.value = currentHeight * 0.65
+}
+
+const throttledMeasure = () => {
+  if (scrollTimer) clearTimeout(scrollTimer)
+  scrollTimer = setTimeout(() => {
+    measure()
+  }, 100)
 }
 
 const onMove = (e) => {
   if (!eyeRef.value) return
+
+  if (!cachedRect || cachedRect.width === 0) {
+    measure()
+  }
   if (!cachedRect) return
 
   let clientX, clientY
@@ -79,12 +91,15 @@ onMounted(() => {
   }
 
   window.addEventListener('mousemove', onMove)
-
   window.addEventListener('touchstart', onMove, { passive: true })
   window.addEventListener('touchmove', onMove, { passive: true })
+
+  window.addEventListener('scroll', throttledMeasure, { passive: true })
 })
 
 onUnmounted(() => {
+  if (scrollTimer) clearTimeout(scrollTimer)
+
   if (observer && eyeRef.value) {
     observer.unobserve(eyeRef.value)
     observer.disconnect()
@@ -93,6 +108,7 @@ onUnmounted(() => {
   window.removeEventListener('mousemove', onMove)
   window.removeEventListener('touchstart', onMove)
   window.removeEventListener('touchmove', onMove)
+  window.removeEventListener('scroll', throttledMeasure)
 })
 
 const eyeStyle = computed(() => ({
