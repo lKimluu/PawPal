@@ -1,5 +1,7 @@
 import * as defaultPetService from '../services/pets.service.js'
 import { uploadImages as defaultUploadImages } from '../services/image_upload.service.js'
+import { getGoogleEventIdsByPetId as defaultGetGoogleEventIdsByPetId } from '../services/calendar_events.service.js'
+import { syncDeletedEvents as defaultSyncDeletedEvents } from '../services/calendar_events_sync.service.js'
 import { PET_AVATAR_UPLOAD_INTENT_FIELD } from '../middlewares/upload_image.js'
 
 function parsePetId(id) {
@@ -37,7 +39,14 @@ async function attachUploadedPetAvatar(req, uploadImages) {
   req.body.avatar_url = urls[0]
 }
 
-export function createPetController(petService, { uploadImages = defaultUploadImages } = {}) {
+export function createPetController(
+  petService,
+  {
+    uploadImages = defaultUploadImages,
+    getGoogleEventIdsByPetId = defaultGetGoogleEventIdsByPetId,
+    syncDeletedEvents = defaultSyncDeletedEvents,
+  } = {},
+) {
   async function listPets(req, res) {
     try {
       const pets = await petService.findPetsByUserId(req.userId)
@@ -141,11 +150,16 @@ export function createPetController(petService, { uploadImages = defaultUploadIm
     }
 
     try {
+      // CASCADE 會連帶刪掉行程，google_event_id 要在刪除前先收集
+      const googleEventIds = await getGoogleEventIdsByPetId(id, req.userId)
+
       const deleted = await petService.deletePetByIdAndUserId(id, req.userId)
 
       if (!deleted) {
         return res.status(404).json({ message: '找不到寵物' })
       }
+
+      await syncDeletedEvents(req.userId, googleEventIds)
 
       return res.status(204).send()
     } catch (error) {

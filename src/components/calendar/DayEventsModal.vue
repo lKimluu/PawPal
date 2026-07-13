@@ -9,7 +9,7 @@ const props = defineProps({
   events: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['close', 'add', 'edit', 'delete'])
+const emit = defineEmits(['close', 'add', 'edit', 'delete', 'resync'])
 
 const petStore = usePetStore()
 
@@ -122,6 +122,22 @@ const handleAdd = () => emit('add', props.date)
                     <span class="w-8 shrink-0 text-brand-gray">備註</span>
                     <span class="text-brand-darkgray">{{ event.notes }}</span>
                   </div>
+                </div>
+
+                <!-- Google 同步失敗提示 -->
+                <div v-if="event.googleSyncFailed" class="mt-3 flex items-center gap-2">
+                  <span
+                    class="inline-block rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-600 whitespace-nowrap"
+                  >
+                    未同步
+                  </span>
+                  <button
+                    @click="emit('resync', event)"
+                    class="text-xs text-gray-400 underline hover:text-brand-orange transition-colors cursor-pointer"
+                    type="button"
+                  >
+                    重新同步
+                  </button>
                 </div>
               </div>
 

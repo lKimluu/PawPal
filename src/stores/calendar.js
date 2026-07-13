@@ -5,6 +5,7 @@ import {
   createEvent,
   updateEvent as updateEventApi,
   deleteEvent as deleteEventApi,
+  resyncEvent as resyncEventApi,
 } from '@/api/calendar.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { formatLocalDate } from '@/utils/dateFormat.js'
@@ -157,6 +158,24 @@ export const useCalendarStore = defineStore('calendar', () => {
     }
   }
 
+  async function resyncEvent(id) {
+    isLoading.value = true
+    error.value = null
+    try {
+      const result = await resyncEventApi(id, authStore.token)
+
+      if (result.success) {
+        await fetchEvents()
+      } else {
+        error.value = result.message
+      }
+
+      return result
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   function reset() {
     requestGeneration += 1
     events.value = []
@@ -177,6 +196,7 @@ export const useCalendarStore = defineStore('calendar', () => {
     addEvent,
     updateEvent,
     deleteEvent,
+    resyncEvent,
     reset,
   }
 })

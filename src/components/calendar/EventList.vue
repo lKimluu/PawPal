@@ -13,7 +13,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['edit', 'delete', 'add'])
+defineEmits(['edit', 'delete', 'add', 'resync'])
 
 const defaultCount = 4
 const showAll = ref(false)
@@ -73,6 +73,7 @@ const visibleEvents = computed(() => {
           :compact="compact"
           @edit="$emit('edit', $event)"
           @delete="$emit('delete', $event)"
+          @resync="$emit('resync', $event)"
         />
       </div>
     </template>
