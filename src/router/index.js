@@ -1,16 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import { useSidebarStore } from '@/stores/sidebar.js'
-import Login from '@/views/LoginView.vue'
-import Register from '@/views/RegisterView.vue'
-import ForgotPassword from '@/views/ForgotPasswordView.vue'
 import Home from '@/views/HomeView.vue'
-import Medical from '@/views/MedicalView.vue'
-import Dashboard from '@/views/DashboardView.vue'
-import Growth from '@/views/GrowthView.vue'
-import BaseModalPreview from '@/views/BaseModalPreviewView.vue'
-import Hospital from '@/views/HospitalView.vue'
-import NotFound from '@/views/NotFoundView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -23,7 +14,7 @@ const router = createRouter({
     {
       path: '/login',
       name: 'Login',
-      component: Login,
+      component: () => import('@/views/LoginView.vue'),
       meta: {
         guestOnly: true,
       },
@@ -31,7 +22,7 @@ const router = createRouter({
     {
       path: '/register',
       name: 'Register',
-      component: Register,
+      component: () => import('@/views/RegisterView.vue'),
       meta: {
         guestOnly: true,
       },
@@ -39,7 +30,7 @@ const router = createRouter({
     {
       path: '/forgot-password',
       name: 'ForgotPassword',
-      component: ForgotPassword,
+      component: () => import('@/views/ForgotPasswordView.vue'),
       meta: {
         guestOnly: true,
       },
@@ -47,7 +38,7 @@ const router = createRouter({
     {
       path: '/medical',
       name: 'Medical',
-      component: Medical,
+      component: () => import('@/views/MedicalView.vue'),
       meta: {
         requiresAuth: true,
       },
@@ -55,7 +46,7 @@ const router = createRouter({
     {
       path: '/dashboard',
       name: 'Dashboard',
-      component: Dashboard,
+      component: () => import('@/views/DashboardView.vue'),
       meta: {
         requiresAuth: true,
       },
@@ -63,7 +54,7 @@ const router = createRouter({
     {
       path: '/growth',
       name: 'Growth',
-      component: Growth,
+      component: () => import('@/views/GrowthView.vue'),
       meta: {
         requiresAuth: true,
       },
@@ -71,17 +62,17 @@ const router = createRouter({
     {
       path: '/base-modal-preview',
       name: 'BaseModalPreview',
-      component: BaseModalPreview,
+      component: () => import('@/views/BaseModalPreviewView.vue'),
     },
     {
       path: '/hospital',
       name: 'Hospital',
-      component: Hospital,
+      component: () => import('@/views/HospitalView.vue'),
     },
     {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
-      component: NotFound,
+      component: () => import('@/views/NotFoundView.vue'),
     },
   ],
 })

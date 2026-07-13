@@ -39,7 +39,10 @@ test('HospitalView 使用共享 location store 並將 userLocation 傳給 MapVie
   assert.match(hospitalView, /:user-location="userLocation"/)
   assert.match(hospitalView, /hospitalStore\.loadNearbyHospitals/)
   assert.match(hospitalView, /loadNearbyHospitals\(\{ requestLocation: false \}\)/)
-  assert.match(router, /path: '\/hospital'[\s\S]*?component: Hospital/)
+  assert.match(
+    router,
+    /path: '\/hospital'[\s\S]*?component: \(\) => import\('\@\/views\/HospitalView\.vue'\)/,
+  )
   assert.doesNotMatch(router, /path: '\/hospital'[\s\S]*?requiresAuth: true/)
 })
 
