@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useSessionStore } from '@/stores/session.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { GoogleLogin } from 'vue3-google-login'
 import TermsModal from '@/components/auth/TermsModal.vue'
@@ -11,7 +12,7 @@ const errorMessage = ref('')
 const isSubmitting = ref(false)
 
 const router = useRouter()
-const authStore = useAuthStore()
+const sessionStore = useSessionStore()
 
 const isModalOpen = ref(false)
 const modalType = ref('privacy')
@@ -25,7 +26,7 @@ async function handleSubmit() {
   errorMessage.value = ''
   isSubmitting.value = true
 
-  const result = await authStore.login(email.value, password.value)
+  const result = await sessionStore.login(email.value, password.value)
 
   if (!result.success) {
     errorMessage.value = result.message || '登入失敗，請稍後再試'
