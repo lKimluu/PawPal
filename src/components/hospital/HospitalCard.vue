@@ -9,6 +9,10 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  isSelected: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const favoriteHospitalStore = useFavoriteHospitalStore()
@@ -22,6 +26,7 @@ const toggleFavorite = () => {
 <template>
   <div
     class="group relative flex items-center justify-between bg-brand-white rounded-3xl p-4 md:p-6 border border-[#E2E8F0] shadow-[0_4px_25px_rgba(0,0,0,0.015)] transition duration-200 lg:hover:shadow-[0_10px_30px_rgba(146,168,245,0.12)] lg:hover:border-brand-blue/30 active:bg-[#F8FAFC] active:scale-[0.999] cursor-pointer"
+    :class="isSelected ? 'border-brand-blue ring-2 ring-brand-blue/20' : ''"
   >
     <div class="flex-1 min-w-0">
       <div class="flex flex-row flex-wrap items-center justify-start gap-1.5 mb-2.5">
@@ -73,7 +78,7 @@ const toggleFavorite = () => {
       <div class="flex items-center text-xs md:text-sm text-brand-gray">
         <img src="@/assets/icons/star.svg" alt="評分" class="w-4 h-4mr-1.5 object-contain" />
         <span class="font-bold text-brand-navy mr-1.5 md:mr-2">
-          {{ hospital.rating.toFixed(1) }}
+          {{ Number(hospital.rating ?? 0).toFixed(1) }}
         </span>
         <span class="opacity-40">·</span>
         <span class="ml-1.5 md:ml-2">{{ hospital.reviewCount }} 則評論</span>

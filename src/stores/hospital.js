@@ -1,0 +1,166 @@
+import { computed, ref } from 'vue'
+import { defineStore } from 'pinia'
+import {
+  fetchHospitalRegions,
+  fetchHospitals,
+  fetchMapHospitals,
+  fetchNearbyHospitals,
+  TAIPEI_CENTER,
+} from '../api/hospitals.js'
+
+const DEFAULT_PAGINATION = { page: 1, limit: 20, total: 0, totalPages: 0 }
+const DEFAULT_FILTERS = { keyword: '', city: '', district: '', animalType: '', is24H: false, sort: 'name' }
+
+export const useHospitalStore = defineStore('hospital', () => {
+  const hospitals = ref([])
+  const mapHospitals = ref([])
+  const regions = ref([])
+  const pagination = ref({ ...DEFAULT_PAGINATION })
+  const filters = ref({ ...DEFAULT_FILTERS })
+  const mode = ref('list')
+  const selectedHospitalId = ref(null)
+  const isLoading = ref(false)
+  const mapLoading = ref(false)
+  const regionsLoading = ref(false)
+  const errorMessage = ref('')
+  const mapError = ref('')
+  const regionsError = ref('')
+  const mapTruncated = ref(false)
+  const locationFallbackMessage = ref('')
+  const hasRealLocation = ref(false)
+  const userCoordinates = ref(null)
+  const explicitSortSelection = ref(null)
+  const lastQuery = ref({ type: 'list', query: {} })
+  const lastMapQuery = ref(null)
+  let listRequestId = 0
+  let mapRequestId = 0
+  let regionsRequestId = 0
+
+  const visibleHospitals = computed(() => hospitals.value)
+  const markerHospitals = computed(() => mapHospitals.value)
+  const selectedHospital = computed(() => hospitals.value.find((item) => item.id === selectedHospitalId.value) ?? null)
+  const isEmpty = computed(() => !isLoading.value && !errorMessage.value && hospitals.value.length === 0)
+  const availableDistricts = computed(() => regions.value.find((item) => item.city === filters.value.city)?.districts ?? [])
+
+  function listQuery(overrides = {}) {
+    const coordinates = hasRealLocation.value ? userCoordinates.value : null
+    return {
+      keyword: filters.value.keyword,
+      city: filters.value.city,
+      district: filters.value.district,
+      animalType: filters.value.animalType,
+      is24H: filters.value.is24H || undefined,
+      sort: filters.value.sort,
+      lat: filters.value.sort === 'distance' ? coordinates?.lat : undefined,
+      lng: filters.value.sort === 'distance' ? coordinates?.lng : undefined,
+      page: pagination.value.page,
+      limit: pagination.value.limit,
+      ...overrides,
+    }
+  }
+
+  async function loadHospitals(overrides = {}) {
+    const requestId = ++listRequestId
+    mode.value = 'list'
+    isLoading.value = true
+    errorMessage.value = ''
+    locationFallbackMessage.value = ''
+    const query = listQuery(overrides)
+    lastQuery.value = { type: 'list', query }
+    const result = await fetchHospitals(query)
+    if (requestId !== listRequestId) return result
+    if (result.success) {
+      hospitals.value = result.hospitals
+      pagination.value = { ...DEFAULT_PAGINATION, ...result.pagination }
+    } else {
+      errorMessage.value = result.message
+    }
+    isLoading.value = false
+    return result
+  }
+
+  async function loadNearbyHospitals({ location = null, locationError = '', radius = 5, limit = 20 } = {}) {
+    const requestId = ++listRequestId
+    const valid = location && Number.isFinite(location.lat) && Number.isFinite(location.lng)
+    const retryQuery = { location: valid ? location : null, locationError, radius, limit }
+    const gainedRealLocation = !hasRealLocation.value && Boolean(valid)
+    hasRealLocation.value = Boolean(valid)
+    userCoordinates.value = valid ? location : null
+    if (gainedRealLocation && !filters.value.keyword && explicitSortSelection.value === null) {
+      filters.value.sort = 'distance'
+    }
+    const query = { location: valid ? location : { lat: TAIPEI_CENTER[0], lng: TAIPEI_CENTER[1] }, radius, limit }
+    mode.value = 'nearby'
+    isLoading.value = true
+    errorMessage.value = ''
+    locationFallbackMessage.value = valid ? '' : locationError || '未取得目前位置，顯示台北市中心附近醫院。'
+    lastQuery.value = { type: 'nearby', query: retryQuery }
+    const result = await fetchNearbyHospitals(query)
+    if (requestId !== listRequestId) return result
+    if (result.success) {
+      hospitals.value = result.hospitals
+      pagination.value = { page: 1, limit, total: result.hospitals.length, totalPages: 1 }
+    } else errorMessage.value = result.message
+    isLoading.value = false
+    return result
+  }
+
+  async function loadMapHospitals(bounds) {
+    const requestId = ++mapRequestId
+    lastMapQuery.value = bounds
+    mapLoading.value = true
+    mapError.value = ''
+    const result = await fetchMapHospitals(bounds)
+    if (requestId !== mapRequestId) return result
+    if (result.success) {
+      mapHospitals.value = result.hospitals
+      mapTruncated.value = result.truncated
+    } else mapError.value = result.message
+    mapLoading.value = false
+    return result
+  }
+
+  async function loadRegions() {
+    const requestId = ++regionsRequestId
+    regionsLoading.value = true
+    regionsError.value = ''
+    const result = await fetchHospitalRegions()
+    if (requestId !== regionsRequestId) return result
+    if (result.success) regions.value = result.regions
+    else regionsError.value = result.message
+    regionsLoading.value = false
+    return result
+  }
+
+  async function setKeyword(keyword) {
+    filters.value.keyword = keyword.trim()
+    filters.value.sort = filters.value.keyword
+      ? 'relevance'
+      : explicitSortSelection.value ?? (hasRealLocation.value ? 'distance' : 'name')
+    pagination.value.page = 1
+    return loadHospitals({ page: 1 })
+  }
+  async function setLocationFilter({ city = '', district = '' } = {}) {
+    filters.value.city = city
+    filters.value.district = district
+    pagination.value.page = 1
+    return loadHospitals({ page: 1 })
+  }
+  async function setAnimalType(value) { filters.value.animalType = value; pagination.value.page = 1; return loadHospitals({ page: 1 }) }
+  async function set24H(value) { filters.value.is24H = Boolean(value); pagination.value.page = 1; return loadHospitals({ page: 1 }) }
+  async function setSort(value) { if (value === 'distance' && !hasRealLocation.value) return; explicitSortSelection.value = value; filters.value.sort = value; pagination.value.page = 1; return loadHospitals({ page: 1 }) }
+  async function setPage(page) { pagination.value.page = Number(page); return loadHospitals({ page: pagination.value.page }) }
+  async function clearFilters() { explicitSortSelection.value = null; filters.value = { ...DEFAULT_FILTERS, sort: hasRealLocation.value ? 'distance' : 'name' }; pagination.value.page = 1; return loadHospitals({ page: 1 }) }
+  function selectHospital(id) { selectedHospitalId.value = id }
+  function retryCurrentQuery() { return lastQuery.value.type === 'nearby' ? loadNearbyHospitals(lastQuery.value.query) : loadHospitals(lastQuery.value.query) }
+  function retryMapQuery() { return lastMapQuery.value ? loadMapHospitals(lastMapQuery.value) : Promise.resolve() }
+
+  return {
+    hospitals, visibleHospitals, mapHospitals, markerHospitals, regions, availableDistricts,
+    pagination, filters, mode, selectedHospitalId, selectedHospital, isLoading, mapLoading,
+    regionsLoading, errorMessage, mapError, regionsError, mapTruncated, locationFallbackMessage,
+    hasRealLocation, isEmpty, loadHospitals, loadNearbyHospitals, loadMapHospitals, loadRegions,
+    setKeyword, setLocationFilter, setAnimalType, set24H, setSort, setPage, clearFilters,
+    selectHospital, retryCurrentQuery, retryMapQuery,
+  }
+})

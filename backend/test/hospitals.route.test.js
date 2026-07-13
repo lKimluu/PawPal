@@ -19,7 +19,7 @@ function createResponse() {
   }
 }
 
-test('醫院路由應提供清單與附近醫院查詢', () => {
+test('醫院路由應提供清單、附近、地區與地圖查詢', () => {
   const routes = hospitalRoutes.stack.map((layer) => ({
     path: layer.route?.path,
     methods: Object.keys(layer.route?.methods ?? {}),
@@ -31,13 +31,17 @@ test('醫院路由應提供清單與附近醫院查詢', () => {
     [
       { path: '/', methods: ['get'] },
       { path: '/nearby', methods: ['get'] },
+      { path: '/regions', methods: ['get'] },
+      { path: '/map', methods: ['get'] },
     ],
   )
 
-  routes.forEach(({ middleware }) => {
+  assert.equal(routes.find((route) => route.path === '/regions').middleware.length, 1)
+  for (const path of ['/', '/nearby', '/map']) {
+    const middleware = routes.find((route) => route.path === path).middleware
     assert.equal(middleware.length, 2)
     assert.equal(typeof middleware[0].handle, 'function')
-  })
+  }
 })
 
 test('應將醫院路由掛載在 /api/v1/hospitals', () => {
