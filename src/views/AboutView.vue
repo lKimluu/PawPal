@@ -61,7 +61,7 @@ const features = [
 const members = [
   {
     id: 'm1',
-    name: '呂金娟',
+    name: 'Kim Lu',
     bio: '後端部署與雲端資料庫串接\n會員註冊與登入功能\n動物醫院地圖與查詢功能',
     avatar: 'PawPal_mark_p.webp',
     email: 'lkimluu02@gmail.com',
@@ -69,7 +69,7 @@ const members = [
   },
   {
     id: 'm2',
-    name: '陳奕豪',
+    name: 'HAO',
     bio: '前端部署與網域設\n定寵物資料與後端API\n前端功能切版',
     avatar: 'PawPal_mark_o.webp',
     email: 'yam60105@gmail.com',
@@ -77,7 +77,7 @@ const members = [
   },
   {
     id: 'm3',
-    name: '連婕',
+    name: 'Jie Lian',
     bio: '首頁 Header 切版\n儀表板 Sidebar 切版\n行事曆全端功能實作',
     avatar: 'PawPal_mark_b.webp',
     email: 'lianjie0819@gmail.com',
@@ -85,7 +85,7 @@ const members = [
   },
   {
     id: 'm4',
-    name: '周譽凌',
+    name: 'Yu Ling',
     bio: '成長歷程全端功能\n前端功能切版',
     avatar: 'PawPal_mark_p.webp',
     email: 'zhou21935@gmail.com',
