@@ -1,15 +1,25 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { medicalApi } from '@/api/medical.js'
-import { createPet as createPetApi, listPets as listPetsApi, updatePet as updatePetApi } from '@/api/pet.js'
+import {
+  createPet as createPetApi,
+  deletePet as deletePetApi,
+  listPets as listPetsApi,
+  updatePet as updatePetApi,
+} from '@/api/pet.js'
 import defaultPetAvatar from '@/assets/images/pet_default.png'
 
 export const usePetStore = defineStore('pet', () => {
   const pets = ref([])
   const selectedPetId = ref(null)
   const isLoading = ref(false)
+  let requestGeneration = 0
 
   const currentPet = computed(() => pets.value.find((p) => p.id === selectedPetId.value) ?? null)
+
+  function isCurrentRequest(generation) {
+    return generation === requestGeneration
+  }
 
   function normalizePet(pet) {
     const photoUrl = pet.photoUrl || pet.photo_url || pet.avatar_url || pet.image
@@ -36,14 +46,24 @@ export const usePetStore = defineStore('pet', () => {
   }
 
   async function fetchUserPets() {
+    const generation = requestGeneration
+
     try {
       const res = await medicalApi.getUserPets()
+      if (!isCurrentRequest(generation)) {
+        return { success: false, stale: true }
+      }
+
       const serverPets = res.data?.pets || []
 
       setPets(serverPets)
 
       return { success: true }
     } catch (error) {
+      if (!isCurrentRequest(generation)) {
+        return { success: false, stale: true }
+      }
+
       console.error('取得寵物資料失敗:', error)
       pets.value = []
       selectedPetId.value = null
@@ -56,21 +76,32 @@ export const usePetStore = defineStore('pet', () => {
   }
 
   async function fetchPets() {
+    const generation = requestGeneration
+
     isLoading.value = true
 
     const result = await listPetsApi()
+    if (!isCurrentRequest(generation)) {
+      return { success: false, stale: true }
+    }
 
     if (result.success) {
       setPets(result.data.pets)
     }
 
-    isLoading.value = false
+    if (isCurrentRequest(generation)) {
+      isLoading.value = false
+    }
 
     return result
   }
 
   async function createPet(payload) {
+    const generation = requestGeneration
     const result = await createPetApi(payload)
+    if (!isCurrentRequest(generation)) {
+      return { success: false, stale: true }
+    }
 
     if (result.success && result.data.pet) {
       const createdPet = normalizePet(result.data.pet)
@@ -82,8 +113,12 @@ export const usePetStore = defineStore('pet', () => {
   }
 
   async function updatePet(id, payload, token) {
+    const generation = requestGeneration
     const petId = Number(id)
     const result = await updatePetApi(id, payload, token)
+    if (!isCurrentRequest(generation)) {
+      return { success: false, stale: true }
+    }
 
     if (result.success) {
       const updatedPet = result.data.pet ?? { id: petId, ...payload }
@@ -106,6 +141,32 @@ export const usePetStore = defineStore('pet', () => {
     return result
   }
 
+  async function deletePet(id, token) {
+    const generation = requestGeneration
+    const petId = Number(id)
+    const result = await deletePetApi(petId, token)
+    if (!isCurrentRequest(generation)) {
+      return { success: false, stale: true }
+    }
+
+    if (result.success) {
+      pets.value = pets.value.filter((pet) => pet.id !== petId)
+
+      if (selectedPetId.value === petId) {
+        selectedPetId.value = pets.value[0]?.id ?? null
+      }
+    }
+
+    return result
+  }
+
+  function reset() {
+    requestGeneration += 1
+    pets.value = []
+    selectedPetId.value = null
+    isLoading.value = false
+  }
+
   return {
     pets,
     selectedPetId,
@@ -116,5 +177,7 @@ export const usePetStore = defineStore('pet', () => {
     fetchPets,
     createPet,
     updatePet,
+    deletePet,
+    reset,
   }
 })

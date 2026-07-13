@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import PublicSidebar from '@/components/layout/PublicSidebar.vue'
 import DashboardSidebar from '@/components/layout/DashboardSidebar.vue'
 import { useAuthStore } from '@/stores/auth'
-import { useMedicalStore } from '@/stores/medical.js'
+import { useSessionStore } from '@/stores/session.js'
 import { useSidebarStore } from '@/stores/sidebar'
 import {
   getUserAvatarUrl,
@@ -13,7 +13,6 @@ import {
   hasUserAvatar,
 } from '@/utils/userProfile.js'
 import defaultProfileIcon from '@/assets/icons/account-profile-icon.svg'
-import loginIcon from '@/assets/icons/login.svg'
 
 const props = defineProps({
   variant: {
@@ -25,7 +24,7 @@ const props = defineProps({
 
 const sidebarStore = useSidebarStore()
 const authStore = useAuthStore()
-const medicalStore = useMedicalStore()
+const sessionStore = useSessionStore()
 const router = useRouter()
 const memberMenuRef = ref(null)
 const isMemberMenuOpen = ref(false)
@@ -52,8 +51,7 @@ function handleDocumentClick(event) {
 }
 
 function handleLogout() {
-  authStore.logout()
-  medicalStore.reset()
+  sessionStore.logout()
   sidebarStore.closeSidebar()
   closeMemberMenu()
   router.push('/login')
@@ -177,7 +175,20 @@ const navGroups = [
             to="/login"
             class="group flex h-12 items-center justify-center gap-2 rounded-full py-2 pl-2 pr-3 text-base font-medium text-brand-gray transition hover:text-brand-orange"
           >
-            <img :src="loginIcon" alt="登入" class="login-icon size-6 shrink-0" />
+            <svg
+              class="login-icon size-6 shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" y1="12" x2="3" y2="12" />
+            </svg>
             <span>登入</span>
           </RouterLink>
 
@@ -243,7 +254,20 @@ const navGroups = [
                 class="group flex w-full items-center gap-2 border-t border-[#EEF1F5] px-4 py-3 text-sm font-medium text-brand-gray transition hover:bg-[#F8FAFC] hover:text-brand-orange"
                 @click="handleLogout"
               >
-                <img :src="loginIcon" alt="登出" class="login-icon size-4 shrink-0" />
+                <svg
+                  class="logout-icon size-4 shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                  <polyline points="10 17 15 12 10 7" />
+                  <line x1="15" y1="12" x2="3" y2="12" />
+                </svg>
                 登出
               </button>
             </div>
@@ -284,13 +308,9 @@ const navGroups = [
   filter: invert(63%) sepia(95%) saturate(700%) hue-rotate(1deg) brightness(103%) contrast(101%);
 }
 
-.login-icon {
-  filter: invert(46%) sepia(8%) saturate(567%) hue-rotate(202deg) brightness(92%) contrast(88%);
-  transition: filter 0.1s ease;
-}
-
-.group:hover .login-icon {
-  filter: invert(63%) sepia(95%) saturate(700%) hue-rotate(1deg) brightness(103%) contrast(101%);
+.login-icon,
+.logout-icon {
+  transition: color 0.1s ease;
 }
 
 .slide-enter-active,

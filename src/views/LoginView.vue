@@ -3,14 +3,14 @@ import { useRouter } from 'vue-router'
 import Header from '@/components/layout/AppHeader.vue'
 import Footer from '@/components/layout/AppFooter.vue'
 import LoginForm from '@/components/auth/LoginForm.vue'
-import { useAuthStore } from '@/stores/auth.js'
+import { useSessionStore } from '@/stores/session.js'
 
 const router = useRouter()
-const authStore = useAuthStore()
+const sessionStore = useSessionStore()
 
-function handleLogin(payload) {
-  const success = authStore.login(payload.email, payload.password)
-  if (success) {
+async function handleLogin(payload) {
+  const result = await sessionStore.login(payload.email, payload.password)
+  if (result.success) {
     router.push('/dashboard')
   }
 }
