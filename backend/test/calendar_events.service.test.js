@@ -61,6 +61,20 @@ test('updateEvent：成功時應回傳更新後的行程', async (t) => {
   assert.deepEqual(result, updatedRow)
 })
 
+test('updateEvent：event_time 為 null 時應以 null 寫入資料庫（清空時間）', async (t) => {
+  const updatedRow = { id: 1, title: '複診', event_time: null }
+  const query = t.mock.method(pool, 'query', async (text, values) => {
+    assert.ok(text.includes('event_time = $1'))
+    assert.equal(values[0], null)
+    return { rows: [updatedRow] }
+  })
+
+  const result = await updateEvent('1', { event_time: null }, 2)
+
+  assert.deepEqual(result, updatedRow)
+  assert.equal(query.mock.callCount(), 1)
+})
+
 test('updateEvent：沒有合法欄位時應直接回傳 null（不呼叫 DB）', async (t) => {
   const query = t.mock.method(pool, 'query', async () => ({ rows: [] }))
 

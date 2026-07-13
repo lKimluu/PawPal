@@ -42,7 +42,7 @@ export const updateCalendarEventSchema = z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, { error: '請輸入正確的日期格式（YYYY-MM-DD）' })
       .optional(),
-    event_time: eventTimeField,
+    event_time: eventTimeField.nullable(),
     type: typeField.optional(),
     location: z.string().max(255, { error: '行程地點過長，請重新輸入' }).optional(),
     notes: notesField,
