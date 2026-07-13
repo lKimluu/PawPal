@@ -1,12 +1,14 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useSessionStore } from '@/stores/session.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { GoogleLogin } from 'vue3-google-login'
 import TermsModal from '@/components/auth/TermsModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const sessionStore = useSessionStore()
 
 const name = ref('')
 const email = ref('')
@@ -67,7 +69,7 @@ const handleGoogleLoginCallback = async (response) => {
   }
 
   try {
-    const result = await authStore.loginWithGoogle(googleIdToken)
+    const result = await sessionStore.loginWithGoogle(googleIdToken)
     isSubmitting.value = false
 
     if (result?.success) {

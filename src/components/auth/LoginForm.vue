@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session.js'
-import { useAuthStore } from '@/stores/auth.js'
 import { GoogleLogin } from 'vue3-google-login'
 import TermsModal from '@/components/auth/TermsModal.vue'
 
@@ -51,7 +50,7 @@ const handleGoogleLoginCallback = async (response) => {
   }
 
   try {
-    const result = await authStore.loginWithGoogle(googleIdToken)
+    const result = await sessionStore.loginWithGoogle(googleIdToken)
 
     isSubmitting.value = false
 
@@ -86,7 +85,7 @@ onMounted(async () => {
     errorMessage.value = ''
     isSubmitting.value = true
 
-    const result = await authStore.loginWithLine(code)
+    const result = await sessionStore.loginWithLine(code)
 
     isSubmitting.value = false
 
