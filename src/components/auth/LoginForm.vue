@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session.js'
+import { useToastStore } from '@/stores/toast'
 import { GoogleLogin } from 'vue3-google-login'
 import TermsModal from '@/components/auth/TermsModal.vue'
 
@@ -12,7 +13,7 @@ const isSubmitting = ref(false)
 
 const router = useRouter()
 const sessionStore = useSessionStore()
-
+const toastStore = useToastStore()
 const isModalOpen = ref(false)
 const modalType = ref('privacy')
 
@@ -29,11 +30,13 @@ async function handleSubmit() {
 
   if (!result.success) {
     errorMessage.value = result.message || '登入失敗，請稍後再試'
+    toastStore.showToast(errorMessage.value, 'error')
     isSubmitting.value = false
     return
   }
 
   isSubmitting.value = false
+  toastStore.showToast('歡迎回來！', 'success')
   router.push('/dashboard')
 }
 
@@ -45,6 +48,7 @@ const handleGoogleLoginCallback = async (response) => {
 
   if (!googleIdToken) {
     errorMessage.value = 'Google 登入失敗，未取得驗證憑證'
+    toastStore.showToast(errorMessage.value, 'error')
     isSubmitting.value = false
     return
   }
@@ -55,13 +59,16 @@ const handleGoogleLoginCallback = async (response) => {
     isSubmitting.value = false
 
     if (result?.success) {
+      toastStore.showToast('使用 Google 帳戶登入成功！', 'success')
       router.push('/dashboard')
     } else {
       errorMessage.value = result?.message || 'Google 登入失敗，請稍後再試'
+      toastStore.showToast(errorMessage.value, 'error')
     }
   } catch (err) {
     isSubmitting.value = false
     errorMessage.value = '伺服器連線失敗'
+    toastStore.showToast(errorMessage.value, 'error')
   }
 }
 
@@ -90,9 +97,11 @@ onMounted(async () => {
     isSubmitting.value = false
 
     if (result?.success) {
+      toastStore.showToast('使用 LINE 帳戶登入成功！', 'success')
       router.push('/dashboard')
     } else {
       errorMessage.value = result?.message || 'LINE 登入失敗，請稍後再試'
+      toastStore.showToast(errorMessage.value, 'error')
     }
 
     window.history.replaceState({}, document.title, window.location.pathname)

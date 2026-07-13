@@ -3,12 +3,14 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session.js'
 import { useAuthStore } from '@/stores/auth.js'
+import { useToastStore } from '@/stores/toast'
 import { GoogleLogin } from 'vue3-google-login'
 import TermsModal from '@/components/auth/TermsModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
+const toastStore = useToastStore()
 
 const name = ref('')
 const email = ref('')
@@ -32,6 +34,7 @@ async function handleSubmit() {
 
   if (password.value !== confirmPassword.value) {
     errorMessage.value = '兩次輸入的密碼不一致'
+    toastStore.showToast(errorMessage.value, 'error')
     return
   }
 
@@ -45,11 +48,14 @@ async function handleSubmit() {
 
   if (!result.success) {
     errorMessage.value = result.message || '註冊失敗，請稍後再試'
+    toastStore.showToast(errorMessage.value, 'error')
     isSubmitting.value = false
     return
   }
 
   successMessage.value = result.message || '註冊成功'
+
+  toastStore.showToast('註冊成功！將轉至登入頁面 ', 'success')
 
   window.setTimeout(() => {
     router.push('/login')
@@ -64,6 +70,7 @@ const handleGoogleLoginCallback = async (response) => {
 
   if (!googleIdToken) {
     errorMessage.value = 'Google 認證失敗，未取得驗證憑證'
+    toastStore.showToast(errorMessage.value, 'error')
     isSubmitting.value = false
     return
   }
@@ -73,13 +80,16 @@ const handleGoogleLoginCallback = async (response) => {
     isSubmitting.value = false
 
     if (result?.success) {
+      toastStore.showToast('使用 Google 帳戶登入成功！', 'success')
       router.push('/dashboard')
     } else {
       errorMessage.value = result?.message || 'Google 認證失敗'
+      toastStore.showToast(errorMessage.value, 'error')
     }
   } catch (err) {
     isSubmitting.value = false
     errorMessage.value = '伺服器連線失敗'
+    toastStore.showToast(errorMessage.value, 'error')
   }
 }
 
