@@ -58,3 +58,26 @@ export const nearbyHospitalsQuerySchema = z.object({
   limit: limit_schema,
   animal_type: animal_type_schema,
 })
+
+export const hospitalMapQuerySchema = z
+  .object({
+    north: z.coerce
+      .number({ error: '地圖邊界格式不正確' })
+      .min(-90, { error: '地圖邊界格式不正確' })
+      .max(90, { error: '地圖邊界格式不正確' }),
+    south: z.coerce
+      .number({ error: '地圖邊界格式不正確' })
+      .min(-90, { error: '地圖邊界格式不正確' })
+      .max(90, { error: '地圖邊界格式不正確' }),
+    east: z.coerce
+      .number({ error: '地圖邊界格式不正確' })
+      .min(-180, { error: '地圖邊界格式不正確' })
+      .max(180, { error: '地圖邊界格式不正確' }),
+    west: z.coerce
+      .number({ error: '地圖邊界格式不正確' })
+      .min(-180, { error: '地圖邊界格式不正確' })
+      .max(180, { error: '地圖邊界格式不正確' }),
+  })
+  .refine((bounds) => bounds.north > bounds.south && bounds.east > bounds.west, {
+    error: '地圖邊界格式不正確',
+  })

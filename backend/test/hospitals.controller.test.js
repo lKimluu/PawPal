@@ -20,7 +20,7 @@ function createResponse() {
 
 test('listHospitals 成功時應回傳 hospitals 與 pagination', async () => {
   const payload = {
-    hospitals: [{ id: 1, name: '仁愛動物醫院' }],
+    hospitals: [{ id: 1, name: '仁愛動物醫院', rating_average: 4.5, review_count: 2 }],
     pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
   }
   const { listHospitals } = createHospitalsController({
@@ -44,7 +44,9 @@ test('listHospitals 成功時應回傳 hospitals 與 pagination', async () => {
 })
 
 test('listNearbyHospitals 成功時應回傳 hospitals', async () => {
-  const hospitals = [{ id: 1, name: '仁愛動物醫院', distance_km: 1.23 }]
+  const hospitals = [
+    { id: 1, name: '仁愛動物醫院', distance_km: 1.23, rating_average: 4.5, review_count: 2 },
+  ]
   const { listNearbyHospitals } = createHospitalsController({
     findNearbyHospitals: async (query) => {
       assert.deepEqual(query, { lat: 25, lng: 121, radius: 5, limit: 20 })
@@ -63,6 +65,28 @@ test('listNearbyHospitals 成功時應回傳 hospitals', async () => {
 
   assert.equal(res.statusCode, 200)
   assert.deepEqual(res.body, { hospitals })
+})
+
+test('listMapHospitals 成功時應回傳地圖醫院與 metadata', async () => {
+  const payload = {
+    hospitals: [{ id: 1, name: '仁愛動物醫院', rating_average: 4.5, review_count: 2 }],
+    total: 26,
+    truncated: false,
+  }
+  const { listMapHospitals } = createHospitalsController({
+    findMapHospitals: async (query) => {
+      assert.deepEqual(query, { north: 26, south: 24, east: 122, west: 120 })
+      return payload
+    },
+  })
+  const res = createResponse()
+
+  await listMapHospitals({
+    validated_query: { north: 26, south: 24, east: 122, west: 120 },
+  }, res)
+
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(res.body, payload)
 })
 
 test('listHospitals 沒有 validated_query 時應 fallback 使用 req.query', async () => {
@@ -112,4 +136,19 @@ test('listNearbyHospitals 發生非預期錯誤時應回傳 500 message', async 
 
   assert.equal(res.statusCode, 500)
   assert.deepEqual(res.body, { message: '取得附近醫院失敗，請稍後再試' })
+})
+
+test('listMapHospitals 發生非預期錯誤時應回傳 500 message', async (t) => {
+  t.mock.method(console, 'error', () => {})
+  const { listMapHospitals } = createHospitalsController({
+    findMapHospitals: async () => {
+      throw new Error('database down')
+    },
+  })
+  const res = createResponse()
+
+  await listMapHospitals({ query: {} }, res)
+
+  assert.equal(res.statusCode, 500)
+  assert.deepEqual(res.body, { message: '取得地圖醫院失敗，請稍後再試' })
 })

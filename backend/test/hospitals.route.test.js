@@ -19,7 +19,7 @@ function createResponse() {
   }
 }
 
-test('醫院路由應提供清單與附近醫院查詢', () => {
+test('醫院路由應提供清單、附近與地圖醫院查詢', () => {
   const routes = hospitalRoutes.stack.map((layer) => ({
     path: layer.route?.path,
     methods: Object.keys(layer.route?.methods ?? {}),
@@ -31,13 +31,53 @@ test('醫院路由應提供清單與附近醫院查詢', () => {
     [
       { path: '/', methods: ['get'] },
       { path: '/nearby', methods: ['get'] },
+      { path: '/map', methods: ['get'] },
+      { path: '/:hospital_id/reviews', methods: ['get'] },
+      { path: '/:hospital_id/reviews', methods: ['post'] },
+      { path: '/:hospital_id/reviews/me', methods: ['patch'] },
+      { path: '/:hospital_id/reviews/me', methods: ['delete'] },
     ],
   )
 
-  routes.forEach(({ middleware }) => {
-    assert.equal(middleware.length, 2)
-    assert.equal(typeof middleware[0].handle, 'function')
+  assert.equal(routes[0].middleware.length, 2)
+  assert.equal(routes[1].middleware.length, 2)
+  assert.equal(routes[2].middleware.length, 2)
+  assert.equal(routes[3].middleware.length, 2)
+  assert.equal(routes[4].middleware.length, 4)
+  assert.equal(routes[5].middleware.length, 4)
+  assert.equal(routes[6].middleware.length, 3)
+})
+
+test('醫院地圖 query validation 成功時應寫入 validated_query', () => {
+  const mapRoute = hospitalRoutes.stack.find((layer) => layer.route?.path === '/map')
+  const validateQuery = mapRoute.route.stack[0].handle
+  const req = { query: { north: '26', south: '24', east: '122', west: '120' } }
+  const res = createResponse()
+  let nextCalled = false
+
+  validateQuery(req, res, () => {
+    nextCalled = true
   })
+
+  assert.equal(nextCalled, true)
+  assert.equal(res.statusCode, null)
+  assert.deepEqual(req.validated_query, { north: 26, south: 24, east: 122, west: 120 })
+})
+
+test('醫院地圖 query validation 應拒絕無效 bounds', () => {
+  const mapRoute = hospitalRoutes.stack.find((layer) => layer.route?.path === '/map')
+  const validateQuery = mapRoute.route.stack[0].handle
+  const req = { query: { north: '24', south: '26', east: '122', west: '120' } }
+  const res = createResponse()
+  let nextCalled = false
+
+  validateQuery(req, res, () => {
+    nextCalled = true
+  })
+
+  assert.equal(nextCalled, false)
+  assert.equal(res.statusCode, 400)
+  assert.deepEqual(res.body, { message: '地圖邊界格式不正確' })
 })
 
 test('應將醫院路由掛載在 /api/v1/hospitals', () => {
