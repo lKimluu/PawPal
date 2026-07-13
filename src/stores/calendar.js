@@ -174,6 +174,8 @@ export const useCalendarStore = defineStore('calendar', () => {
     } finally {
       isLoading.value = false
     }
+  }
+
   function reset() {
     requestGeneration += 1
     events.value = []
