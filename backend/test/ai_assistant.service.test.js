@@ -20,31 +20,44 @@ function createStubGeminiClient(generateContentImpl) {
   }
 }
 
-test('命中急症關鍵字時應短路回傳固定模板且不呼叫 Gemini', async () => {
+test('遇到急症關鍵字時，直接回傳緊急提醒，不呼叫 Gemini', async () => {
   const geminiClient = createStubGeminiClient(() => {
     throw new Error('should not be called')
   })
 
-  const result = await getAiAssistantReply('我的狗狗一直抽搐怎麼辦', { geminiClient })
+  const result = await getAiAssistantReply('狗狗吃到巧克力怎麼辦？', { geminiClient })
 
-  assert.match(result.reply, /就醫|獸醫/)
+  assert.match(result.reply, /緊急情況|盡速帶牠就醫|聯繫獸醫/)
   assert.equal(geminiClient.getCallCount(), 0)
 })
 
-test('未命中急症關鍵字時應呼叫注入的 Gemini client 並回傳其內容', async () => {
+test('一般問題會呼叫 Gemini，並帶入正確 model 與 config', async () => {
   const geminiClient = createStubGeminiClient((params) => {
-    assert.equal(params.model, 'gemini-2.0-flash')
-    assert.equal(params.contents, '貓咪一天要吃幾餐？')
-    return { text: '成貓建議一天餵食 2 餐。' }
+    assert.equal(params.model, 'gemini-3.1-flash-lite')
+    assert.equal(params.contents, '狗狗多久洗一次澡？')
+    assert.equal(typeof params.config.systemInstruction, 'string')
+    assert.equal(params.config.temperature, 0.4)
+
+    return { text: '一般會依品種、毛長與生活型態而不同。' }
   })
 
-  const result = await getAiAssistantReply('貓咪一天要吃幾餐？', { geminiClient })
+  const result = await getAiAssistantReply('狗狗多久洗一次澡？', { geminiClient })
 
-  assert.equal(result.reply, '成貓建議一天餵食 2 餐。')
+  assert.equal(result.reply, '一般會依品種、毛長與生活型態而不同。')
   assert.equal(geminiClient.getCallCount(), 1)
 })
 
-test('Gemini client 拋出 quota 相關錯誤時應轉換為固定中文訊息', async () => {
+test('Gemini 回傳空內容時，會使用 fallback 訊息', async () => {
+  const geminiClient = createStubGeminiClient(() => {
+    return { text: '   ' }
+  })
+
+  const result = await getAiAssistantReply('貓咪一天要喝多少水？', { geminiClient })
+
+  assert.equal(result.reply, '目前無法產生回覆，請稍後再試一次。')
+})
+
+test('Gemini quota exceeded 時，會拋出 AiAssistantQuotaExceededError', async () => {
   const geminiClient = createStubGeminiClient(() => {
     const error = new Error('RESOURCE_EXHAUSTED: quota exceeded')
     error.status = 429
@@ -52,7 +65,7 @@ test('Gemini client 拋出 quota 相關錯誤時應轉換為固定中文訊息',
   })
 
   await assert.rejects(
-    () => getAiAssistantReply('貓咪一天要吃幾餐？', { geminiClient }),
+    () => getAiAssistantReply('狗狗多久洗一次澡？', { geminiClient }),
     (error) => {
       assert.ok(error instanceof AiAssistantQuotaExceededError)
       assert.equal(error.message, 'AI 小助手目前使用量較大，請稍後再試')
@@ -61,13 +74,13 @@ test('Gemini client 拋出 quota 相關錯誤時應轉換為固定中文訊息',
   )
 })
 
-test('Gemini client 拋出非 quota 錯誤時應原樣拋出', async () => {
+test('非 quota 類錯誤會原樣拋出', async () => {
   const geminiClient = createStubGeminiClient(() => {
     throw new Error('network error')
   })
 
   await assert.rejects(
-    () => getAiAssistantReply('貓咪一天要吃幾餐？', { geminiClient }),
+    () => getAiAssistantReply('狗狗多久洗一次澡？', { geminiClient }),
     (error) => {
       assert.equal(error.message, 'network error')
       return true
