@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS calendar_events (
 ),
   day_of_week SMALLINT GENERATED ALWAYS AS (EXTRACT(DOW FROM event_date)::SMALLINT) STORED,
   is_completed BOOLEAN NOT NULL DEFAULT FALSE,
+  google_event_id VARCHAR(255),
+  google_sync_failed BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_calendar_events_pet
@@ -43,3 +45,7 @@ CREATE OR REPLACE TRIGGER trigger_calendar_events_updated_at
   BEFORE UPDATE ON calendar_events
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+-- 既有資料庫補上 Google 行事曆同步欄位（新環境由上方建表語句直接建立）
+ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS google_event_id VARCHAR(255);
+ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS google_sync_failed BOOLEAN NOT NULL DEFAULT FALSE;

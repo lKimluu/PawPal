@@ -21,12 +21,22 @@ export const useGrowthStore = defineStore('growth', () => {
   const isLoading = ref(false)
   const isSubmitting = ref(false)
   const errorMessage = ref(null)
+  let requestGeneration = 0
+
+  function isCurrentRequest(generation) {
+    return generation === requestGeneration
+  }
 
   async function fetchRecords(petId, token) {
+    const generation = requestGeneration
+
     isLoading.value = true
     errorMessage.value = null
 
     const result = await getGrowthRecords(petId, token)
+    if (!isCurrentRequest(generation)) {
+      return { success: false, stale: true }
+    }
 
     if (result.success) {
       records.value = result.data.records ?? []
@@ -34,10 +44,16 @@ export const useGrowthStore = defineStore('growth', () => {
       errorMessage.value = result.message
     }
 
-    isLoading.value = false
+    if (isCurrentRequest(generation)) {
+      isLoading.value = false
+    }
+
+    return result
   }
 
   async function createRecordsFrom(petId, formData, token) {
+    const generation = requestGeneration
+
     isSubmitting.value = true
     errorMessage.value = null
 
@@ -58,18 +74,29 @@ export const useGrowthStore = defineStore('growth', () => {
         ),
       ),
     )
+    if (!isCurrentRequest(generation)) {
+      return results.map(() => ({ success: false, stale: true }))
+    }
 
     const failed = results.find((r) => !r.success)
     if (failed) {
       errorMessage.value = failed.message
     }
 
-    isSubmitting.value = false
+    if (isCurrentRequest(generation)) {
+      isSubmitting.value = false
+    }
+
     return results
   }
 
   async function updateRecord(id, value, token) {
+    const generation = requestGeneration
     const result = await updateGrowthRecord(id, value, token)
+    if (!isCurrentRequest(generation)) {
+      return { success: false, stale: true }
+    }
+
     if (result.success) {
       const index = records.value.findIndex((r) => r.id === id)
       if (index !== -1) {
@@ -80,11 +107,24 @@ export const useGrowthStore = defineStore('growth', () => {
   }
 
   async function deleteRecord(id, token) {
+    const generation = requestGeneration
     const result = await deleteGrowthRecord(id, token)
+    if (!isCurrentRequest(generation)) {
+      return { success: false, stale: true }
+    }
+
     if (result.success) {
       records.value = records.value.filter((r) => r.id !== id)
     }
     return result
+  }
+
+  function reset() {
+    requestGeneration += 1
+    records.value = []
+    isLoading.value = false
+    isSubmitting.value = false
+    errorMessage.value = null
   }
 
   return {
@@ -96,5 +136,6 @@ export const useGrowthStore = defineStore('growth', () => {
     createRecordsFrom,
     updateRecord,
     deleteRecord,
+    reset,
   }
 })

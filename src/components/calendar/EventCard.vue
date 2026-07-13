@@ -14,7 +14,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['edit', 'delete'])
+defineEmits(['edit', 'delete', 'resync'])
 
 const petStore = usePetStore()
 
@@ -94,6 +94,22 @@ const tagStyle = computed(() => typeMeta.value.chip)
         <p v-if="event.notes" class="text-xs md:text-sm text-gray-400 mt-1 leading-relaxed">
           {{ event.notes }}
         </p>
+
+        <!-- Google 同步失敗提示：內容欄所有版型都會渲染，桌機手機共用一份 -->
+        <div v-if="event.googleSyncFailed" class="mt-2 flex items-center gap-2">
+          <span
+            class="inline-block text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-600"
+          >
+            未同步
+          </span>
+          <button
+            @click="$emit('resync', event)"
+            class="text-xs text-gray-400 underline hover:text-brand-orange transition-colors cursor-pointer"
+            type="button"
+          >
+            重新同步
+          </button>
+        </div>
 
         <!-- tag：手機版顯示在此（md+ 一律隱藏，compact 時已在日期欄顯示） -->
         <div class="mt-2 md:hidden">

@@ -4,6 +4,12 @@ import {
   updateEvent,
   deleteEvent,
 } from '../services/calendar_events.service.js'
+import {
+  syncCreatedEvent,
+  syncUpdatedEvent,
+  syncDeletedEvent,
+  resyncEvent,
+} from '../services/calendar_events_sync.service.js'
 
 export function createGetCalendarEvents({ getEventsByUserId }) {
   return async function getCalendarEvents(req, res) {
@@ -20,7 +26,7 @@ export function createGetCalendarEvents({ getEventsByUserId }) {
 }
 export const getCalendarEvents = createGetCalendarEvents({ getEventsByUserId })
 
-export function createCreateCalendarEvent({ createEvent }) {
+export function createCreateCalendarEvent({ createEvent, syncCreatedEvent }) {
   return async function createCalendarEvent(req, res) {
     const userId = req.userId
     if (!userId) return res.status(401).json({ message: '未授權，請重新登入' })
@@ -39,16 +45,17 @@ export function createCreateCalendarEvent({ createEvent }) {
       if (!event) {
         return res.status(404).json({ message: '無此寵物的操作權限' })
       }
-      return res.status(201).json({ message: '行事曆行程新增成功', data: event })
+      const syncedEvent = await syncCreatedEvent(userId, event)
+      return res.status(201).json({ message: '行事曆行程新增成功', data: syncedEvent ?? event })
     } catch (error) {
       console.error(error)
       return res.status(500).json({ message: '新增行事曆行程失敗' })
     }
   }
 }
-export const createCalendarEvent = createCreateCalendarEvent({ createEvent })
+export const createCalendarEvent = createCreateCalendarEvent({ createEvent, syncCreatedEvent })
 
-export function createUpdateCalendarEvent({ updateEvent }) {
+export function createUpdateCalendarEvent({ updateEvent, syncUpdatedEvent }) {
   return async function updateCalendarEvent(req, res) {
     const { id } = req.params
     const userId = req.userId
@@ -73,16 +80,17 @@ export function createUpdateCalendarEvent({ updateEvent }) {
       if (!event) {
         return res.status(404).json({ message: '找不到此行事曆行程' })
       }
-      return res.status(200).json({ message: '行事曆行程更新成功', data: event })
+      const syncedEvent = await syncUpdatedEvent(userId, event)
+      return res.status(200).json({ message: '行事曆行程更新成功', data: syncedEvent ?? event })
     } catch (error) {
       console.error(error)
       return res.status(500).json({ message: '更新行事曆行程失敗' })
     }
   }
 }
-export const updateCalendarEvent = createUpdateCalendarEvent({ updateEvent })
+export const updateCalendarEvent = createUpdateCalendarEvent({ updateEvent, syncUpdatedEvent })
 
-export function createDeleteCalendarEvent({ deleteEvent }) {
+export function createDeleteCalendarEvent({ deleteEvent, syncDeletedEvent }) {
   return async function deleteCalendarEvent(req, res) {
     const { id } = req.params
     const userId = req.userId
@@ -91,6 +99,7 @@ export function createDeleteCalendarEvent({ deleteEvent }) {
       if (!deleted) {
         return res.status(404).json({ message: '找不到此行事曆行程' })
       }
+      await syncDeletedEvent(userId, deleted.google_event_id)
       return res.status(204).send()
     } catch (error) {
       console.error(error)
@@ -98,4 +107,30 @@ export function createDeleteCalendarEvent({ deleteEvent }) {
     }
   }
 }
-export const deleteCalendarEvent = createDeleteCalendarEvent({ deleteEvent })
+export const deleteCalendarEvent = createDeleteCalendarEvent({ deleteEvent, syncDeletedEvent })
+
+export function createResyncCalendarEvent({ resyncEvent }) {
+  return async function resyncCalendarEvent(req, res) {
+    const { id } = req.params
+    const userId = req.userId
+    if (!userId) return res.status(401).json({ message: '未授權，請重新登入' })
+    try {
+      const result = await resyncEvent(userId, id)
+
+      if (result.status === 'not_found') {
+        return res.status(404).json({ message: '找不到此行事曆行程' })
+      }
+      if (result.status === 'not_connected') {
+        return res.status(400).json({ message: '尚未連接 Google 行事曆' })
+      }
+      if (result.status === 'failed') {
+        return res.status(500).json({ message: '重新同步失敗，請稍後再試' })
+      }
+      return res.status(200).json({ message: '重新同步成功', data: result.event })
+    } catch (error) {
+      console.error(error)
+      return res.status(500).json({ message: '重新同步失敗，請稍後再試' })
+    }
+  }
+}
+export const resyncCalendarEvent = createResyncCalendarEvent({ resyncEvent })

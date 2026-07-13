@@ -1,8 +1,6 @@
 <script setup>
-import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth.js'
+import { useRoute } from 'vue-router'
 import { useSidebarStore } from '@/stores/sidebar'
-import { useMedicalStore } from '@/stores/medical.js'
 import home from '@/assets/icons/home.svg'
 import home_o from '@/assets/icons/home_o.svg'
 import location from '@/assets/icons/location_gray.svg'
@@ -11,7 +9,6 @@ import diagnostic from '@/assets/icons/diagnostic_gray.svg'
 import diagnostic_o from '@/assets/icons/diagnostic.svg'
 import growth from '@/assets/icons/pet-growth.svg'
 import growth_o from '@/assets/icons/pet-growth_o.svg'
-import logoutIcon from '@/assets/icons/login.svg'
 
 const props = defineProps({
   showDesktop: {
@@ -22,9 +19,6 @@ const props = defineProps({
 
 const sidebarStore = useSidebarStore()
 const route = useRoute()
-const router = useRouter()
-const authStore = useAuthStore()
-const medicalStore = useMedicalStore()
 
 function isActive(item) {
   return route.path === item.to
@@ -32,13 +26,6 @@ function isActive(item) {
 
 function getIcon(item) {
   return isActive(item) ? item.activeIcon : item.icon
-}
-
-function handleLogout() {
-  authStore.logout()
-  medicalStore.reset()
-  sidebarStore.closeSidebar()
-  router.push('/login')
 }
 
 const navItems = [
@@ -197,20 +184,6 @@ const navItems = [
                 >通知中心</a
               >
             </li>
-            <li>
-              <div
-                class="flex items-center justify-center border-t border-brand-lightblue pt-[50px]"
-              >
-                <button
-                  type="button"
-                  @click="handleLogout"
-                  class="flex items-center gap-1.5 text-base font-medium text-brand-gray active:text-brand-orange"
-                >
-                  <img :src="logoutIcon" alt="Logout Icon" class="h-4 w-4" />
-                  登出
-                </button>
-              </div>
-            </li>
           </ul>
         </section>
       </nav>
@@ -257,16 +230,6 @@ const navItems = [
           </div>
         </li>
       </ul>
-      <div class="mt-auto px-5 pt-6">
-        <button
-          type="button"
-          @click="handleLogout"
-          class="flex w-full items-center gap-3 px-1 py-3 text-base font-medium text-brand-gray hover:text-brand-orange"
-        >
-          <img :src="logoutIcon" alt="Logout Icon" class="h-5 w-5 shrink-0" />
-          登出
-        </button>
-      </div>
     </nav>
   </aside>
 </template>

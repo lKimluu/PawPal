@@ -1,31 +1,48 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { LMap, LMarker, LPopup, LTileLayer } from '@vue-leaflet/vue-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { hospitals as defaultHospitals } from '@/data/hospitals.js'
-import HospitalMarker from '@/components/hospital/HospitalMarker.vue'
+import 'leaflet.markercluster'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
+import MapStatusOverlay from '@/components/hospital/MapStatusOverlay.vue'
+import { TAIPEI_CENTER } from '@/api/hospitals.js'
+import { createHospitalMarker, createUserLocationIcon } from '@/utils/hospitalMapMarkers.js'
 
 const props = defineProps({
   hospitals: {
     type: Array,
+    default: () => [],
+  },
+  selectedHospitalId: {
+    type: [String, Number],
     default: null,
   },
   userLocation: {
     type: Object,
     default: null,
   },
+  selectedHospital: { type: Object, default: null },
+  isLoading: { type: Boolean, default: false },
+  errorMessage: { type: String, default: '' },
+  isTruncated: { type: Boolean, default: false },
 })
 
-const TAIPEI_CENTER = [25.033, 121.5654]
+const emit = defineEmits(['selectHospital', 'boundsChange', 'retry'])
+const mapObject = ref(null)
+let boundsTimer
+let clusterLayer
+const markerById = new Map()
 
-const sourceHospitals = computed(() => props.hospitals ?? defaultHospitals)
-const validHospitals = computed(() =>
-  sourceHospitals.value.filter(
-    (hospital) => Number.isFinite(hospital.lat) && Number.isFinite(hospital.lng),
-  ),
-)
-const openCount = computed(() => validHospitals.value.filter((hospital) => hospital.isOpen).length)
+const validHospitals = computed(() => {
+  const merged = [...props.hospitals]
+  if (props.selectedHospital && !merged.some((item) => item.id === props.selectedHospital.id))
+    merged.push(props.selectedHospital)
+  return merged.filter(
+    (hospital) => Number.isFinite(hospital.latitude) && Number.isFinite(hospital.longitude),
+  )
+})
 const emergencyCount = computed(
   () => validHospitals.value.filter((hospital) => hospital.is24H).length,
 )
@@ -38,27 +55,82 @@ const isValidUserLocation = computed(
 const userPosition = computed(() =>
   isValidUserLocation.value ? [props.userLocation.lat, props.userLocation.lng] : null,
 )
-const userLocationIcon = L.divIcon({
-  className: 'user-location-marker-icon',
-  html: '<span class="user-location-marker-halo"><span class="user-location-marker-pin"></span></span>',
-  iconSize: [30, 30],
-  iconAnchor: [15, 15],
-  popupAnchor: [0, -14],
-})
+const selectedHospital = computed(() =>
+  validHospitals.value.find((hospital) => hospital.id === props.selectedHospitalId),
+)
+const userLocationIcon = createUserLocationIcon()
 
 const center = computed(() => {
+  if (selectedHospital.value) {
+    return [selectedHospital.value.latitude, selectedHospital.value.longitude]
+  }
+
   if (userPosition.value) return userPosition.value
   if (validHospitals.value.length === 0) return TAIPEI_CENTER
 
   const total = validHospitals.value.reduce(
     (sum, hospital) => ({
-      lat: sum.lat + hospital.lat,
-      lng: sum.lng + hospital.lng,
+      lat: sum.lat + hospital.latitude,
+      lng: sum.lng + hospital.longitude,
     }),
     { lat: 0, lng: 0 },
   )
 
   return [total.lat / validHospitals.value.length, total.lng / validHospitals.value.length]
+})
+
+function emitBounds() {
+  const bounds = mapObject.value?.getBounds()
+  if (!bounds) return
+  emit('boundsChange', {
+    north: bounds.getNorth(),
+    south: bounds.getSouth(),
+    east: bounds.getEast(),
+    west: bounds.getWest(),
+  })
+}
+function scheduleBounds() {
+  clearTimeout(boundsTimer)
+  boundsTimer = setTimeout(emitBounds, 300)
+}
+function syncClusters() {
+  if (!mapObject.value) return
+  if (!clusterLayer) {
+    clusterLayer = L.markerClusterGroup()
+    clusterLayer.addTo(mapObject.value)
+  }
+  clusterLayer.clearLayers()
+  markerById.clear()
+  for (const hospital of validHospitals.value) {
+    const marker = createHospitalMarker(hospital, (selected) => emit('selectHospital', selected.id))
+    markerById.set(hospital.id, marker)
+    clusterLayer.addLayer(marker)
+  }
+}
+function onMapReady(map) {
+  mapObject.value = map
+  syncClusters()
+  scheduleBounds()
+}
+watch(validHospitals, () => nextTick(syncClusters), { deep: true })
+watch(
+  () => props.selectedHospital,
+  (hospital) => {
+    if (hospital && Number.isFinite(hospital.latitude) && Number.isFinite(hospital.longitude)) {
+      mapObject.value?.flyTo(
+        [hospital.latitude, hospital.longitude],
+        Math.max(mapObject.value.getZoom(), 15),
+      )
+      nextTick(() => {
+        const marker = markerById.get(hospital.id)
+        if (marker) clusterLayer?.zoomToShowLayer(marker, () => marker.openPopup())
+      })
+    }
+  },
+)
+onBeforeUnmount(() => {
+  clearTimeout(boundsTimer)
+  if (clusterLayer && mapObject.value) mapObject.value.removeLayer(clusterLayer)
 })
 </script>
 
@@ -72,18 +144,14 @@ const center = computed(() => {
       <div>
         <h2 class="mt-1 text-lg font-bold text-brand-navy md:text-xl">醫院地圖</h2>
         <p class="mt-1 text-sm leading-6 text-brand-gray">
-          查看附近動物醫院的位置、營業狀態與 24 小時急診資訊。
+          移動或縮放地圖，即時查看目前範圍內的動物醫院與 24 小時營業資訊。
         </p>
       </div>
 
-      <dl class="grid grid-cols-3 gap-2 text-center">
+      <dl class="grid grid-cols-2 gap-2 text-center">
         <div class="rounded-2xl bg-brand-lightblue/60 px-3 py-2">
           <dt class="text-[11px] font-medium text-brand-gray">醫院</dt>
           <dd class="text-base font-bold text-brand-navy">{{ validHospitals.length }}</dd>
-        </div>
-        <div class="rounded-2xl bg-brand-lightblue/60 px-3 py-2">
-          <dt class="text-[11px] font-medium text-brand-gray">營業中</dt>
-          <dd class="text-base font-bold text-brand-blue">{{ openCount }}</dd>
         </div>
         <div class="rounded-2xl bg-orange-50 px-3 py-2">
           <dt class="text-[11px] font-medium text-brand-gray">24H</dt>
@@ -93,61 +161,31 @@ const center = computed(() => {
     </div>
 
     <div class="relative h-[520px] w-full bg-brand-lightblue/40 md:h-[680px]">
-      <LMap :zoom="13" :center="center" :zoom-control="false" class="hospital-map h-full w-full">
+      <LMap
+        :zoom="13"
+        :center="center"
+        :zoom-control="false"
+        class="hospital-map h-full w-full"
+        @ready="onMapReady"
+        @moveend="scheduleBounds"
+        @zoomend="scheduleBounds"
+      >
         <LTileLayer
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           attribution="&copy; OpenStreetMap contributors &copy; CARTO"
         />
-        <HospitalMarker
-          v-for="hospital in validHospitals"
-          :key="hospital.id"
-          :hospital="hospital"
-        />
         <LMarker v-if="userPosition" :lat-lng="userPosition" :icon="userLocationIcon">
-          <LPopup>
+          <LPopup :options="{ closeButton: false }">
             <div class="px-1 py-0.5 text-sm font-bold text-brand-navy">你目前的位置</div>
           </LPopup>
         </LMarker>
       </LMap>
+      <MapStatusOverlay
+        :is-loading="isLoading"
+        :error-message="errorMessage"
+        :is-truncated="isTruncated"
+        @retry="emit('retry')"
+      />
     </div>
   </section>
 </template>
-
-<style scoped>
-:deep(.leaflet-container) {
-  font-family: var(--font-brand-main);
-}
-
-:deep(.leaflet-control-attribution) {
-  border-top-left-radius: 10px;
-  color: #717182;
-  font-size: 10px;
-  padding: 2px 8px;
-}
-
-:deep(.user-location-marker-icon) {
-  background: transparent;
-  border: 0;
-}
-
-:deep(.user-location-marker-pin) {
-  display: block;
-  width: 16px;
-  height: 16px;
-  border: 3px solid #ffffff;
-  border-radius: 999px;
-  background: #92a8f5;
-  box-shadow: 0 4px 12px rgba(61, 74, 122, 0.28);
-}
-
-:deep(.user-location-marker-halo) {
-  display: flex;
-  width: 30px;
-  height: 30px;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid rgba(146, 168, 245, 0.42);
-  border-radius: 999px;
-  background: rgba(146, 168, 245, 0.18);
-}
-</style>

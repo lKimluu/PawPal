@@ -92,12 +92,15 @@ test('updateEvent：行程不屬於該使用者時應回傳 null', async (t) => 
   assert.equal(result, null)
 })
 
-test('deleteEvent：成功時應回傳被刪除行程的 id', async (t) => {
-  t.mock.method(pool, 'query', async () => ({ rows: [{ id: 1 }] }))
+test('deleteEvent：成功時應回傳被刪除行程的 id 與 google_event_id', async (t) => {
+  t.mock.method(pool, 'query', async (text) => {
+    assert.ok(text.includes('RETURNING ce.id, ce.google_event_id'))
+    return { rows: [{ id: 1, google_event_id: null }] }
+  })
 
   const result = await deleteEvent('1', 2)
 
-  assert.deepEqual(result, { id: 1 })
+  assert.deepEqual(result, { id: 1, google_event_id: null })
 })
 
 test('deleteEvent：行程不屬於該使用者時應回傳 null', async (t) => {

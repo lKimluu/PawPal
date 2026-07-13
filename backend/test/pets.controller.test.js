@@ -8,19 +8,26 @@ test('應匯出可注入相依服務的寵物 controller factory', () => {
   assert.equal(typeof createPetController, 'function')
 })
 
-function createTestController(overrides = {}) {
+function createTestController(overrides = {}, optionOverrides = {}) {
   const notImplemented = async () => {
     throw new Error('service method should not be called')
   }
 
-  return createPetController({
-    findPetsByUserId: notImplemented,
-    findPetByIdAndUserId: notImplemented,
-    createPetForUser: notImplemented,
-    updatePetByIdAndUserId: notImplemented,
-    deletePetByIdAndUserId: notImplemented,
-    ...overrides,
-  })
+  return createPetController(
+    {
+      findPetsByUserId: notImplemented,
+      findPetByIdAndUserId: notImplemented,
+      createPetForUser: notImplemented,
+      updatePetByIdAndUserId: notImplemented,
+      deletePetByIdAndUserId: notImplemented,
+      ...overrides,
+    },
+    {
+      getGoogleEventIdsByPetId: async () => [],
+      syncDeletedEvents: async () => {},
+      ...optionOverrides,
+    },
+  )
 }
 
 function createTestControllerWithUpload(serviceOverrides = {}, uploadOverrides = {}) {
@@ -49,6 +56,8 @@ function createTestControllerWithUpload(serviceOverrides = {}, uploadOverrides =
     },
     {
       uploadImages,
+      getGoogleEventIdsByPetId: async () => [],
+      syncDeletedEvents: async () => {},
       ...uploadOverrides,
     },
   )
@@ -418,4 +427,58 @@ test('應刪除已驗證使用者擁有的寵物', async () => {
 
   assert.equal(res.statusCode, 204)
   assert.equal(res.sent, true)
+})
+
+test('刪除寵物時應先收集 google_event_id、刪除後清理 Google 事件', async () => {
+  const calls = []
+  const { deletePet } = createTestController(
+    {
+      deletePetByIdAndUserId: async (id, userId) => {
+        calls.push(['delete', id, userId])
+        return true
+      },
+    },
+    {
+      getGoogleEventIdsByPetId: async (petId, userId) => {
+        calls.push(['collect', petId, userId])
+        return ['google-event-1', 'google-event-2']
+      },
+      syncDeletedEvents: async (userId, googleEventIds) => {
+        calls.push(['sync', userId, googleEventIds])
+      },
+    },
+  )
+  const req = { userId: 42, params: { id: '5' } }
+  const res = createResponse()
+
+  await deletePet(req, res)
+
+  assert.equal(res.statusCode, 204)
+  assert.deepEqual(calls, [
+    ['collect', 5, 42],
+    ['delete', 5, 42],
+    ['sync', 42, ['google-event-1', 'google-event-2']],
+  ])
+})
+
+test('刪除寵物找不到時不應清理 Google 事件', async () => {
+  const syncCalls = []
+  const { deletePet } = createTestController(
+    {
+      deletePetByIdAndUserId: async () => false,
+    },
+    {
+      getGoogleEventIdsByPetId: async () => ['google-event-1'],
+      syncDeletedEvents: async (...args) => {
+        syncCalls.push(args)
+      },
+    },
+  )
+  const req = { userId: 42, params: { id: '99' } }
+  const res = createResponse()
+
+  await deletePet(req, res)
+
+  assert.equal(res.statusCode, 404)
+  assert.deepEqual(syncCalls, [])
 })

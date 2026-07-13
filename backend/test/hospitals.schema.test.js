@@ -2,9 +2,24 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import {
+  hospitalMapQuerySchema,
   hospitalsQuerySchema,
   nearbyHospitalsQuerySchema,
 } from '../src/schemas/hospitals.schema.js'
+
+test('醫院清單 schema 應支援 24H 與排序並要求距離座標', () => {
+  const valid = hospitalsQuerySchema.safeParse({ is_24h: 'true', sort: 'distance', lat: '25', lng: '121' })
+  assert.equal(valid.success, true)
+  assert.equal(valid.data.is_24h, true)
+  assert.equal(hospitalsQuerySchema.safeParse({ sort: 'distance' }).success, false)
+})
+
+test('地圖 bounds schema 應驗證方向與數值', () => {
+  assert.equal(hospitalMapQuerySchema.safeParse({ north: 26, south: 24, east: 122, west: 120 }).success, true)
+  const invalid = hospitalMapQuerySchema.safeParse({ north: 24, south: 26, east: 122, west: 120 })
+  assert.equal(invalid.success, false)
+  assert.equal(invalid.error.issues[0].message, '北側緯度必須大於南側緯度')
+})
 
 test('醫院清單 query schema 應套用預設分頁並修剪字串條件', () => {
   const result = hospitalsQuerySchema.safeParse({
