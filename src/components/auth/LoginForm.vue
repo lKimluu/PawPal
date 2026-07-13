@@ -68,7 +68,9 @@ const handleGoogleLoginCallback = async (response) => {
 
 const loginWithLine = () => {
   const clientID = import.meta.env.VITE_LINE_CHANNEL_ID
-  const redirectURI = encodeURIComponent(import.meta.env.VITE_LINE_REDIRECT_URI)
+
+  const currentOrigin = window.location.origin + '/login'
+  const redirectURI = encodeURIComponent(currentOrigin)
   const state = 'pawpal_line_login_secure'
 
   const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${clientID}&redirect_uri=${redirectURI}&state=${state}&scope=profile%20openid%20email`

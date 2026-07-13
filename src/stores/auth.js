@@ -49,7 +49,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function loginWithLine(code) {
-    const result = await loginWithLineApi(code)
+    const redirectUri = window.location.origin + '/login'
+    const result = await loginWithLineApi({ code, redirectUri })
 
     if (!result.success) {
       return result
