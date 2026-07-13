@@ -19,7 +19,8 @@
     "v-calendar": "^3.1.2",
     "vue": "^3.5.32",
     "vue-chartjs": "^5.3.3",
-    "vue-router": "^5.0.4"
+    "vue-router": "^5.0.4",
+    "vue3-google-login": "^2.1.4"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
