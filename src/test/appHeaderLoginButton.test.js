@@ -9,9 +9,7 @@ const appHeader = readFileSync(
 
 test('Header 未登入按鈕使用較大的文字與登入 icon', () => {
   assert.match(appHeader, /class="group flex h-12[\s\S]*text-base[\s\S]*hover:text-brand-orange/)
-  assert.match(appHeader, /import loginIcon from '@\/assets\/icons\/login\.svg'/)
   assert.match(appHeader, /class="login-icon size-6/)
-  assert.match(appHeader, /--icon-url[\s\S]*loginIcon/)
-  assert.match(appHeader, /background-color: currentColor/)
-  assert.doesNotMatch(appHeader, /<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/)
+  assert.match(appHeader, /stroke="currentColor"/)
+  assert.match(appHeader, /<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/)
 })
