@@ -13,6 +13,7 @@ import {
   hasUserAvatar,
 } from '@/utils/userProfile.js'
 import defaultProfileIcon from '@/assets/icons/account-profile-icon.svg'
+import loginIcon from '@/assets/icons/login.svg'
 
 const props = defineProps({
   variant: {
@@ -176,21 +177,11 @@ const navGroups = [
             to="/login"
             class="group flex h-12 items-center justify-center gap-2 rounded-full py-2 pl-2 pr-3 text-base font-medium text-brand-gray transition hover:text-brand-orange"
           >
-            <svg
+            <span
               class="login-icon size-6 shrink-0"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+              :style="{ '--icon-url': `url(${loginIcon})` }"
               aria-hidden="true"
-            >
-              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-              <polyline points="10 17 15 12 10 7" />
-              <line x1="15" y1="12" x2="3" y2="12" />
-            </svg>
+            />
             <span>登入</span>
           </RouterLink>
 
@@ -256,21 +247,11 @@ const navGroups = [
                 class="group flex w-full items-center gap-2 border-t border-[#EEF1F5] px-4 py-3 text-sm font-medium text-brand-gray transition hover:bg-[#F8FAFC] hover:text-brand-orange"
                 @click="handleLogout"
               >
-                <svg
+                <span
                   class="logout-icon size-4 shrink-0"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+                  :style="{ '--icon-url': `url(${loginIcon})` }"
                   aria-hidden="true"
-                >
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                  <polyline points="10 17 15 12 10 7" />
-                  <line x1="15" y1="12" x2="3" y2="12" />
-                </svg>
+                />
                 登出
               </button>
             </div>
@@ -309,6 +290,14 @@ const navGroups = [
 
 .group:hover .arrow-icon {
   filter: invert(63%) sepia(95%) saturate(700%) hue-rotate(1deg) brightness(103%) contrast(101%);
+}
+
+.login-icon,
+.logout-icon {
+  display: inline-block;
+  background-color: currentColor;
+  mask: var(--icon-url) center / contain no-repeat;
+  -webkit-mask: var(--icon-url) center / contain no-repeat;
 }
 
 .slide-enter-active,
