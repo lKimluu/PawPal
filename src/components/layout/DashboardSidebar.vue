@@ -73,7 +73,7 @@ const navItems = [
           <ul class="flex flex-col gap-4">
             <li>
               <a
-                href="#"
+                href="about"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
                 >關於我們</a
               >
