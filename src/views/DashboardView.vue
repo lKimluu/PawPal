@@ -290,11 +290,6 @@ const handleCreatePet = async (payload) => {
         </div>
 
         <section class="lg:col-span-2 min-w-0">
-          <div class="flex items-center gap-2 mb-4">
-            <span class="text-xl">🐾</span>
-            <h2 class="text-lg font-semibold text-[var(--color-brand-darkgray)]">寵物健康護照</h2>
-          </div>
-
           <div
             class="flex flex-col md:flex-row gap-3 md:gap-4 overflow-y-auto max-h-[360px] md:overflow-y-hidden md:overflow-x-auto md:max-h-none pb-2"
           >
