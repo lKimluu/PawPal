@@ -6,7 +6,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createServer } from 'vite'
 
 function readSource(path) {
-  return readFileSync(new URL(path, import.meta.url), 'utf8')
+  return readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
 }
 
 const resetContracts = [
@@ -105,8 +105,8 @@ test('auth store 不反向 import session 或使用者資料 store', () => {
 
 const sessionEntryPoints = [
   {
-    name: 'DashboardSidebar',
-    path: '../components/layout/DashboardSidebar.vue',
+    name: 'AppHeader',
+    path: '../components/layout/AppHeader.vue',
     action: /sessionStore\.logout\(\)/,
   },
   {
@@ -262,19 +262,21 @@ async function createStoresWithMockedApis(t) {
         name: 'session-store-reset-api-mocks',
         enforce: 'pre',
         resolveId(id) {
-          if (id === '@/api/medical.js' || id.endsWith('/src/api/medical.js')) {
+          const normalizedId = id.replace(/\\/g, '/')
+
+          if (normalizedId === '@/api/medical.js' || normalizedId.endsWith('/src/api/medical.js')) {
             return '\0session-store-reset-api-mock:medical'
           }
 
-          if (id === '@/api/growth.js' || id.endsWith('/src/api/growth.js')) {
+          if (normalizedId === '@/api/growth.js' || normalizedId.endsWith('/src/api/growth.js')) {
             return '\0session-store-reset-api-mock:growth'
           }
 
-          if (id === '@/api/pet.js' || id.endsWith('/src/api/pet.js')) {
+          if (normalizedId === '@/api/pet.js' || normalizedId.endsWith('/src/api/pet.js')) {
             return '\0session-store-reset-api-mock:pet'
           }
 
-          if (id === '@/api/calendar.js' || id.endsWith('/src/api/calendar.js')) {
+          if (normalizedId === '@/api/calendar.js' || normalizedId.endsWith('/src/api/calendar.js')) {
             return '\0session-store-reset-api-mock:calendar'
           }
 
