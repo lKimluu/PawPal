@@ -5,6 +5,11 @@ import Home from '@/views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior(to) {
+    if (['PrivacyPolicy', 'TermsOfService'].includes(to.name)) {
+      return { top: 0 }
+    }
+  },
   routes: [
     {
       path: '/',
@@ -68,6 +73,16 @@ const router = createRouter({
       path: '/hospital',
       name: 'Hospital',
       component: () => import('@/views/HospitalView.vue'),
+    },
+    {
+      path: '/privacy-policy',
+      name: 'PrivacyPolicy',
+      component: () => import('@/views/PrivacyPolicyView.vue'),
+    },
+    {
+      path: '/terms-of-service',
+      name: 'TermsOfService',
+      component: () => import('@/views/TermsOfServiceView.vue'),
     },
     {
       path: '/:pathMatch(.*)*',

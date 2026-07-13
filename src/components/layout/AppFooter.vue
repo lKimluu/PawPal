@@ -44,8 +44,15 @@
       </div>
     </div>
 
-    <div class="flex items-center justify-center w-full h-[50px] bg-[#3D4A7A]">
+    <div
+      class="flex flex-col items-center justify-center gap-2 w-full h-[50px] bg-[#3D4A7A] sm:flex-row sm:gap-4"
+    >
       <p class="text-sm text-[#E9EEFD]">© 2026 PawPal.All rights reserved.</p>
+      <div class="flex items-center gap-3 text-xs text-[#E9EEFD]">
+        <RouterLink to="/privacy-policy" class="hover:text-[#FFA002]">隱私權政策</RouterLink>
+        <span class="text-[#E9EEFD]/50">|</span>
+        <RouterLink to="/terms-of-service" class="hover:text-[#FFA002]">服務條款</RouterLink>
+      </div>
     </div>
   </footer>
 </template>
