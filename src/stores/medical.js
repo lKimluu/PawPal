@@ -6,6 +6,11 @@ export const useMedicalStore = defineStore('medical', () => {
   const records = ref([])
   const isLoading = ref(false)
   const errorMsg = ref('')
+  let requestGeneration = 0
+
+  function isCurrentRequest(generation) {
+    return generation === requestGeneration
+  }
 
   function buildRecordPayload(petId, formData) {
     const payload = {
@@ -43,8 +48,12 @@ export const useMedicalStore = defineStore('medical', () => {
   }
 
   async function fetchRecords(petId, recordType = '全部') {
+    const generation = requestGeneration
+
     if (!petId) {
-      records.value = []
+      if (isCurrentRequest(generation)) {
+        records.value = []
+      }
       return
     }
 
@@ -53,6 +62,10 @@ export const useMedicalStore = defineStore('medical', () => {
 
     try {
       const response = await medicalApi.getRecordsByPet(petId, recordType)
+      if (!isCurrentRequest(generation)) {
+        return
+      }
+
       const serverRecords = response.data?.data || response.data || []
 
       records.value = Array.isArray(serverRecords)
@@ -79,86 +92,135 @@ export const useMedicalStore = defineStore('medical', () => {
           })
         : []
     } catch (err) {
+      if (!isCurrentRequest(generation)) {
+        return
+      }
+
       console.error('Store 撈取醫療紀錄失敗:', err)
       errorMsg.value = err.response?.data?.message || '撈取醫療紀錄失敗，請稍後再試。'
       records.value = []
     } finally {
-      isLoading.value = false
+      if (isCurrentRequest(generation)) {
+        isLoading.value = false
+      }
     }
   }
 
   async function addRecord(petId, formData) {
+    const generation = requestGeneration
+
     isLoading.value = true
     errorMsg.value = ''
 
     try {
       const payload = buildRecordPayload(petId, formData)
       const response = await medicalApi.createRecord(payload)
+      if (!isCurrentRequest(generation)) {
+        return { success: false, stale: true }
+      }
 
       if (response.status === 200 || response.status === 201) {
         await fetchRecords(petId)
+        if (!isCurrentRequest(generation)) {
+          return { success: false, stale: true }
+        }
         return { success: true }
       }
 
       return { success: false, message: '後端寫入異常' }
     } catch (err) {
+      if (!isCurrentRequest(generation)) {
+        return { success: false, stale: true }
+      }
+
       console.error('Store 新增醫療紀錄失敗:', err)
       const message = err.response?.data?.message || '資料格式驗證失敗'
       errorMsg.value = message
       return { success: false, message }
     } finally {
-      isLoading.value = false
+      if (isCurrentRequest(generation)) {
+        isLoading.value = false
+      }
     }
   }
 
   async function updateRecord(recordId, petId, formData) {
+    const generation = requestGeneration
+
     isLoading.value = true
     errorMsg.value = ''
 
     try {
       const payload = buildRecordPayload(petId, formData)
       const response = await medicalApi.updateRecord(recordId, payload)
+      if (!isCurrentRequest(generation)) {
+        return { success: false, stale: true }
+      }
 
       if (response.status === 200) {
         await fetchRecords(petId)
+        if (!isCurrentRequest(generation)) {
+          return { success: false, stale: true }
+        }
         return { success: true }
       }
 
       return { success: false, message: '更新失敗' }
     } catch (err) {
+      if (!isCurrentRequest(generation)) {
+        return { success: false, stale: true }
+      }
+
       console.error('Store 修改醫療紀錄失敗:', err)
       const message = err.response?.data?.message || '修改失敗'
       errorMsg.value = message
       return { success: false, message }
     } finally {
-      isLoading.value = false
+      if (isCurrentRequest(generation)) {
+        isLoading.value = false
+      }
     }
   }
 
   async function deleteRecord(recordId, petId) {
+    const generation = requestGeneration
+
     isLoading.value = true
     errorMsg.value = ''
 
     try {
       const response = await medicalApi.deleteRecord(recordId)
+      if (!isCurrentRequest(generation)) {
+        return { success: false, stale: true }
+      }
 
       if (response.status === 200) {
         await fetchRecords(petId)
+        if (!isCurrentRequest(generation)) {
+          return { success: false, stale: true }
+        }
         return { success: true }
       }
 
       return { success: false, message: '刪除失敗' }
     } catch (err) {
+      if (!isCurrentRequest(generation)) {
+        return { success: false, stale: true }
+      }
+
       console.error('Store 刪除醫療紀錄失敗:', err)
       const message = err.response?.data?.message || '刪除失敗'
       errorMsg.value = message
       return { success: false, message }
     } finally {
-      isLoading.value = false
+      if (isCurrentRequest(generation)) {
+        isLoading.value = false
+      }
     }
   }
 
   function reset() {
+    requestGeneration += 1
     records.value = []
     isLoading.value = false
     errorMsg.value = ''

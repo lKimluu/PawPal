@@ -2,8 +2,20 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-// Supabase PostgreSQL 為遠端連線，需提供完整資料庫憑證。
-const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET']
+const requiredEnvVars = [
+  'DB_HOST',
+  'DB_PORT',
+  'DB_NAME',
+  'DB_USER',
+  'DB_PASSWORD',
+  'JWT_SECRET',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'LINE_CHANNEL_ID',
+  'LINE_CHANNEL_SECRET',
+  'LINE_REDIRECT_URI',
+  'GEMINI_API_KEY',
+]
 
 const missingEnvVars = requiredEnvVars.filter((envVar) => {
   const value = process.env[envVar]

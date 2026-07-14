@@ -80,6 +80,7 @@ test('新增行事曆行程：成功回傳 201 與新資料', async () => {
       assert.equal(data.title, '施打疫苗')
       return newEvent
     },
+    syncCreatedEvent: async () => null,
   })
 
   const req = {
@@ -122,6 +123,7 @@ test('更新行事曆行程：成功回傳 200 與更新後資料', async () => 
       assert.deepEqual(fields, { title: '複診' })
       return updated
     },
+    syncUpdatedEvent: async () => null,
   })
 
   const req = { params: { id: '1' }, userId: 2, body: { title: '複診' } }
@@ -167,8 +169,9 @@ test('刪除行事曆行程：成功回傳 204', async () => {
     deleteEvent: async (id, userId) => {
       assert.equal(id, '1')
       assert.equal(userId, 2)
-      return { id: 1 }
+      return { id: 1, google_event_id: 'google-event-1' }
     },
+    syncDeletedEvent: async () => {},
   })
 
   const req = { params: { id: '1' }, userId: 2 }

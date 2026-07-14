@@ -61,6 +61,20 @@ test('updateEvent：成功時應回傳更新後的行程', async (t) => {
   assert.deepEqual(result, updatedRow)
 })
 
+test('updateEvent：event_time 為 null 時應以 null 寫入資料庫（清空時間）', async (t) => {
+  const updatedRow = { id: 1, title: '複診', event_time: null }
+  const query = t.mock.method(pool, 'query', async (text, values) => {
+    assert.ok(text.includes('event_time = $1'))
+    assert.equal(values[0], null)
+    return { rows: [updatedRow] }
+  })
+
+  const result = await updateEvent('1', { event_time: null }, 2)
+
+  assert.deepEqual(result, updatedRow)
+  assert.equal(query.mock.callCount(), 1)
+})
+
 test('updateEvent：沒有合法欄位時應直接回傳 null（不呼叫 DB）', async (t) => {
   const query = t.mock.method(pool, 'query', async () => ({ rows: [] }))
 
@@ -78,12 +92,15 @@ test('updateEvent：行程不屬於該使用者時應回傳 null', async (t) => 
   assert.equal(result, null)
 })
 
-test('deleteEvent：成功時應回傳被刪除行程的 id', async (t) => {
-  t.mock.method(pool, 'query', async () => ({ rows: [{ id: 1 }] }))
+test('deleteEvent：成功時應回傳被刪除行程的 id 與 google_event_id', async (t) => {
+  t.mock.method(pool, 'query', async (text) => {
+    assert.ok(text.includes('RETURNING ce.id, ce.google_event_id'))
+    return { rows: [{ id: 1, google_event_id: null }] }
+  })
 
   const result = await deleteEvent('1', 2)
 
-  assert.deepEqual(result, { id: 1 })
+  assert.deepEqual(result, { id: 1, google_event_id: null })
 })
 
 test('deleteEvent：行程不屬於該使用者時應回傳 null', async (t) => {

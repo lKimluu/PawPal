@@ -15,6 +15,7 @@ function fromApi(row) {
     location: row.location,
     notes: row.notes,
     isCompleted: row.is_completed,
+    googleSyncFailed: row.google_sync_failed,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -38,7 +39,7 @@ function toUpdateBody(form) {
   const body = {}
   if (form.title !== undefined) body.title = form.title
   if (form.eventDate !== undefined) body.event_date = form.eventDate
-  if (form.eventTime) body.event_time = form.eventTime
+  if (form.eventTime !== undefined) body.event_time = form.eventTime || null
   if (form.type !== undefined) body.type = form.type
   if (form.location !== undefined) body.location = form.location
   if (form.notes !== undefined) body.notes = form.notes
@@ -105,6 +106,24 @@ export async function updateEvent(id, form, token) {
     return {
       success: true,
       message: response.data?.message || '更新成功',
+      data: fromApi(response.data?.data),
+    }
+  } catch (error) {
+    return toError(error)
+  }
+}
+
+export async function resyncEvent(id, token) {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}${BASE_PATH}/${id}/resync`,
+      null,
+      authConfig(token),
+    )
+
+    return {
+      success: true,
+      message: response.data?.message || '重新同步成功',
       data: fromApi(response.data?.data),
     }
   } catch (error) {
