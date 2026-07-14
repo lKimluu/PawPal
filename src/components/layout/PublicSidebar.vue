@@ -1,6 +1,7 @@
 <script setup>
 import { useAuthStore } from '@/stores/auth'
 import { useSidebarStore } from '@/stores/sidebar'
+import loginIcon from '@/assets/icons/login.svg'
 
 const sidebarStore = useSidebarStore()
 const authStore = useAuthStore()
@@ -108,12 +109,12 @@ const authStore = useAuthStore()
                 <router-link
                   to="/login"
                   @click="sidebarStore.closeSidebar()"
-                  class="cursor-pointer flex items-center gap-1.5 text-base font-medium text-brand-gray active:text-brand-orange"
+                  class="group cursor-pointer flex items-center gap-1.5 text-base font-medium text-brand-gray active:text-brand-orange"
                 >
                   <img
-                    src="@/assets/icons/login.svg"
+                    :src="loginIcon"
                     alt="Login Icon"
-                    class="h-4 w-4 active:stroke-brand-orange"
+                    class="h-4 w-4 transition group-hover:[filter:brightness(0)_saturate(100%)_invert(67%)_sepia(99%)_saturate(1924%)_hue-rotate(359deg)_brightness(101%)_contrast(104%)]"
                   />
 
                   登入

@@ -120,12 +120,13 @@ test('UserProfileModal 會員資料欄位外框提供 hover 與 focus 效果', (
   assert.doesNotMatch(source, /focus-within:ring-4/)
 })
 
-test('AppHeader 點擊會員資訊區會開啟 UserProfileModal', () => {
+test('AppHeader 透過個人資料選項開啟 UserProfileModal', () => {
   assert.match(appHeader, /import UserProfileModal from '@\/components\/member\/UserProfileModal\.vue'/)
   assert.match(appHeader, /import defaultProfileIcon from '@\/assets\/icons\/user\.svg'/)
   assert.match(appHeader, /const isUserProfileModalOpen = ref\(false\)/)
   assert.match(appHeader, /function handleOpenUserProfileModal\(\)[\s\S]*isUserProfileModalOpen\.value = true/)
-  assert.match(appHeader, /aria-label="查看個人資料"[\s\S]*@click="handleOpenUserProfileModal"/)
+  assert.match(appHeader, />\s*個人資料\s*<\/button>/)
+  assert.match(appHeader, /@click="handleOpenUserProfileModal"/)
   assert.match(appHeader, /<UserProfileModal[\s\S]*:is-open="isUserProfileModalOpen"[\s\S]*:user="authStore\.user"[\s\S]*@close="isUserProfileModalOpen = false"/)
 })
 

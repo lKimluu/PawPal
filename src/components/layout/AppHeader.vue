@@ -16,6 +16,8 @@ import {
 import defaultProfileIcon from '@/assets/icons/user.svg'
 import aboutIcon from '@/assets/icons/about-team.svg'
 import knowledgeIcon from '@/assets/icons/knowledge-lightbulb.svg'
+import loginIcon from '@/assets/icons/login.svg'
+import homeIcon from '@/assets/icons/home.svg'
 
 const props = defineProps({
   variant: {
@@ -146,20 +148,7 @@ onBeforeUnmount(() => {
           to="/login"
           class="group flex h-12 items-center justify-center gap-2 rounded-full py-2 pl-2 pr-3 text-base font-medium text-brand-gray transition hover:text-brand-orange"
         >
-          <svg
-            class="login-icon size-6 shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-            <polyline points="10 17 15 12 10 7" />
-            <line x1="15" y1="12" x2="3" y2="12" />
-          </svg>
+          <img :src="loginIcon" alt="" class="auth-action-icon size-6 shrink-0" />
           <span>登入</span>
         </RouterLink>
 
@@ -189,14 +178,9 @@ onBeforeUnmount(() => {
             v-if="isMemberMenuOpen"
             class="absolute right-0 top-full z-50 mt-3 w-[255px] overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-[0_14px_35px_rgba(31,41,55,0.16)]"
           >
-            <button
-              type="button"
-              class="group flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-[#F8FAFC]"
-              aria-label="查看個人資料"
-              @click="handleOpenUserProfileModal"
-            >
+            <div class="flex w-full items-center gap-3 px-4 py-4">
               <div
-                class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border border-[#D6DDE8] bg-white transition group-hover:border-brand-orange"
+                class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border border-[#D6DDE8] bg-white"
               >
                 <img
                   v-if="hasUploadedAvatar"
@@ -213,16 +197,38 @@ onBeforeUnmount(() => {
               </div>
               <div class="min-w-0">
                 <p
-                  class="truncate text-lg font-semibold text-brand-navy transition group-hover:text-brand-orange"
+                  class="truncate text-lg font-semibold text-brand-navy"
                 >
                   {{ memberDisplayName }}
                 </p>
                 <p
-                  class="truncate text-base font-medium text-brand-gray transition group-hover:text-brand-orange"
+                  class="truncate text-base font-medium text-brand-gray"
                 >
                   {{ memberDisplayEmail }}
                 </p>
               </div>
+            </div>
+
+            <RouterLink
+              to="/dashboard"
+              class="group flex w-full items-center gap-2 border-t border-[#EEF1F5] px-4 py-3 text-sm font-medium text-brand-gray transition hover:bg-[#F8FAFC] hover:text-brand-orange"
+              @click="closeMemberMenu"
+            >
+              <img :src="homeIcon" alt="" class="auth-action-icon size-4 shrink-0" />
+              會員首頁
+            </RouterLink>
+
+            <button
+              type="button"
+              class="group flex w-full items-center gap-2 border-t border-[#EEF1F5] px-4 py-3 text-sm font-medium text-brand-gray transition hover:bg-[#F8FAFC] hover:text-brand-orange"
+              @click="handleOpenUserProfileModal"
+            >
+              <img
+                :src="defaultProfileIcon"
+                alt=""
+                class="auth-action-icon size-4 shrink-0"
+              />
+              個人資料
             </button>
 
             <button
@@ -230,20 +236,11 @@ onBeforeUnmount(() => {
               class="group flex w-full items-center gap-2 border-t border-[#EEF1F5] px-4 py-3 text-sm font-medium text-brand-gray transition hover:bg-[#F8FAFC] hover:text-brand-orange"
               @click="handleLogout"
             >
-              <svg
-                class="logout-icon size-4 shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                <polyline points="10 17 15 12 10 7" />
-                <line x1="15" y1="12" x2="3" y2="12" />
-              </svg>
+              <img
+                :src="loginIcon"
+                alt=""
+                class="auth-action-icon size-4 shrink-0 -scale-x-100"
+              />
               登出
             </button>
           </div>
@@ -286,9 +283,13 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.login-icon,
-.logout-icon {
-  transition: color 0.1s ease;
+.auth-action-icon {
+  transition: filter 0.1s ease;
+}
+
+.group:hover .auth-action-icon {
+  filter: brightness(0) saturate(100%) invert(67%) sepia(99%) saturate(1924%) hue-rotate(359deg)
+    brightness(101%) contrast(104%);
 }
 
 .slide-enter-active,
