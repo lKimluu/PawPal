@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PublicSidebar from '@/components/layout/PublicSidebar.vue'
 import DashboardSidebar from '@/components/layout/DashboardSidebar.vue'
+import UserProfileModal from '@/components/member/UserProfileModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useSessionStore } from '@/stores/session.js'
 import { useSidebarStore } from '@/stores/sidebar'
@@ -12,7 +13,7 @@ import {
   getUserDisplayName,
   hasUserAvatar,
 } from '@/utils/userProfile.js'
-import defaultProfileIcon from '@/assets/icons/account-profile-icon.svg'
+import defaultProfileIcon from '@/assets/icons/user.svg'
 
 const props = defineProps({
   variant: {
@@ -28,6 +29,7 @@ const sessionStore = useSessionStore()
 const router = useRouter()
 const memberMenuRef = ref(null)
 const isMemberMenuOpen = ref(false)
+const isUserProfileModalOpen = ref(false)
 
 const isMemberVariant = computed(() => props.variant === 'member')
 const shouldUseMemberSidebarOnMobile = computed(() => authStore.isLoggedIn)
@@ -42,6 +44,11 @@ function toggleMemberMenu() {
 
 function closeMemberMenu() {
   isMemberMenuOpen.value = false
+}
+
+function handleOpenUserProfileModal() {
+  isUserProfileModalOpen.value = true
+  closeMemberMenu()
 }
 
 function handleDocumentClick(event) {
@@ -114,7 +121,7 @@ const navGroups = [
 
       <div class="flex items-center gap-5 lg:contents">
         <nav class="flex items-center gap-5 lg:gap-16 text-brand-gray">
-          <a href="#" class="transition hover:text-[#FFA002]">關於我們</a>
+          <RouterLink to="/about" class="transition hover:text-[#FFA002]">關於我們</RouterLink>
 
           <div v-for="group in navGroups" :key="group.id" class="group relative">
             <button
@@ -151,10 +158,7 @@ const navGroups = [
             </div>
           </div>
 
-          <a
-            v-if="authStore.isLoggedIn"
-            href="#"
-            class="transition hover:text-brand-orange"
+          <a v-if="authStore.isLoggedIn" href="#" class="transition hover:text-brand-orange"
             >會員專區</a
           >
         </nav>
@@ -210,7 +214,7 @@ const navGroups = [
                 v-else
                 :src="defaultProfileIcon"
                 alt="預設會員頭像"
-                class="size-6"
+                class="size-6 text-brand-gray"
               />
             </button>
 
@@ -222,6 +226,7 @@ const navGroups = [
                 type="button"
                 class="group flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-[#F8FAFC]"
                 aria-label="查看個人資料"
+                @click="handleOpenUserProfileModal"
               >
                 <div
                   class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border border-[#D6DDE8] bg-white transition group-hover:border-brand-orange"
@@ -236,7 +241,7 @@ const navGroups = [
                     v-else
                     :src="defaultProfileIcon"
                     alt="預設會員頭像"
-                    class="size-6"
+                    class="size-6 text-brand-gray"
                   />
                 </div>
                 <div class="min-w-0">
@@ -280,6 +285,13 @@ const navGroups = [
   <DashboardSidebar v-if="isMemberVariant" />
 
   <DashboardSidebar v-else-if="shouldUseMemberSidebarOnMobile" :show-desktop="false" />
+
+  <UserProfileModal
+    v-if="authStore.isLoggedIn"
+    :is-open="isUserProfileModalOpen"
+    :user="authStore.user"
+    @close="isUserProfileModalOpen = false"
+  />
 
   <!-- Sidebar Overlay -->
   <div

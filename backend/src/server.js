@@ -14,6 +14,7 @@ const requiredEnvVars = [
   'LINE_CHANNEL_ID',
   'LINE_CHANNEL_SECRET',
   'LINE_REDIRECT_URI',
+  'GEMINI_API_KEY',
 ]
 
 const missingEnvVars = requiredEnvVars.filter((envVar) => {

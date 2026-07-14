@@ -6,6 +6,7 @@ defineProps({
   isOpen: { type: Boolean, default: false },
   title: { type: String, default: '建立新檔案' },
   subtitle: { type: String, default: '請依序填寫以下欄位資訊' },
+  titleContentClass: { type: String, default: '' },
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -51,8 +52,8 @@ const handleFileChange = (event) => {
         class="modal-card relative flex max-h-[90vh] w-full max-w-2xl flex-col gap-6 overflow-hidden rounded-3xl bg-white pt-6 pb-6 pl-6 pr-2 shadow-2xl md:pt-8 md:pb-8 md:pr-2 md:pl-8"
       >
         <!-- 頂部標頭與 X 關閉鈕 -->
-        <div class="flex items-start justify-between">
-          <div class="flex flex-col gap-1">
+        <div class="flex items-start justify-between pr-4 md:pr-6">
+          <div class="flex flex-col gap-1" :class="titleContentClass">
             <h2 class="text-2xl font-bold tracking-wide text-brand-navy">{{ title }}</h2>
             <span v-if="subtitle" class="text-xs text-brand-gray pt-1">{{ subtitle }}</span>
           </div>
@@ -65,11 +66,12 @@ const handleFileChange = (event) => {
           </button>
         </div>
 
-        <!-- 內部主要表單 -->
-        <form
-          @submit.prevent="handleSubmit"
-          class="flex min-h-0 flex-col gap-5 overflow-y-auto pr-4 md:pr-6"
-        >
+        <slot>
+          <!-- 內部主要表單 -->
+          <form
+            @submit.prevent="handleSubmit"
+            class="flex min-h-0 flex-col gap-5 overflow-y-auto pr-4 md:pr-6"
+          >
           <!-- 單行文字輸入框(如：標題、姓名) -->
           <div class="flex flex-col gap-2">
             <label class="text-base font-bold text-brand-navy">
@@ -228,7 +230,8 @@ const handleFileChange = (event) => {
               確認送出
             </button>
           </div>
-        </form>
+          </form>
+        </slot>
       </div>
     </div>
   </Transition>

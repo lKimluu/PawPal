@@ -364,7 +364,7 @@ onBeforeUnmount(() => {
           PawPal將即時資訊、專業知識與溫慢陪伴整合在一起，讓你不論身處何地、何時，都能安心。
         </p>
         <RouterLink
-          to="/#"
+          to="/about"
           class="tracking-wider mt-6 inline-flex items-center justify-center gap-2 text-sm font-bold border-2 px-6 py-2.5 rounded-full transition-all duration-200 lg:hover:scale-[1.02] active:bg-brand-blue active:text-brand-white active:scale-[0.99] border-brand-blue text-brand-blue lg:hover:bg-brand-blue lg:hover:text-white"
         >
           了解更多 ➔

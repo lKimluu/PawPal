@@ -22,3 +22,20 @@ export const apiRateLimitOptions = {
 }
 
 export const apiRateLimiter = rateLimit(apiRateLimitOptions)
+
+const DEFAULT_AI_RATE_LIMIT_WINDOW_MS = 60 * 1000
+const DEFAULT_AI_RATE_LIMIT_MAX = 10
+
+export const aiAssistantRateLimitOptions = {
+  windowMs: readPositiveIntegerEnv('AI_RATE_LIMIT_WINDOW_MS', DEFAULT_AI_RATE_LIMIT_WINDOW_MS),
+  limit: readPositiveIntegerEnv('AI_RATE_LIMIT_MAX', DEFAULT_AI_RATE_LIMIT_MAX),
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    return res.status(429).json({
+      message: '請求過於頻繁，請稍後再試',
+    })
+  },
+}
+
+export const aiAssistantRateLimiter = rateLimit(aiAssistantRateLimitOptions)
