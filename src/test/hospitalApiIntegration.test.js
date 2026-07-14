@@ -19,6 +19,17 @@ function readSource(path) {
   return existsSync(url) ? readFileSync(url, 'utf8') : ''
 }
 
+function createDeferred() {
+  let resolve
+  let reject
+  const promise = new Promise((promiseResolve, promiseReject) => {
+    resolve = promiseResolve
+    reject = promiseReject
+  })
+
+  return { promise, resolve, reject }
+}
+
 test('Hospital list query supports filters and pagination', () => {
   const query = buildHospitalListQuery({
     keyword: '仁愛',
@@ -231,6 +242,67 @@ test('Hospital store retry preserves fallback and real-location semantics', asyn
     ])
     assert.equal(locatedStore.hasRealLocation, true)
     assert.equal(locatedStore.locationFallbackMessage, '')
+  } finally {
+    axios.get = originalGet
+  }
+})
+
+test('Newer full-search nearby request supersedes stale home response, error, and completion', async () => {
+  const originalGet = axios.get
+  const requests = []
+  const location = { lat: 25.033964, lng: 121.564468 }
+
+  axios.get = (url, config) => {
+    const deferred = createDeferred()
+    requests.push({ url, config, deferred })
+    return deferred.promise
+  }
+
+  try {
+    setActivePinia(createPinia())
+    const store = useHospitalStore()
+    const homeRequest = store.loadNearbyHospitals({ location, radius: 5, limit: 3 })
+    const fullSearchRequest = store.loadNearbyHospitals({ location, radius: 5, limit: 20 })
+
+    assert.equal(requests[0].config.params.limit, 3)
+    assert.equal(requests[1].config.params.limit, 20)
+
+    requests[1].deferred.resolve({
+      data: {
+        hospitals: [{ id: 'full-search-hospital', name: '完整搜尋醫院', distance_km: 0.8 }],
+      },
+    })
+    await fullSearchRequest
+
+    requests[0].deferred.resolve({
+      data: { hospitals: [{ id: 'stale-home-hospital', name: '舊首頁醫院', distance_km: 0.4 }] },
+    })
+    await homeRequest
+
+    assert.deepEqual(store.visibleHospitals.map(({ id }) => id), ['full-search-hospital'])
+    assert.deepEqual(store.pagination, { page: 1, limit: 20, total: 1, totalPages: 1 })
+    assert.equal(store.errorMessage, '')
+    assert.equal(store.isLoading, false)
+
+    setActivePinia(createPinia())
+    const errorStore = useHospitalStore()
+    const staleErrorRequest = errorStore.loadNearbyHospitals({ location, radius: 5, limit: 3 })
+    const currentRequest = errorStore.loadNearbyHospitals({ location, radius: 5, limit: 20 })
+
+    requests[3].deferred.resolve({
+      data: {
+        hospitals: [{ id: 'current-hospital', name: '目前醫院', distance_km: 1.2 }],
+      },
+    })
+    await currentRequest
+
+    requests[2].deferred.reject(new Error('舊首頁錯誤'))
+    await staleErrorRequest
+
+    assert.deepEqual(errorStore.visibleHospitals.map(({ id }) => id), ['current-hospital'])
+    assert.deepEqual(errorStore.pagination, { page: 1, limit: 20, total: 1, totalPages: 1 })
+    assert.equal(errorStore.errorMessage, '')
+    assert.equal(errorStore.isLoading, false)
   } finally {
     axios.get = originalGet
   }

@@ -7,25 +7,53 @@ function readSource(path) {
   return existsSync(url) ? readFileSync(url, 'utf8') : ''
 }
 
-test('HomeView 使用共享 location store 並在 mounted 自動定位', () => {
+test('HomeView 使用共享 location 與 hospital stores 並在 mounted 依序載入附近醫院', () => {
   const homeView = readSource('../views/HomeView.vue')
 
   assert.match(homeView, /useLocationStore/)
+  assert.match(homeView, /useHospitalStore/)
   assert.match(homeView, /storeToRefs\(locationStore\)/)
-  assert.match(homeView, /onMounted\(\(\) => \{\s*locationStore\.requestCurrentLocation\(\)/)
+  assert.match(homeView, /onMounted\(async \(\) => \{\s*await locationStore\.requestCurrentLocation\(\)/)
+  assert.match(
+    homeView,
+    /hospitalStore\.loadNearbyHospitals\(\{\s*location: userLocation\.value,\s*locationError: '',\s*radius: 5,\s*limit: 3/,
+  )
+  assert.match(homeView, /onBeforeUnmount/)
+  assert.match(homeView, /if \(!isHomeActive\) return/)
   assert.doesNotMatch(homeView, /useAuthStore/)
   assert.doesNotMatch(homeView, /isLoggedIn/)
 })
 
-test('HomeView 顯示定位狀態且保留最近醫院假資料卡片', () => {
+test('HomeView 以 API 資料呈現三張摘要與 loading、empty、error、fallback 狀態', () => {
   const homeView = readSource('../views/HomeView.vue')
 
   assert.match(homeView, /正在取得目前位置/)
   assert.match(homeView, /已取得目前位置/)
   assert.match(homeView, /locationError/)
+  assert.match(homeView, /locationFallbackMessage/)
+  assert.match(homeView, /homeHospitals = computed\(\(\) => visibleHospitals\.value\.slice\(0, 3\)\)/)
+  assert.match(homeView, /v-for="hospital in homeHospitals"/)
+  assert.match(homeView, /formatDistance\(hospital\.distanceKm\)/)
+  assert.match(homeView, /numericDistance\.toFixed\(1\)/)
+  assert.match(homeView, /animate-pulse/)
+  assert.match(homeView, /附近 5 公里內暫無醫院/)
+  assert.match(homeView, /\{\{ errorMessage \}\}/)
   assert.match(homeView, /最近醫院/)
-  assert.match(homeView, /嗨嗨動物醫院/)
-  assert.match(homeView, /勝勝動物醫院/)
+  assert.doesNotMatch(homeView, /嗨嗨動物醫院/)
+  assert.doesNotMatch(homeView, /勝勝動物醫院/)
+})
+
+test('HomeView 保留展示用營業中且卡片先選取再導頁', () => {
+  const homeView = readSource('../views/HomeView.vue')
+
+  assert.match(homeView, /營業中/)
+  assert.match(
+    homeView,
+    /const openHospital = \(hospitalId\) => \{\s*hospitalStore\.selectHospital\(hospitalId\)\s*router\.push\('\/hospital'\)/,
+  )
+  assert.match(homeView, /@click="openHospital\(hospital\.id\)"/)
+  assert.match(homeView, /<RouterLink\s+to="\/hospital"[\s\S]*?>\s*立即搜尋醫院/)
+  assert.doesNotMatch(homeView, /loadNearbyHospitals\([\s\S]{0,180}(is_24h|isOpen|is24H)/)
 })
 
 test('HospitalView 使用共享 location store 並將 userLocation 傳給 MapView', () => {
@@ -88,11 +116,12 @@ test('MapView 使用獨立使用者位置 marker 並顯示 popup', () => {
   assert.doesNotMatch(mapView, /user-location-marker-dot/)
 })
 
-test('Home page GPS remains API-free', () => {
+test('Home page GPS completion triggers nearby API through the shared hospital store', () => {
   const homeView = readSource('../views/HomeView.vue')
 
   assert.match(homeView, /locationStore\.requestCurrentLocation\(\)/)
-  assert.doesNotMatch(homeView, /useHospitalStore/)
+  assert.match(homeView, /useHospitalStore/)
+  assert.match(homeView, /hospitalStore\.loadNearbyHospitals/)
   assert.doesNotMatch(homeView, /fetchHospitals/)
   assert.doesNotMatch(homeView, /fetchNearbyHospitals/)
   assert.doesNotMatch(homeView, /\/api\/v1\/hospitals/)
