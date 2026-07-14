@@ -37,7 +37,11 @@ watch(
     aria-label="開啟 AI 寵物小助手"
     @click="togglePanel"
   >
-    <span class="text-2xl">🐾</span>
+    <img
+      src="@/assets/images/PawPal_mark_w.webp"
+      alt="開啟 AI 寵物小助手"
+      class="h-12 w-12 object-contain"
+    />
   </button>
 
   <Transition name="fade">
@@ -67,6 +71,7 @@ watch(
       <AiAssistantMessageList
         :messages="aiAssistantStore.messages"
         :is-loading="aiAssistantStore.isLoading"
+        :error-message="aiAssistantStore.errorMessage"
       />
 
       <div class="px-4 pb-4">
