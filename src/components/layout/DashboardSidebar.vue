@@ -17,6 +17,8 @@ const props = defineProps({
   },
 })
 
+const emit = defineEmits(['open-user-profile'])
+
 const sidebarStore = useSidebarStore()
 const route = useRoute()
 
@@ -26,6 +28,11 @@ function isActive(item) {
 
 function getIcon(item) {
   return isActive(item) ? item.activeIcon : item.icon
+}
+
+function handleOpenUserProfile() {
+  sidebarStore.closeSidebar()
+  emit('open-user-profile')
 }
 
 const navItems = [
@@ -79,22 +86,6 @@ const navItems = [
             </li>
 
             <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >線上看診</a
-              >
-            </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >緊急處置教學</a
-              >
-            </li>
-
-            <li>
               <span class="text-base font-bold tracking-wider text-brand-navy">
                 寵物知識<span class="relative -top-0.5">+</span>
               </span>
@@ -104,23 +95,7 @@ const navItems = [
               <a
                 href="#"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >經驗分享討論區</a
-              >
-            </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >衛教文章</a
-              >
-            </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >小知識測驗</a
+                >小知識</a
               >
             </li>
             <li>
@@ -128,11 +103,13 @@ const navItems = [
             </li>
 
             <li>
-              <a
-                href="#"
+              <button
+                type="button"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >會員主頁</a
+                @click="handleOpenUserProfile"
               >
+                個人資料
+              </button>
             </li>
           </ul>
         </section>
@@ -174,14 +151,6 @@ const navItems = [
                 to="/growth"
                 class="px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
                 >成長歷程</RouterLink
-              >
-            </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >通知中心</a
               >
             </li>
           </ul>

@@ -54,21 +54,6 @@ const authStore = useAuthStore()
               >
             </li>
 
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >AI 即時診斷</a
-              >
-            </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >緊急處置教學
-              </a>
-            </li>
           </ul>
         </section>
 
@@ -84,23 +69,7 @@ const authStore = useAuthStore()
               <a
                 href="#"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >經驗分享討論區</a
-              >
-            </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >衛教文章</a
-              >
-            </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >小知識測驗</a
+                >小知識</a
               >
             </li>
           </ul>
