@@ -1,5 +1,6 @@
 <script setup>
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useSessionStore } from '@/stores/session.js'
 import { useSidebarStore } from '@/stores/sidebar'
 import home from '@/assets/icons/home.svg'
 import home_o from '@/assets/icons/home_o.svg'
@@ -9,6 +10,7 @@ import diagnostic from '@/assets/icons/diagnostic_gray.svg'
 import diagnostic_o from '@/assets/icons/diagnostic.svg'
 import growth from '@/assets/icons/pet-growth.svg'
 import growth_o from '@/assets/icons/pet-growth_o.svg'
+import logoutIcon from '@/assets/icons/login.svg'
 
 const props = defineProps({
   showDesktop: {
@@ -21,6 +23,8 @@ const emit = defineEmits(['open-user-profile'])
 
 const sidebarStore = useSidebarStore()
 const route = useRoute()
+const router = useRouter()
+const sessionStore = useSessionStore()
 
 function isActive(item) {
   return route.path === item.to
@@ -33,6 +37,12 @@ function getIcon(item) {
 function handleOpenUserProfile() {
   sidebarStore.closeSidebar()
   emit('open-user-profile')
+}
+
+function handleLogout() {
+  sessionStore.logout()
+  sidebarStore.closeSidebar()
+  router.push('/login')
 }
 
 const navItems = [
@@ -154,6 +164,24 @@ const navItems = [
                 class="px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
                 >成長歷程</RouterLink
               >
+            </li>
+            <li>
+              <div
+                class="flex items-center justify-center border-t border-brand-lightblue pt-[50px]"
+              >
+                <button
+                  type="button"
+                  @click="handleLogout"
+                  class="group flex cursor-pointer items-center gap-1.5 text-base font-medium text-brand-gray transition hover:text-brand-orange active:text-brand-orange"
+                >
+                  <img
+                    :src="logoutIcon"
+                    alt="Logout Icon"
+                    class="h-4 w-4 -scale-x-100 transition group-hover:[filter:brightness(0)_saturate(100%)_invert(67%)_sepia(99%)_saturate(1924%)_hue-rotate(359deg)_brightness(101%)_contrast(104%)]"
+                  />
+                  登出
+                </button>
+              </div>
             </li>
           </ul>
         </section>
