@@ -10,6 +10,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  errorMessage: {
+    type: String,
+    default: '',
+  },
 })
 
 const listRef = ref(null)
@@ -62,5 +66,7 @@ watch(
         <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-gray"></span>
       </div>
     </div>
+
+    <p v-if="errorMessage" class="text-sm text-red-500">{{ errorMessage }}</p>
   </div>
 </template>

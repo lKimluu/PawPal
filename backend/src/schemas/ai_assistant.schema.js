@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const MAX_MESSAGE_LENGTH = 100
+const MAX_MESSAGE_LENGTH = 150
 
 export const aiAssistantMessageSchema = z.object({
   message: z.preprocess(

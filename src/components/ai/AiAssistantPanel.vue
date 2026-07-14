@@ -67,6 +67,7 @@ watch(
       <AiAssistantMessageList
         :messages="aiAssistantStore.messages"
         :is-loading="aiAssistantStore.isLoading"
+        :error-message="aiAssistantStore.errorMessage"
       />
 
       <div class="px-4 pb-4">
