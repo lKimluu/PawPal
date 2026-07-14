@@ -3,6 +3,7 @@ import multer from 'multer'
 export const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 export const MAX_IMAGE_FILE_SIZE_BYTES = 5 * 1024 * 1024
 export const PET_AVATAR_UPLOAD_INTENT_FIELD = '__avatar_upload'
+export const USER_AVATAR_UPLOAD_INTENT_FIELD = '__avatar_upload'
 export const MEDICAL_IMAGE_UPLOAD_INTENT_FIELD = '__image_upload'
 
 function isMultipartRequest(req) {
@@ -111,6 +112,14 @@ export function normalizePetMultipartBody(req, res, next) {
   return next()
 }
 
+export function normalizeUserMultipartBody(req, res, next) {
+  normalizeMultipartBody(req)
+  if ((req.files ?? []).length > 0) {
+    req.body[USER_AVATAR_UPLOAD_INTENT_FIELD] = true
+  }
+  return next()
+}
+
 export function normalizeMedicalRecordMultipartBody(req, res, next) {
   normalizeMultipartBody(req, {
     numberFields: ['pet_id'],
@@ -123,4 +132,5 @@ export function normalizeMedicalRecordMultipartBody(req, res, next) {
 }
 
 export const uploadPetAvatar = createImageUploadMiddleware('avatar', 1)
+export const uploadUserAvatar = createImageUploadMiddleware('avatar', 1)
 export const uploadMedicalRecordImages = createImageUploadMiddleware('images', 5)

@@ -6,6 +6,7 @@ import {
   loginWithGoogleApi,
   loginWithLineApi,
 } from '@/api/auth.js'
+import { updateUserProfile as updateUserProfileApi } from '@/api/user.js'
 
 const TOKEN_STORAGE_KEY = 'pawpal_token'
 const USER_STORAGE_KEY = 'pawpal_user'
@@ -29,6 +30,19 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = result.data.token || ''
     user.value = result.data.user || null
 
+    persistAuthState()
+
+    return result
+  }
+
+  async function updateProfile(payload) {
+    const result = await updateUserProfileApi(payload, token.value)
+
+    if (!result.success) {
+      return result
+    }
+
+    user.value = result.data.user || user.value
     persistAuthState()
 
     return result
@@ -146,6 +160,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggedIn,
     login,
     register,
+    updateProfile,
     logout,
     loginWithGoogle,
     loginWithLine,

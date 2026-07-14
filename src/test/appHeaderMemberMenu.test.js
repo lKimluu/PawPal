@@ -12,6 +12,7 @@ test('會員下拉選單登出按鈕 hover 時會同步切換 icon 顏色', () =
   assert.match(appHeader, /import loginIcon from '@\/assets\/icons\/login\.svg'/)
   assert.match(appHeader, /class="auth-action-icon size-4 shrink-0 -scale-x-100"/)
   assert.match(appHeader, /\.group:hover \.auth-action-icon[\s\S]*filter:/)
+  assert.doesNotMatch(appHeader, /transition: filter/)
 })
 
 test('會員下拉選單依序顯示會員首頁、個人資料與登出', () => {

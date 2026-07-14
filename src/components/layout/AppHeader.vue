@@ -283,10 +283,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.auth-action-icon {
-  transition: filter 0.1s ease;
-}
-
 .group:hover .auth-action-icon {
   filter: brightness(0) saturate(100%) invert(67%) sepia(99%) saturate(1924%) hue-rotate(359deg)
     brightness(101%) contrast(104%);

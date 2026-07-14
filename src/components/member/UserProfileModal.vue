@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
+import { useAuthStore } from '@/stores/auth'
 import {
   getUserAvatarUrl,
   getUserDisplayEmail,
@@ -17,11 +18,13 @@ const props = defineProps({
 
 defineEmits(['close'])
 
+const authStore = useAuthStore()
 const isEditingProfile = ref(false)
+const isSaving = ref(false)
+const updateError = ref('')
 const photoFileInputRef = ref(null)
 const selectedPhotoFile = ref(null)
 const photoPreviewUrl = ref('')
-const localAvatarObjectUrl = ref('')
 const localProfile = ref(createProfileForm(props.user))
 const editForm = ref(createProfileForm(props.user))
 const memberNameFieldClass =
@@ -59,12 +62,8 @@ function clearPhotoSelection() {
   }
 }
 
-function clearLocalAvatarObjectUrl() {
-  if (localAvatarObjectUrl.value) {
-    URL.revokeObjectURL(localAvatarObjectUrl.value)
-  }
-
-  localAvatarObjectUrl.value = ''
+function syncLocalProfileFromUser(user) {
+  localProfile.value = createProfileForm(user)
 }
 
 function resetEditForm() {
@@ -72,32 +71,54 @@ function resetEditForm() {
 }
 
 function handleStartEdit() {
+  syncLocalProfileFromUser(authStore.user || props.user)
   resetEditForm()
+  updateError.value = ''
   isEditingProfile.value = true
 }
 
 function handleCancelEdit() {
+  syncLocalProfileFromUser(authStore.user || props.user)
   resetEditForm()
+  updateError.value = ''
   clearPhotoSelection()
   isEditingProfile.value = false
 }
 
-function handleSaveEdit() {
-  const selectedAvatarUrl = photoPreviewUrl.value
+async function handleSaveEdit() {
+  if (isSaving.value) return
 
-  if (selectedAvatarUrl) {
-    clearLocalAvatarObjectUrl()
-    localAvatarObjectUrl.value = selectedAvatarUrl
+  const trimmedName = editForm.value.name.trim()
+  updateError.value = ''
+
+  if (!trimmedName) {
+    updateError.value = '姓名不可空白'
+    return
   }
 
-  localProfile.value = {
-    name: editForm.value.name,
-    ...(selectedAvatarUrl ? { avatar_url: selectedAvatarUrl } : {}),
-  }
+  isSaving.value = true
 
-  selectedPhotoFile.value = null
-  photoPreviewUrl.value = ''
-  isEditingProfile.value = false
+  try {
+    const result = await authStore.updateProfile({
+      name: trimmedName,
+      avatarFile: selectedPhotoFile.value,
+    })
+
+    if (!result.success) {
+      updateError.value = result.message
+      return
+    }
+
+    const updatedUser = result.data?.user || authStore.user
+
+    localProfile.value = createProfileForm(updatedUser)
+    resetEditForm()
+    clearPhotoSelection()
+    updateError.value = ''
+    isEditingProfile.value = false
+  } finally {
+    isSaving.value = false
+  }
 }
 
 function triggerPhotoUpload() {
@@ -122,9 +143,9 @@ watch(
   () => [props.isOpen, props.user],
   () => {
     clearPhotoSelection()
-    clearLocalAvatarObjectUrl()
-    localProfile.value = createProfileForm(props.user)
+    syncLocalProfileFromUser(authStore.user || props.user)
     resetEditForm()
+    updateError.value = ''
     isEditingProfile.value = false
   },
   { immediate: true },
@@ -227,6 +248,14 @@ watch(
         </div>
       </div>
 
+      <p
+        v-if="updateError"
+        class="px-1 text-sm font-semibold text-red-500 md:px-0"
+        role="alert"
+      >
+        {{ updateError }}
+      </p>
+
       <div class="flex justify-end gap-3 border-t border-slate-100 pt-4 pr-4 md:pr-6">
         <template v-if="!isEditingProfile">
           <BaseButton class="min-w-[96px]" @click="handleStartEdit">修改資料</BaseButton>
@@ -235,7 +264,9 @@ watch(
           <BaseButton variant="orange" class="min-w-[96px]" @click="handleCancelEdit">
             取消
           </BaseButton>
-          <BaseButton class="min-w-[96px]" @click="handleSaveEdit">儲存修改</BaseButton>
+          <BaseButton class="min-w-[96px]" :disabled="isSaving" @click="handleSaveEdit">
+            {{ isSaving ? '儲存中...' : '儲存修改' }}
+          </BaseButton>
         </template>
       </div>
     </section>
