@@ -1,18 +1,22 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import SearchBar from '@/components/hospital/SearchBar.vue'
 import MapView from '@/components/hospital/MapView.vue'
 import HospitalList from '@/components/hospital/HospitalList.vue'
+import HospitalReviewModal from '@/components/hospital/HospitalReviewModal.vue'
+import DeleteConfirmModal from '@/components/common/DeleteConfirmModal.vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { useHospitalStore } from '@/stores/hospital.js'
 import { useLocationStore } from '@/stores/location.js'
+import { useToastStore } from '@/stores/toast.js'
 
 const authStore = useAuthStore()
 const locationStore = useLocationStore()
 const hospitalStore = useHospitalStore()
+const toastStore = useToastStore()
 const { userLocation, isLocating, locationError, permissionState } = storeToRefs(locationStore)
 const {
   visibleHospitals,
@@ -29,6 +33,16 @@ const {
 } = storeToRefs(hospitalStore)
 const headerVariant = computed(() => (authStore.isLoggedIn ? 'member' : 'public'))
 const isLocationPermissionBlocked = computed(() => permissionState.value === 'denied')
+const isReviewModalOpen = ref(false)
+const reviewHospital = ref(null)
+const reviewMode = ref('list')
+const reviewList = ref([])
+const isReviewLoading = ref(false)
+const isReviewSubmitting = ref(false)
+const editingReview = ref(null)
+const reviewToDelete = ref(null)
+const isReviewDeleteOpen = ref(false)
+const currentUserId = computed(() => authStore.user?.id ?? authStore.user?.user_id ?? null)
 
 async function requestCurrentLocation() {
   await locationStore.requestCurrentLocation()
@@ -54,6 +68,113 @@ async function loadNearbyHospitals({ requestLocation = true } = {}) {
 
 function selectHospital(hospitalId) {
   hospitalStore.selectHospital(hospitalId)
+}
+
+async function openHospitalReviewModal(hospital) {
+  reviewHospital.value = hospital
+  reviewMode.value = 'list'
+  reviewList.value = []
+  isReviewModalOpen.value = true
+  await reloadHospitalReviews(hospital.id)
+}
+
+async function reloadHospitalReviews(hospitalId) {
+  isReviewLoading.value = true
+  const result = await hospitalStore.loadHospitalReviews(hospitalId)
+  isReviewLoading.value = false
+  const latestHospital = hospitalStore.getHospitalById(hospitalId)
+  if (latestHospital) reviewHospital.value = latestHospital
+  if (result.success) reviewList.value = result.reviews
+  if (!result.success) toastStore.showToast(result.message, 'error')
+  return result
+}
+
+function closeHospitalReviewModal() {
+  isReviewModalOpen.value = false
+  reviewMode.value = 'list'
+  reviewHospital.value = null
+  reviewList.value = []
+  editingReview.value = null
+  reviewToDelete.value = null
+  isReviewDeleteOpen.value = false
+}
+
+function showReviewForm() {
+  editingReview.value = null
+  reviewMode.value = 'form'
+}
+
+function backToReviewList() {
+  editingReview.value = null
+  reviewMode.value = 'list'
+}
+
+function startEditReview(review) {
+  editingReview.value = review
+  reviewMode.value = 'form'
+}
+
+function openReviewDeleteConfirm(review) {
+  reviewToDelete.value = review
+  isReviewDeleteOpen.value = true
+}
+
+function closeReviewDeleteConfirm() {
+  isReviewDeleteOpen.value = false
+  reviewToDelete.value = null
+}
+
+async function submitHospitalReview(payload) {
+  if (!reviewHospital.value || isReviewSubmitting.value) return
+
+  if (!authStore.isLoggedIn) {
+    toastStore.showToast('請先登入後再送出評論', 'error')
+    return
+  }
+
+  isReviewSubmitting.value = true
+  const result = editingReview.value
+    ? await editHospitalReview(payload)
+    : await hospitalStore.submitHospitalReview(reviewHospital.value.id, payload)
+  isReviewSubmitting.value = false
+
+  if (!result.success) {
+    toastStore.showToast(result.message, 'error')
+    return
+  }
+
+  const latestHospital = hospitalStore.getHospitalById(reviewHospital.value.id)
+  if (latestHospital) reviewHospital.value = latestHospital
+  editingReview.value = null
+  reviewMode.value = 'list'
+  await reloadHospitalReviews(reviewHospital.value.id)
+  toastStore.showToast(result.message || '評論已送出')
+}
+
+function editHospitalReview(payload) {
+  return hospitalStore.updateHospitalReview(reviewHospital.value.id, editingReview.value.id, payload)
+}
+
+async function deleteHospitalReview() {
+  if (!reviewHospital.value || !reviewToDelete.value) return
+
+  if (!authStore.isLoggedIn) {
+    toastStore.showToast('請先登入後再刪除評論', 'error')
+    return
+  }
+
+  const result = await hospitalStore.deleteHospitalReview(reviewHospital.value.id, reviewToDelete.value.id)
+
+  if (!result.success) {
+    toastStore.showToast(result.message, 'error')
+    return
+  }
+
+  closeReviewDeleteConfirm()
+  const latestHospital = hospitalStore.getHospitalById(reviewHospital.value.id)
+  if (latestHospital) reviewHospital.value = latestHospital
+  await reloadHospitalReviews(reviewHospital.value.id)
+  toastStore.showToast(result.message || '評論已刪除')
 }
 
 onMounted(() => {
@@ -127,6 +248,7 @@ onMounted(() => {
               @bounds-change="hospitalStore.loadMapHospitals"
               @retry="hospitalStore.retryMapQuery"
               @select-hospital="selectHospital"
+              @review-hospital="openHospitalReviewModal"
             />
 
             <aside class="flex min-w-0 flex-col gap-5 xl:max-h-[760px]">
@@ -140,6 +262,7 @@ onMounted(() => {
                 :is-empty="hospitalStore.isEmpty"
                 :pagination="pagination"
                 @select-hospital="selectHospital"
+                @review-hospital="openHospitalReviewModal"
                 @retry="hospitalStore.retryCurrentQuery"
                 @page-change="hospitalStore.setPage"
               />
@@ -148,6 +271,29 @@ onMounted(() => {
         </section>
       </main>
     </div>
+    <HospitalReviewModal
+      :is-open="isReviewModalOpen"
+      :hospital="reviewHospital"
+      :mode="reviewMode"
+      :reviews="reviewList"
+      :is-loading="isReviewLoading"
+      :is-submitting="isReviewSubmitting"
+      :current-user-id="currentUserId"
+      :editing-review="editingReview"
+      @start-review="showReviewForm"
+      @cancel-form="backToReviewList"
+      @edit-review="startEditReview"
+      @delete-review="openReviewDeleteConfirm"
+      @close="closeHospitalReviewModal"
+      @submit="submitHospitalReview"
+    />
+    <DeleteConfirmModal
+      :is-open="isReviewDeleteOpen"
+      title="確定刪除此則評論？"
+      item-name="這則評論"
+      @close="closeReviewDeleteConfirm"
+      @confirm="deleteHospitalReview"
+    />
     <AppFooter class="lg:hidden" />
   </div>
 </template>

@@ -325,6 +325,10 @@ test('Hospital store owns query result state and filter actions', () => {
   assert.match(store, /mapRequestId/)
   assert.match(store, /function set24H/)
   assert.match(store, /function retryCurrentQuery/)
+  assert.match(store, /updateHospitalReviewRequest/)
+  assert.match(store, /deleteHospitalReviewRequest/)
+  assert.match(store, /async function updateHospitalReview/)
+  assert.match(store, /async function deleteHospitalReview/)
 })
 
 test('Hospital store separates list mode, nearby mode, pagination and Taipei fallback', () => {

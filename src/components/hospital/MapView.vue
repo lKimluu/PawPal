@@ -2,10 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { LMap, LMarker, LPopup, LTileLayer } from '@vue-leaflet/vue-leaflet'
 import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster'
-import 'leaflet.markercluster/dist/MarkerCluster.css'
-import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import MapStatusOverlay from '@/components/hospital/MapStatusOverlay.vue'
 import { TAIPEI_CENTER } from '@/api/hospitals.js'
 import { createHospitalMarker, createUserLocationIcon } from '@/utils/hospitalMapMarkers.js'
@@ -29,7 +26,7 @@ const props = defineProps({
   isTruncated: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['selectHospital', 'boundsChange', 'retry'])
+const emit = defineEmits(['selectHospital', 'boundsChange', 'retry', 'reviewHospital'])
 const mapObject = ref(null)
 let boundsTimer
 let clusterLayer
@@ -107,8 +104,17 @@ function syncClusters() {
     clusterLayer.addLayer(marker)
   }
 }
+function handleMapClick(event) {
+  const trigger = event.target?.closest?.('.hospital-popup-card__rating')
+  const hospitalId = trigger?.dataset?.hospitalReviewId
+  if (!hospitalId) return
+
+  const hospital = validHospitals.value.find((item) => String(item.id) === String(hospitalId))
+  if (hospital) emit('reviewHospital', hospital)
+}
 function onMapReady(map) {
   mapObject.value = map
+  map.getContainer().addEventListener('click', handleMapClick)
   syncClusters()
   scheduleBounds()
 }
@@ -130,6 +136,7 @@ watch(
 )
 onBeforeUnmount(() => {
   clearTimeout(boundsTimer)
+  mapObject.value?.getContainer().removeEventListener('click', handleMapClick)
   if (clusterLayer && mapObject.value) mapObject.value.removeLayer(clusterLayer)
 })
 </script>

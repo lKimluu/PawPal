@@ -15,8 +15,15 @@ const props = defineProps({
   },
 })
 
+const emit = defineEmits(['reviewHospital'])
+
 const favoriteHospitalStore = useFavoriteHospitalStore()
 const isFav = computed(() => favoriteHospitalStore.isFavorite(props.hospital.id))
+const displayDistance = computed(() =>
+  props.hospital.distance === '??' || props.hospital.distance === undefined
+    ? '距離未知'
+    : `${props.hospital.distance} km`,
+)
 
 const toggleFavorite = () => {
   favoriteHospitalStore.toggleFavorite(props.hospital.id)
@@ -25,76 +32,79 @@ const toggleFavorite = () => {
 
 <template>
   <div
-    class="group relative flex items-center justify-between bg-brand-white rounded-3xl p-4 md:p-6 border border-[#E2E8F0] shadow-[0_4px_25px_rgba(0,0,0,0.015)] transition duration-200 lg:hover:shadow-[0_10px_30px_rgba(146,168,245,0.12)] lg:hover:border-brand-blue/30 active:bg-[#F8FAFC] active:scale-[0.999] cursor-pointer"
+    class="group relative flex cursor-pointer items-center justify-between rounded-3xl border border-[#E2E8F0] bg-brand-white p-4 shadow-[0_4px_25px_rgba(0,0,0,0.015)] transition duration-200 active:scale-[0.999] active:bg-[#F8FAFC] md:p-6 lg:hover:border-brand-blue/30 lg:hover:shadow-[0_10px_30px_rgba(146,168,245,0.12)]"
     :class="isSelected ? 'border-brand-blue ring-2 ring-brand-blue/20' : ''"
   >
-    <div class="flex-1 min-w-0">
-      <div class="flex flex-row flex-wrap items-center justify-start gap-1.5 mb-2.5">
+    <div class="min-w-0 flex-1">
+      <div class="mb-2.5 flex flex-row flex-wrap items-center justify-start gap-1.5">
         <h3
-          class="font-bold text-brand-navy text-base md:text-lg group-hover:text-brand-orange transition duration-200 truncate max-w-[160px] md:max-w-none"
+          class="max-w-[160px] truncate text-base font-bold text-brand-navy transition duration-200 group-hover:text-brand-orange md:max-w-none md:text-lg"
         >
           {{ hospital.name }}
         </h3>
-        <div class="flex items-center gap-1.5 shrink-0">
+        <div class="flex shrink-0 items-center gap-1.5">
           <span
             v-if="hospital.isOpen"
-            class="text-[10px] md:text-xs font-semibold px-3 py-0.5 rounded-full bg-brand-lightblue text-brand-blue whitespace-nowrap"
+            class="whitespace-nowrap rounded-full bg-brand-lightblue px-3 py-0.5 text-[10px] font-semibold text-brand-blue md:text-xs"
           >
             營業中
           </span>
           <span
             v-if="hospital.is24H"
-            class="text-[10px] md:text-xs font-medium tracking-wider px-2 py-0.5 rounded-full bg-brand-orange text-white whitespace-nowrap"
+            class="whitespace-nowrap rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-medium tracking-wider text-white md:text-xs"
           >
             24H
           </span>
         </div>
       </div>
+
       <div
-        class="flex flex-col md:flex-row md:items-center text-xs md:text-sm text-brand-gray gap-y-1 md:gap-x-2 mb-2"
+        class="mb-2 flex flex-col gap-y-1 text-xs text-brand-gray md:flex-row md:items-center md:gap-x-2 md:text-sm"
       >
-        <div class="flex items-center gap-x-2 shrink-0">
+        <div class="flex shrink-0 items-center gap-x-2">
           <span class="flex items-center">
             <img
               src="@/assets/icons/pin.svg"
-              alt="位置"
-              class="w-4 h-4 mr-1 object-contain opacity-80"
+              alt="地區"
+              class="mr-1 h-4 w-4 object-contain opacity-80"
             />
             <span class="text-brand-gray">{{ hospital.district }}</span>
           </span>
-          <span class="opacity-40">·</span>
-          <span class="text-brand-gray">{{ hospital.distance }} km</span>
+          <span class="opacity-40">|</span>
+          <span class="text-brand-gray">{{ displayDistance }}</span>
         </div>
-        <span class="hidden md:inline opacity-40">·</span>
+        <span class="hidden opacity-40 md:inline">|</span>
         <span class="flex items-center">
           <img
             src="@/assets/icons/clock.svg"
-            alt="時間"
-            class="w-4 h-4 mr-1 object-contain opacity-80"
+            alt="營業時間"
+            class="mr-1 h-4 w-4 object-contain opacity-80"
           />
           <span class="text-brand-gray">{{ hospital.businessHours }}</span>
         </span>
       </div>
-      <div class="flex items-center text-xs md:text-sm text-brand-gray">
-        <img src="@/assets/icons/star.svg" alt="評分" class="w-4 h-4mr-1.5 object-contain" />
-        <span class="font-bold text-brand-navy mr-1.5 md:mr-2">
+
+      <button
+        type="button"
+        class="flex cursor-pointer items-center rounded-full px-2 py-1 text-xs text-brand-gray transition duration-200 hover:bg-orange-50 hover:text-brand-orange active:scale-95 md:text-sm"
+        @click.stop="emit('reviewHospital')"
+      >
+        <img src="@/assets/icons/star.svg" alt="評分" class="mr-1.5 h-4 w-4 object-contain" />
+        <span class="mr-1.5 font-bold text-brand-navy md:mr-2">
           {{ Number(hospital.rating ?? 0).toFixed(1) }}
         </span>
-        <span class="opacity-40">·</span>
+        <span class="opacity-40">|</span>
         <span class="ml-1.5 md:ml-2">{{ hospital.reviewCount }} 則評論</span>
-      </div>
+      </button>
     </div>
+
     <div class="ml-4 flex-shrink-0">
       <button
         type="button"
+        class="cursor-pointer rounded-full bg-transparent p-2 transition duration-200 hover:bg-red-50"
         @click.stop="toggleFavorite"
-        class="cursor-pointer p-2 rounded-full bg-transparent hover:bg-red-50 transition duration-200"
       >
-        <img
-          :src="isFav ? heartFilled : heartEmpty"
-          alt="收藏按鈕"
-          class="w-6 h-6 object-contain"
-        />
+        <img :src="isFav ? heartFilled : heartEmpty" alt="收藏醫院" class="h-6 w-6 object-contain" />
       </button>
     </div>
   </div>
