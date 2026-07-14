@@ -49,11 +49,17 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function loginWithLine(code) {
-    const result = await loginWithLineApi(code)
+    const currentOrigin = window.location.origin + '/login'
+
+    const result = await loginWithLineApi({
+      code,
+      redirectUri: currentOrigin,
+    })
 
     if (!result.success) {
       return result
     }
+
     token.value = result.data.token || ''
     user.value = result.data.user || null
 
