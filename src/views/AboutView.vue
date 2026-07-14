@@ -57,21 +57,21 @@ const features = [
     icon: 'medical_w.svg',
     en: 'Emergency Search',
     title: '即時醫療查詢',
-    desc: '即時串接全台 24 小時與週末營業的寵物醫院資訊。當深夜來臨，我們一鍵為你指引最近、正在營業中的醫療庇護所。',
+    desc: '即時串接全台 24 小時與週末營業的寵物醫院資訊。除了在深夜一鍵指引最近的營業中醫院，更整合家長真實評論與最愛收藏功能，幫你快速篩選評價、建立專屬應急名單，危急時刻不再慌亂。',
   },
   {
     id: 'passport',
     icon: 'healthy_w.svg',
     en: 'Health Passport',
     title: '成長健康護照',
-    desc: '登入後的專屬毛孩健康護照，細心收藏每一筆醫療紀錄與成長歷程。讓日常的點滴累積，灌溉成毛孩健康的防護網。',
+    desc: '專屬於毛孩的健康護照。除了細心收藏每一筆醫療紀錄與成長歷程，更整合專屬健康行事曆，提供貼心的日程提醒，幫你精準掌握疫苗與回診時間，成為毛孩最可靠的日常健康防護網。',
   },
   {
     id: 'ai',
     icon: 'ai_w.svg',
-    en: 'AI Consultation',
-    title: 'AI 症狀即時智慧問診',
-    desc: '毛孩突發異常不適時的應急指南。透過智慧對話式問診，快速解析當前症狀並評估潛在風險，協助家長在關鍵時刻做出正確判斷，掌握最佳就醫時機。',
+    en: 'AI Assistant',
+    title: 'AI 寵物日常照護小助手',
+    desc: '陪伴你照顧毛孩的智慧小幫手。無論是飲食營養、行為解讀還是日常照護知識，都能即時提供實用的科學建議，幫你輕鬆排憂解難，成為你最貼心的神隊友。',
   },
 ]
 
@@ -264,8 +264,8 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
               <span class="font-semibold text-brand-orange">Pal（夥伴）</span>
               結合而成，象徵著我們想成為毛孩與家長最貼心的夥伴，在日常裡溫馨陪伴，在需要時挺身而出；而我們的
               Logo 設計也緊扣著這個信念，流暢的線條勾勒出一個溫柔的手臂，將毛孩緊緊包覆，象徵著
-              PawPal
-              平台想帶給家長的「安心感」——不論何時，我們都會與你緊緊相依，給予毛孩全方位的即時照護與深夜陪伴。
+              PawPal 平台想帶給家長的「安心感」。
+              <br />不論何時，我們都會與你緊緊相依，給予毛孩全方位的即時照護與深夜陪伴。
             </p>
           </div>
         </div>
@@ -443,8 +443,8 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
         </h2>
         <div class="max-w-3xl mx-auto mt-6 space-y-5 text-white leading-[1.9]">
           <p class="text-sm md:text-base">
-            雖然我們還在前往專業前端工程師的航道上,但我們用對待自己毛孩的標準,對網頁的流暢度與醫療資訊的正確性嚴格把關。
-            現在,PawPal已經準備好了。不論你是需要一份深夜的安心感,還是想為毛孩留下成長的足跡,<br />都歡迎你加入我們！
+            雖然我們還在前往專業前端工程師的航道上，但我們用對待自己毛孩的標準，對網頁的流暢度與醫療資訊的正確性嚴格把關。
+            現在,PawPal已經準備好了。不論你是需要一份深夜的安心感，還是想為毛孩留下成長的足跡，<br />都歡迎你加入我們！
           </p>
         </div>
         <div class="mt-9 flex flex-col sm:flex-row gap-4 justify-center items-center">
