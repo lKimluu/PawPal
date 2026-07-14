@@ -162,8 +162,12 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
 <template>
   <Header variant="public" />
 
-  <main class="bg-white min-h-screen flex flex-col items-center pt-18 md:pt-24 overflow-x-hidden">
-    <section class="w-full flex flex-col items-center">
+  <main
+    class="bg-white min-h-screen flex flex-col items-center pt-10 md:pt-18 lg:pt-26 overflow-x-hidden"
+  >
+    <section
+      class="w-full flex flex-col items-center justify-center lg:min-h-[calc(100vh-96px)] pt-10 pb-12 md:pb-20"
+    >
       <div class="text-center md:-mb-10 px-4">
         <p class="text-xs text-brand-blue font-medium uppercase">PET INSTANT CARE PLATFORM</p>
         <h1 class="text-4xl md:text-5xl font-black text-brand-navy my-2">PawPal</h1>
@@ -198,33 +202,33 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
       </div>
     </section>
 
-    <section class="max-w-5xl w-full mx-auto py-20 md:py-40 px-6">
+    <section class="max-w-5xl w-full mx-auto py-10 md:py-20 lg:py-48 px-6">
       <div class="w-full text-center">
         <h2 class="text-brand-blue font-black text-xl md:text-3xl lg:text-[2.5rem] leading-[1.4]">
           「深夜不慌張，<br class="md:hidden" />PawPal 給毛孩一個溫柔的擁抱。」
         </h2>
         <div
-          class="text-sm md:text-base mt-15 space-y-6 text-center text-brand-gray leading-loose max-w-3xl mx-auto"
+          class="text-sm md:text-base mt-15 space-y-6 text-center text-brand-gray leading-loose max-w-5xl mx-auto"
         >
           <p>
-            每個養寵物的家庭,或許都曾經經歷過這樣的時刻:在寧靜的深夜或是放假的週末,毛孩突然有些不對勁。看著牠們充滿信任卻又無助的眼神,我們的心跳總是漏了一拍,慌亂地在上網搜尋「現在還有開的獸醫院嗎?」
+            每個養寵物的家庭，或許都曾經經歷過這樣的時刻：在寧靜的深夜或是放假的週末，毛孩突然有些不對勁。看著牠們充滿信任卻又無助的眼神，我們的心跳總是漏了一拍，慌亂地在上網搜尋「現在還有開的獸醫院嗎？」
           </p>
           <p>
             <span class="text-brand-orange font-semibold">PawPal 的誕生</span
-            >,正是源自於這份對毛孩的愛與牽掛。
+            >，正是源自於這份對毛孩的愛與牽掛。
           </p>
           <p>
-            我們是一群正在前端路上努力、同時深愛著動物的學員。深知在那些焦慮的瞬間,家長們最需要的是「確定感」與「陪伴」。因此我們打造了
+            我們是一群正在前端路上努力、同時深愛著動物的學員。深知在那些焦慮的瞬間，家長們最需要的是「確定感」與「陪伴」。因此我們打造了
             PawPal
-            寵物即時照護平台。我們希望在慌亂的深夜裡,這份充滿愛與即時照護的網絡隨時都在身邊,讓所有家長都能守護自己的寶貝。
+            寵物即時照護平台。我們希望在慌亂的深夜裡，這份充滿愛與即時照護的網絡隨時都在身邊，讓所有家長都能守護自己的寶貝。
           </p>
         </div>
       </div>
     </section>
 
-    <section class="w-full flex flex-col py-8 md:py-14">
-      <div class="w-full py-20 px-6">
-        <div class="max-w-3xl mx-auto text-center">
+    <section class="w-full flex flex-col py-20 md:py-30">
+      <div class="max-w-5xl mx-auto w-full px-6">
+        <div class="text-center">
           <div class="inline-block pb-4 border-b border-gray-200">
             <h2
               class="text-brand-navy font-black text-2xl sm:text-3xl md:text-4xl lg:text-[2.2rem]"
@@ -255,7 +259,6 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
                 alt="PawPal Type"
               />
             </div>
-
             <p class="text-brand-gray leading-[1.9] text-sm md:text-base mt-4 md:mt-6">
               PawPal 的名字由 <span class="font-semibold text-brand-orange">Paw（毛掌）</span> 與
               <span class="font-semibold text-brand-orange">Pal（夥伴）</span>
@@ -269,7 +272,7 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
       </div>
     </section>
 
-    <section class="w-full py-8 md:py-14 px-6">
+    <section class="w-full py-24 md:py-30 px-6">
       <div class="max-w-5xl mx-auto">
         <div class="text-center mb-16">
           <div class="inline-block pb-4 border-b border-gray-200">
@@ -285,7 +288,7 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
             </p>
           </div>
           <p class="mt-5 text-brand-gray max-w-2xl mx-auto text-sm md:text-base leading-[1.8]">
-            在 PawPal,我們結合便利的查詢技術與智慧科技,為你與毛孩建構全方位的照護網絡。
+            在 PawPal，我們結合便利的查詢技術與智慧科技，為你與毛孩建構全方位的照護網絡。
           </p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -311,8 +314,7 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
       </div>
     </section>
 
-    <!-- 團隊成員 -->
-    <section class="w-full py-8 md:py-14 px-6 mb-20 overflow-hidden">
+    <section class="w-full py-24 md:py-30 px-6 overflow-hidden">
       <div class="max-w-5xl mx-auto text-center">
         <div class="text-center mb-16">
           <div class="inline-block pb-4 border-b border-gray-200">
@@ -429,8 +431,7 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
       </div>
     </section>
 
-    <!-- 結尾CTA -->
-    <section class="relative w-full bg-brand-navy text-white pt-20 pb-0">
+    <section class="relative w-full bg-brand-navy text-white mt-30 pt-20 pb-0">
       <div class="relative z-10 max-w-5xl mx-auto text-center px-6">
         <img
           :src="getImageUrl('PawPal_mark_w.webp')"
