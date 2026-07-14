@@ -39,7 +39,7 @@ tests:
 ---
 ### Requirement: Input Validation
 
-The system SHALL validate the `message` field of the request body. `message` SHALL be required, SHALL NOT be empty after trimming whitespace, and SHALL NOT exceed 100 characters.
+The system SHALL validate the `message` field of the request body. `message` SHALL be required, SHALL NOT be empty after trimming whitespace, and SHALL NOT exceed 150 characters.
 
 #### Scenario: Empty message rejected
 
@@ -49,34 +49,28 @@ The system SHALL validate the `message` field of the request body. `message` SHA
 
 #### Scenario: Over-length message rejected
 
-- **WHEN** a client sends `POST /api/v1/ai-assistant` with a `message` longer than 100 characters
+- **WHEN** a client sends `POST /api/v1/ai-assistant` with a `message` longer than 150 characters
 - **THEN** the system SHALL respond with HTTP 400 and a Traditional Chinese error message
 - **AND** the system SHALL NOT call the Gemini API
 
 #### Scenario: Valid message accepted
 
-- **WHEN** a client sends `POST /api/v1/ai-assistant` with a non-empty `message` of 100 characters or fewer
+- **WHEN** a client sends `POST /api/v1/ai-assistant` with a non-empty `message` of 150 characters or fewer
 - **THEN** the system SHALL proceed to the emergency keyword check
 
 
 <!-- @trace
-source: ai-assistant-api
-updated: 2026-07-13
+source: ai-assistant-frontend-integration
+updated: 2026-07-14
 code:
-  - backend/src/app.js
-  - backend/src/server.js
-  - backend/.env.example
-  - backend/src/config/rate_limit.js
+  - src/components/ai/AiAssistantPanel.vue
   - backend/src/schemas/ai_assistant.schema.js
-  - backend/src/services/ai_assistant.service.js
-  - backend/src/routes/ai_assistant.route.js
-  - backend/package.json
-  - backend/src/controllers/ai_assistant.controller.js
+  - src/components/ai/AiAssistantMessageList.vue
+  - src/stores/aiAssistant.js
+  - src/api/ai.js
+  - src/components/ai/AiAssistantInput.vue
 tests:
-  - backend/test/ai_assistant.route.test.js
-  - backend/test/ai_assistant.service.test.js
   - backend/test/ai_assistant.schema.test.js
-  - backend/test/ai_assistant.controller.test.js
 -->
 
 ---
