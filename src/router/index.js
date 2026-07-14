@@ -5,11 +5,6 @@ import Home from '@/views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  scrollBehavior(to) {
-    if (['PrivacyPolicy', 'TermsOfService'].includes(to.name)) {
-      return { top: 0 }
-    }
-  },
   routes: [
     {
       path: '/',
