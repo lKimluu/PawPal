@@ -19,6 +19,16 @@ function normalizeString(value) {
   return value?.trim?.() ?? value
 }
 
+function getAvatarFile(data = {}) {
+  return data.avatarFile || data.photoFile || data.photo_files?.[0] || null
+}
+
+function appendIfPresent(formData, key, value) {
+  if (value !== undefined && value !== null && value !== '') {
+    formData.append(key, value)
+  }
+}
+
 export function buildUpdateUserProfilePayload(data = {}) {
   const payload = {}
 
@@ -38,8 +48,25 @@ export function buildUpdateUserProfilePayload(data = {}) {
 }
 
 export function updateUserProfileRequestConfig(data = {}, token) {
+  const avatarFile = getAvatarFile(data)
+  const payload = buildUpdateUserProfilePayload(data)
+
+  if (avatarFile) {
+    const formData = new FormData()
+
+    Object.entries(payload).forEach(([key, value]) => {
+      appendIfPresent(formData, key, value)
+    })
+    formData.append('avatar', avatarFile)
+
+    return {
+      data: formData,
+      headers: getAuthHeaders(token),
+    }
+  }
+
   return {
-    data: buildUpdateUserProfilePayload(data),
+    data: payload,
     headers: {
       'Content-Type': 'application/json',
       ...getAuthHeaders(token),

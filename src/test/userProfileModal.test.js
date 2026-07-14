@@ -120,6 +120,85 @@ test('UserProfileModal 會員資料欄位外框提供 hover 與 focus 效果', (
   assert.doesNotMatch(source, /focus-within:ring-4/)
 })
 
+test('UserProfileModal 儲存姓名時會呼叫 auth store 並送出去除空白的 name', () => {
+  const source = readFileSync(userProfileModalUrl, 'utf8')
+
+  assert.match(source, /import \{ useAuthStore \} from '@\/stores\/auth'/)
+  assert.match(source, /const authStore = useAuthStore\(\)/)
+  assert.match(source, /async function handleSaveEdit\(\)/)
+  assert.match(source, /const trimmedName = editForm\.value\.name\.trim\(\)/)
+  assert.match(
+    source,
+    /await authStore\.updateProfile\(\{\s*name: trimmedName,\s*avatarFile: selectedPhotoFile\.value,\s*\}\)/,
+  )
+})
+
+test('UserProfileModal 姓名空白時顯示錯誤且不送出會員更新 API', () => {
+  const source = readFileSync(userProfileModalUrl, 'utf8')
+
+  assert.match(source, /const updateError = ref\(''\)/)
+  assert.match(source, /if \(!trimmedName\) \{[\s\S]*updateError\.value = '[^']+'[\s\S]*return[\s\S]*\}/)
+  assert.doesNotMatch(source, /authStore\.updateProfile\(\{[\s\S]*name: editForm\.value\.name/)
+})
+
+test('UserProfileModal 更新成功後以後端會員資料刷新畫面並退出編輯模式', () => {
+  const source = readFileSync(userProfileModalUrl, 'utf8')
+
+  assert.match(source, /const updatedUser = result\.data\?\.user \|\| authStore\.user/)
+  assert.match(source, /localProfile\.value = createProfileForm\(updatedUser\)/)
+  assert.match(source, /resetEditForm\(\)/)
+  assert.match(source, /clearPhotoSelection\(\)/)
+  assert.match(source, /updateError\.value = ''/)
+  assert.match(source, /isEditingProfile\.value = false/)
+})
+
+test('UserProfileModal 更新失敗時保留編輯模式並顯示錯誤訊息', () => {
+  const source = readFileSync(userProfileModalUrl, 'utf8')
+  const failureMatch = source.match(/if \(!result\.success\) \{[\s\S]*?^\s*\}/m)
+
+  assert.ok(failureMatch)
+  assert.match(failureMatch[0], /updateError\.value = result\.message/)
+  assert.match(failureMatch[0], /return/)
+  assert.doesNotMatch(failureMatch[0], /resetEditForm\(\)/)
+  assert.doesNotMatch(failureMatch[0], /isEditingProfile\.value = false/)
+  assert.match(source, /v-if="updateError"/)
+  assert.match(source, /\{\{ updateError \}\}/)
+})
+
+test('UserProfileModal 儲存期間會鎖定按鈕避免重複送出', () => {
+  const source = readFileSync(userProfileModalUrl, 'utf8')
+
+  assert.match(source, /const isSaving = ref\(false\)/)
+  assert.match(source, /if \(isSaving\.value\) return/)
+  assert.match(source, /isSaving\.value = true/)
+  assert.match(source, /finally \{[\s\S]*isSaving\.value = false[\s\S]*\}/)
+  assert.match(source, /:disabled="isSaving"/)
+  assert.match(source, /儲存中\.\.\./)
+})
+
+test('UserProfileModal 取消編輯會還原最新會員資料且不呼叫 API', () => {
+  const source = readFileSync(userProfileModalUrl, 'utf8')
+  const cancelMatch = source.match(/function handleCancelEdit\(\) \{[\s\S]*?\n\}/)
+
+  assert.ok(cancelMatch)
+  assert.match(cancelMatch[0], /syncLocalProfileFromUser\(authStore\.user \|\| props\.user\)/)
+  assert.match(cancelMatch[0], /updateError\.value = ''/)
+  assert.match(cancelMatch[0], /clearPhotoSelection\(\)/)
+  assert.match(cancelMatch[0], /isEditingProfile\.value = false/)
+  assert.doesNotMatch(cancelMatch[0], /authStore\.updateProfile/)
+})
+
+test('UserProfileModal 不會把 blob 預覽網址當成 avatar_url 傳給後端', () => {
+  const source = readFileSync(userProfileModalUrl, 'utf8')
+  const saveMatch = source.match(/async function handleSaveEdit\(\) \{[\s\S]*?\n\}/)
+
+  assert.ok(saveMatch)
+  assert.doesNotMatch(saveMatch[0], /avatar_url/)
+  assert.doesNotMatch(saveMatch[0], /photoPreviewUrl/)
+  assert.doesNotMatch(saveMatch[0], /selectedAvatarUrl/)
+  assert.match(source, /URL\.createObjectURL\(file\)/)
+})
+
 test('AppHeader 點擊會員資訊區會開啟 UserProfileModal', () => {
   assert.match(appHeader, /import UserProfileModal from '@\/components\/member\/UserProfileModal\.vue'/)
   assert.match(appHeader, /import defaultProfileIcon from '@\/assets\/icons\/user\.svg'/)
