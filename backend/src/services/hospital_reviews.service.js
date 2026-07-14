@@ -18,6 +18,8 @@ function mapReviewRow(row) {
   }
 }
 
+const REVIEW_TIMESTAMP_SQL_FORMAT = 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
+
 export async function hospitalExists(hospitalId) {
   const result = await pool.query(
     `
@@ -62,8 +64,8 @@ export async function findHospitalReviews(hospitalId) {
         COALESCE(u.name, '') AS user_name,
         hr.rating,
         hr.comment,
-        hr.created_at,
-        hr.updated_at
+        to_char(hr.created_at, '${REVIEW_TIMESTAMP_SQL_FORMAT}') AS created_at,
+        to_char(hr.updated_at, '${REVIEW_TIMESTAMP_SQL_FORMAT}') AS updated_at
       FROM hospital_reviews AS hr
       LEFT JOIN users AS u ON u.id = hr.user_id
       WHERE hr.hospital_id = $1
@@ -81,7 +83,15 @@ export async function createHospitalReview({ hospitalId, userId, rating, comment
     `
       INSERT INTO hospital_reviews (hospital_id, user_id, rating, comment)
       VALUES ($1, $2, $3, $4)
-      RETURNING id, hospital_id, user_id, '' AS user_name, rating, comment, created_at, updated_at
+      RETURNING
+        id,
+        hospital_id,
+        user_id,
+        '' AS user_name,
+        rating,
+        comment,
+        to_char(created_at, '${REVIEW_TIMESTAMP_SQL_FORMAT}') AS created_at,
+        to_char(updated_at, '${REVIEW_TIMESTAMP_SQL_FORMAT}') AS updated_at
     `,
     [hospitalId, userId, rating, comment],
   )
@@ -99,7 +109,15 @@ export async function updateHospitalReview({ reviewId, hospitalId, userId, ratin
       WHERE id = $3
         AND hospital_id = $4
         AND user_id = $5
-      RETURNING id, hospital_id, user_id, '' AS user_name, rating, comment, created_at, updated_at
+      RETURNING
+        id,
+        hospital_id,
+        user_id,
+        '' AS user_name,
+        rating,
+        comment,
+        to_char(created_at, '${REVIEW_TIMESTAMP_SQL_FORMAT}') AS created_at,
+        to_char(updated_at, '${REVIEW_TIMESTAMP_SQL_FORMAT}') AS updated_at
     `,
     [rating, comment, reviewId, hospitalId, userId],
   )

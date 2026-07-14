@@ -51,6 +51,8 @@ test('findHospitalReviews lists newest reviews for a hospital', async (t) => {
   t.mock.method(pool, 'query', async (text, values) => {
     assert.match(text, /FROM hospital_reviews/)
     assert.match(text, /LEFT JOIN users AS u ON u\.id = hr\.user_id/)
+    assert.match(text, /to_char\(hr\.created_at/)
+    assert.match(text, /to_char\(hr\.updated_at/)
     assert.match(text, /WHERE hr\.hospital_id = \$1/)
     assert.match(text, /ORDER BY hr\.created_at DESC/)
     assert.deepEqual(values, [7])
@@ -88,6 +90,8 @@ test('createHospitalReview inserts the user review and returns the created row',
   t.mock.method(pool, 'query', async (text, values) => {
     assert.match(text, /INSERT INTO hospital_reviews/)
     assert.match(text, /RETURNING/)
+    assert.match(text, /to_char\(created_at/)
+    assert.match(text, /to_char\(updated_at/)
     assert.deepEqual(values, [7, 2, 4, '整體服務良好'])
     return {
       rows: [
@@ -128,6 +132,8 @@ test('createHospitalReview inserts the user review and returns the created row',
 test('updateHospitalReview updates only the owner review and returns the row', async (t) => {
   t.mock.method(pool, 'query', async (text, values) => {
     assert.match(text, /UPDATE hospital_reviews/)
+    assert.match(text, /to_char\(created_at/)
+    assert.match(text, /to_char\(updated_at/)
     assert.match(text, /WHERE id = \$3/)
     assert.match(text, /hospital_id = \$4/)
     assert.match(text, /user_id = \$5/)

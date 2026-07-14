@@ -120,6 +120,10 @@ function formatReviewTime(value) {
   }).format(date)
 }
 
+function reviewDisplayTime(review) {
+  return review.updated_at || review.created_at
+}
+
 watch(
   () => [props.isOpen, props.mode, props.editingReview?.id],
   ([isOpen, mode]) => {
@@ -182,8 +186,8 @@ watch(
               </div>
             </div>
             <div class="flex items-center justify-between gap-2 sm:justify-end">
-              <time class="text-xs font-medium text-brand-gray" :datetime="review.created_at">
-                {{ formatReviewTime(review.created_at) }}
+              <time class="text-xs font-medium text-brand-gray" :datetime="reviewDisplayTime(review)">
+                {{ formatReviewTime(reviewDisplayTime(review)) }}
               </time>
               <div v-if="canManageReview(review)" class="flex items-center gap-1">
                 <button
