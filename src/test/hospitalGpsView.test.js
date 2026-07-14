@@ -87,19 +87,41 @@ test('HospitalView 顯示定位狀態與重新取得目前位置入口', () => {
   assert.match(hospitalView, /瀏覽器網址列或網站設定允許 PawPal 使用定位/)
   assert.match(hospitalView, /permissionState/)
   assert.match(hospitalView, /:disabled="isLocating"/)
+  assert.doesNotMatch(hospitalView, /<p v-if="locationFallbackMessage"/)
 })
 
-test('MapView 以選取醫院與 userLocation 優先置中並保留台北中心 fallback', () => {
+test('MapView 只解析一次初始中心，bounds marker 更新不再重新置中', () => {
   const mapView = readSource('../components/hospital/MapView.vue')
+  const mapStatusOverlay = readSource('../components/hospital/MapStatusOverlay.vue')
 
-  assert.match(mapView, /userLocation/)
-  assert.match(mapView, /selectedHospital/)
-  assert.match(mapView, /selectedHospital\.value/)
-  assert.match(mapView, /if \(userPosition\.value\) return userPosition\.value/)
-  assert.match(mapView, /if \(validHospitals\.value\.length === 0\) return TAIPEI_CENTER/)
+  assert.match(mapView, /resolveHospitalMapInitialCenter/)
+  assert.match(mapView, /const initialCenter = ref\(/)
+  assert.match(mapView, /selectedHospital: selectedHospital\.value/)
+  assert.match(mapView, /userLocation: props\.userLocation/)
+  assert.match(mapView, /hospitals: validHospitals\.value/)
+  assert.match(mapView, /fallbackCenter: TAIPEI_CENTER/)
+  assert.match(mapView, /:center="initialCenter"/)
+  assert.doesNotMatch(mapView, /const center = computed\(/)
   assert.match(mapView, /const merged = \[\.\.\.props\.hospitals\]/)
   assert.match(mapView, /L\.markerClusterGroup\(\)/)
   assert.doesNotMatch(mapView, /defaultHospitals/)
+  assert.match(
+    mapStatusOverlay,
+    /v-if="errorMessage"[\s\S]*?class="absolute left-24 top-4[^"]*max-w-xs/,
+  )
+})
+
+test('HospitalView 重新定位成功才清除選取，MapView 再移到新位置一次', () => {
+  const hospitalView = readSource('../views/HospitalView.vue')
+  const mapView = readSource('../components/hospital/MapView.vue')
+
+  assert.match(
+    hospitalView,
+    /const locationSucceeded = await locationStore\.requestCurrentLocation\(\)[\s\S]*?if \(locationSucceeded\) \{\s*hospitalStore\.selectHospital\(null\)/,
+  )
+  assert.match(mapView, /mapObject\.value\.closePopup\(\)/)
+  assert.match(mapView, /mapObject\.value\.panTo\(\[latitude, longitude\]\)/)
+  assert.match(mapView, /props\.selectedHospitalId !== null/)
 })
 
 test('MapView 使用獨立使用者位置 marker 並顯示 popup', () => {

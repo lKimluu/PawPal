@@ -433,8 +433,8 @@ test('Hospital components use store-owned data for list, map, selection, and sta
   assert.match(hospitalList, /重新查詢/)
 
   assert.match(mapView, /const merged = \[\.\.\.props\.hospitals\]/)
-  assert.match(mapView, /Number\.isFinite\(hospital\.latitude\)/)
-  assert.match(mapView, /Number\.isFinite\(hospital\.longitude\)/)
+  assert.match(mapView, /Number\.isFinite\(hospital\?\.latitude\)/)
+  assert.match(mapView, /Number\.isFinite\(hospital\?\.longitude\)/)
   assert.match(mapView, /selectedHospital/)
   assert.match(marker, /emit\('select'\)/)
   assert.match(marker, /props\.hospital\.latitude/)
@@ -445,6 +445,65 @@ test('Hospital components use store-owned data for list, map, selection, and sta
   assert.match(searchBar, /hospitalStore\.setAnimalType/)
   assert.match(searchBar, /hospitalStore\.set24H/)
   assert.doesNotMatch(searchBar, /只顯示營業中/)
+})
+
+test('Hospital list selection issues repeatable map focus requests', () => {
+  const hospitalView = readSource('../views/HospitalView.vue')
+
+  assert.match(hospitalView, /const selectionRequestId = ref\(0\)/)
+  assert.match(
+    hospitalView,
+    /function selectHospital\(hospitalId\) \{\s*hospitalStore\.selectHospital\(hospitalId\)\s*selectionRequestId\.value \+= 1\s*\}/,
+  )
+  assert.match(hospitalView, /:selection-request-id="selectionRequestId"/)
+})
+
+test('Map selection delegates move completion and popup lifecycle to the coordinator', () => {
+  const mapView = readSource('../components/hospital/MapView.vue')
+  const coordinator = readSource('../utils/hospitalMapSelection.js')
+
+  assert.match(mapView, /selectionRequestId:\s*\{\s*type: Number,\s*default: 0/)
+  assert.match(mapView, /function hasValidHospitalCoordinates\(hospital\)/)
+  assert.match(mapView, /createHospitalMapSelectionCoordinator/)
+  assert.match(mapView, /revealHospitalClusterMarker/)
+  assert.match(mapView, /selectionCoordinator\.focus\(selectedHospital\.value\)/)
+  assert.match(mapView, /nextTick\(selectionCoordinator\.requestClusterSync\)/)
+  assert.match(
+    mapView,
+    /\[props\.selectedHospitalId, props\.selectionRequestId, props\.selectedHospital\]/,
+  )
+  assert.match(mapView, /if \(selectedHospital\.value\) \{\s*focusSelectedHospital\(\)/)
+  assert.match(coordinator, /map\.once\('moveend', pendingMoveEnd\)/)
+  assert.match(coordinator, /map\.flyTo\(\[hospital\.latitude, hospital\.longitude\], targetZoom\)/)
+  assert.match(coordinator, /clusterLayer\._inZoomAnimation > 0/)
+  assert.match(coordinator, /clusterLayer\.once\('animationend', animationEndHandler\)/)
+  assert.match(coordinator, /clusterLayer\.zoomToShowLayer\(marker/)
+  assert.match(coordinator, /marker\.once\('popupopen', handlePopupOpen\)/)
+  assert.match(coordinator, /syncQueued = true/)
+  assert.match(coordinator, /syncClusters\(\{ restoreOpenPopup: true \}\)/)
+})
+
+test('Map ready and bounds refresh do not issue duplicate viewport requests', () => {
+  const mapView = readSource('../components/hospital/MapView.vue')
+
+  assert.match(mapView, /createMapBoundsScheduler/)
+  assert.match(
+    mapView,
+    /if \(selectedHospital\.value\) \{\s*focusSelectedHospital\(\)\s*\} else \{\s*syncClusters\(\)\s*scheduleBounds\(\)/,
+  )
+  assert.match(mapView, /@moveend="scheduleBounds"/)
+  assert.match(mapView, /@zoomend="scheduleBounds"/)
+  assert.match(mapView, /:center="initialCenter"/)
+  assert.doesNotMatch(mapView, /const center = computed\(/)
+})
+
+test('Map bounds refresh restores an open popup without refocusing or auto-pan', () => {
+  const mapView = readSource('../components/hospital/MapView.vue')
+
+  assert.doesNotMatch(mapView, /syncClusters\(\{ reopenSelected: true \}\)/)
+  assert.match(mapView, /selectedMarker\?\.isPopupOpen\(\)/)
+  assert.match(mapView, /popup\.options\.autoPan = false/)
+  assert.match(mapView, /marker\.openPopup\(\)/)
 })
 
 test('Hospital page no longer imports static hospital data for page results', () => {
