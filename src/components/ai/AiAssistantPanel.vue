@@ -37,7 +37,11 @@ watch(
     aria-label="開啟 AI 寵物小助手"
     @click="togglePanel"
   >
-    <span class="text-2xl">🐾</span>
+    <img
+      src="@/assets/images/PawPal_mark_w.webp"
+      alt="開啟 AI 寵物小助手"
+      class="h-12 w-12 object-contain"
+    />
   </button>
 
   <Transition name="fade">
