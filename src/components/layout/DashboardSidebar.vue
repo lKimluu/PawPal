@@ -19,6 +19,8 @@ const props = defineProps({
   },
 })
 
+const emit = defineEmits(['open-user-profile'])
+
 const sidebarStore = useSidebarStore()
 const route = useRoute()
 const router = useRouter()
@@ -30,6 +32,11 @@ function isActive(item) {
 
 function getIcon(item) {
   return isActive(item) ? item.activeIcon : item.icon
+}
+
+function handleOpenUserProfile() {
+  sidebarStore.closeSidebar()
+  emit('open-user-profile')
 }
 
 function handleLogout() {
@@ -69,11 +76,13 @@ const navItems = [
         <section>
           <ul class="flex flex-col gap-4">
             <li>
-              <a
-                href="about"
+              <RouterLink
+                to="/about"
+                @click="sidebarStore.closeSidebar()"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >關於我們</a
               >
+                關於我們
+              </RouterLink>
             </li>
 
             <li>
@@ -89,22 +98,6 @@ const navItems = [
             </li>
 
             <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >線上看診</a
-              >
-            </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >緊急處置教學</a
-              >
-            </li>
-
-            <li>
               <span class="text-base font-bold tracking-wider text-brand-navy">
                 寵物知識<span class="relative -top-0.5">+</span>
               </span>
@@ -114,23 +107,7 @@ const navItems = [
               <a
                 href="#"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >經驗分享討論區</a
-              >
-            </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >衛教文章</a
-              >
-            </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >小知識測驗</a
+                >小知識</a
               >
             </li>
             <li>
@@ -138,11 +115,13 @@ const navItems = [
             </li>
 
             <li>
-              <a
-                href="#"
+              <button
+                type="button"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >會員主頁</a
+                @click="handleOpenUserProfile"
               >
+                個人資料
+              </button>
             </li>
           </ul>
         </section>
@@ -186,14 +165,6 @@ const navItems = [
                 >成長歷程</RouterLink
               >
             </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >通知中心</a
-              >
-            </li>
             <li>
               <div
                 class="flex items-center justify-center border-t border-brand-lightblue pt-[50px]"
@@ -201,9 +172,13 @@ const navItems = [
                 <button
                   type="button"
                   @click="handleLogout"
-                  class="flex cursor-pointer items-center gap-1.5 text-base font-medium text-brand-gray active:text-brand-orange"
+                  class="group flex cursor-pointer items-center gap-1.5 text-base font-medium text-brand-gray transition hover:text-brand-orange active:text-brand-orange"
                 >
-                  <img :src="logoutIcon" alt="Logout Icon" class="h-4 w-4" />
+                  <img
+                    :src="logoutIcon"
+                    alt="Logout Icon"
+                    class="h-4 w-4 -scale-x-100 transition group-hover:[filter:brightness(0)_saturate(100%)_invert(67%)_sepia(99%)_saturate(1924%)_hue-rotate(359deg)_brightness(101%)_contrast(104%)]"
+                  />
                   登出
                 </button>
               </div>
@@ -213,13 +188,14 @@ const navItems = [
       </nav>
 
       <div class="px-6 pb-8">
-        <button
-          type="button"
+        <RouterLink
+          to="/hospital"
+          @click="sidebarStore.closeSidebar()"
           class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-brand-orange py-4 text-base font-medium text-brand-white shadow-md transition active:bg-[#E08F00]"
         >
           <img src="@/assets/icons/search-hospital.svg" alt="Hospital Icon" class="h-5 w-5" />
           搜尋附近醫院
-        </button>
+        </RouterLink>
       </div>
     </aside>
   </div>

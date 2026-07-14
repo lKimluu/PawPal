@@ -24,39 +24,33 @@ let isHomeActive = true
 const services = [
   {
     icon: 'diagnostic.svg',
-    title: 'AI 即時診斷',
-    desc: '描述症狀、上傳照片，立刻取得初步建議',
-    path: '/#',
-  },
-  {
-    icon: 'aid.svg',
-    title: '緊急處置教學',
-    desc: '視覺化步驟教學，緊急時刻不再手忙腳亂',
-    path: '/#',
-  },
-  {
-    icon: 'book.svg',
-    title: '衛教文章',
-    desc: '獸醫師審定，科學養寵不再憑直覺',
-    path: '/#',
-  },
-  {
-    icon: 'chat.svg',
-    title: '經驗分享討論區',
-    desc: '與千千萬萬個飼主交流真實看診經驗',
-    path: '/#',
-  },
-  {
-    icon: 'paw-orange.svg',
-    title: '寵物健康護照',
-    desc: '紀錄基本資料、病歷與成長歷程',
-    path: '/#',
+    title: 'AI 小助手',
+    desc: '不確定該不該看醫生？隨時問，隨時答',
   },
   {
     icon: 'hospital.svg',
     title: '搜尋醫療院所',
     desc: '即時顯示營業中、可看診、地圖導航與評論',
-    path: '/#',
+  },
+  {
+    icon: 'aid.svg',
+    title: '毛孩行事曆',
+    desc: '一鍵新增行程，重要日子不錯過',
+  },
+  {
+    icon: 'book.svg',
+    title: '醫療紀錄',
+    desc: '換醫院也不怕，過去病史完整帶著走',
+  },
+  {
+    icon: 'paw-orange.svg',
+    title: '成長歷程',
+    desc: '多項指標視覺化，成長曲線一目了然',
+  },
+  {
+    icon: 'chat.svg',
+    title: '寵物知識+',
+    desc: '從飲食到行為，解決日常照護的大小疑問',
   },
 ]
 
@@ -122,9 +116,7 @@ onBeforeUnmount(() => {
         <p class="text-xs mt-4 leading-relaxed max-w-xl mx-auto px-2 text-brand-gray">
           PawPal 幫你立刻找到附近
           <span class="text-brand-orange font-bold">正在營業中</span>
-          的動物醫院，
-          <br class="md:hidden" />
-          還有 AI 診斷、急救教學與寵物健康護照
+          的動物醫院
         </p>
       </div>
       <div class="w-full relative mt-8 pt-6 pb-20 md:pb-32">
@@ -210,13 +202,6 @@ onBeforeUnmount(() => {
             />
           </div>
 
-          <div
-            class="flex flex-wrap justify-center items-center gap-4 md:gap-8 mt-6 mb-8 relative z-2 text-xs md:text-sm font-medium text-brand-gray"
-          >
-            <span class="flex items-center gap-1.5">即時營業狀態</span>
-            <span class="flex items-center gap-1.5">真實飼主評論</span>
-            <span class="flex items-center gap-1.5">專業急救指南</span>
-          </div>
           <!-- 手機版附近醫院卡片列表 -->
           <div class="md:hidden flex flex-col gap-3 mt-4 mb-8 relative z-2 w-full">
             <div
@@ -288,9 +273,7 @@ onBeforeUnmount(() => {
                 <h3 class="text-lg md:text-xl font-bold text-white leading-snug">
                   毛孩突發狀況？別慌，PawPal 在這裡
                 </h3>
-                <p class="text-xs opacity-90 mt-1">
-                  一鍵搜尋附近 24 小時急診醫院，或先看視覺化急救教學爭取黃金時間
-                </p>
+                <p class="text-xs opacity-90 mt-1">一鍵搜尋附近 24 小時急診醫院</p>
               </div>
             </div>
             <div class="w-full md:w-auto flex flex-col md:flex-row items-center gap-3 shrink-0">
@@ -299,13 +282,6 @@ onBeforeUnmount(() => {
                 class="w-full tracking-wider md:w-auto bg-white font-bold py-3 px-8 rounded-full shadow-md text-sm transition-all lg:hover:scale-105 active:scale-[0.99] block text-center text-brand-orange"
               >
                 立即搜尋醫院
-              </RouterLink>
-
-              <RouterLink
-                to="/#"
-                class="w-full tracking-wider md:w-auto bg-transparent text-white font-bold py-3 px-8 rounded-full border-2 border-white/80 text-sm backdrop-blur-[2px] transition-all lg:hover:bg-white/10 lg:hover:scale-105 active:scale-[0.99] block text-center"
-              >
-                查詢急救教學
               </RouterLink>
             </div>
           </div>
@@ -320,11 +296,10 @@ onBeforeUnmount(() => {
         從緊急救助到日常陪伴，PawPal都在
       </p>
       <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        <RouterLink
+        <article
           v-for="(card, index) in services"
           :key="index"
-          :to="card.path"
-          class="bg-white p-6 rounded-2xl border border-[#E2E8F0] shadow-[0_4px_25px_rgba(0,0,0,0.015)] flex items-start gap-4 text-left cursor-pointer transition-all duration-200 lg:hover:scale-[1.012] lg:hover:shadow-[0_10px_30px_rgba(146,168,245,0.12)] lg:hover:border-brand-blue/30 active:bg-[#F8FAFC] active:scale-[0.99]"
+          class="flex items-start gap-4 rounded-2xl border border-[#E2E8F0] bg-white p-6 text-left shadow-[0_4px_25px_rgba(0,0,0,0.015)]"
         >
           <div
             class="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-brand-lightblue"
@@ -339,10 +314,11 @@ onBeforeUnmount(() => {
               {{ card.desc }}
             </p>
           </div>
-        </RouterLink>
+        </article>
       </div>
     </section>
     <section
+      id="about-pawpal"
       class="about-me-section mt-32 text-center px-4 w-full max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12 md:text-left"
     >
       <div class="w-full md:w-1/2 flex justify-center">

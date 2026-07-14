@@ -14,6 +14,10 @@ import {
   hasUserAvatar,
 } from '@/utils/userProfile.js'
 import defaultProfileIcon from '@/assets/icons/user.svg'
+import aboutIcon from '@/assets/icons/about-team.svg'
+import knowledgeIcon from '@/assets/icons/knowledge-lightbulb.svg'
+import loginIcon from '@/assets/icons/login.svg'
+import homeIcon from '@/assets/icons/home.svg'
 
 const props = defineProps({
   variant: {
@@ -71,27 +75,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleDocumentClick)
 })
-
-const navGroups = [
-  {
-    id: 'medical',
-    label: '醫療專區',
-    items: [
-      { label: '搜尋醫療院所', to: '/hospital' },
-      { label: '線上看診', href: '#' },
-      { label: '緊急處置教學', href: '#' },
-    ],
-  },
-  {
-    id: 'knowledge',
-    label: '寵物知識+',
-    items: [
-      { label: '經驗分享討論區', href: '#' },
-      { label: '衛教文章', href: '#' },
-      { label: '小知識測驗', href: '#' },
-    ],
-  },
-]
 </script>
 
 <template>
@@ -119,172 +102,160 @@ const navGroups = [
         <img src="@/assets/images/PawPal_logo.PNG" alt="logo" class="h-12 w-auto" />
       </RouterLink>
 
-      <div class="flex items-center gap-5 lg:contents">
-        <nav class="flex items-center gap-5 lg:gap-16 text-brand-gray">
-          <RouterLink to="/about" class="transition hover:text-[#FFA002]">關於我們</RouterLink>
-
-          <div v-for="group in navGroups" :key="group.id" class="group relative">
-            <button
-              type="button"
-              class="group flex cursor-pointer items-center gap-1 transition group-hover:text-brand-orange"
-            >
-              <span>{{ group.label }}</span>
-              <img
-                src="@/assets/icons/angle-arrow.svg"
-                alt="angle-arrow"
-                class="size-4 arrow-icon transition duration-150"
-              />
-            </button>
-
-            <div
-              class="invisible absolute left-0 z-50 mt-2 w-40 rounded-lg bg-white py-2 opacity-0 shadow-lg transition-all duration-150 group-hover:visible group-hover:opacity-100"
-            >
-              <template v-for="item in group.items" :key="item.label">
-                <RouterLink
-                  v-if="item.to"
-                  :to="item.to"
-                  class="block px-4 py-2 transition hover:bg-brand-lightblue hover:text-brand-darkgray"
-                >
-                  {{ item.label }}
-                </RouterLink>
-                <a
-                  v-else
-                  :href="item.href"
-                  class="block px-4 py-2 transition hover:bg-brand-lightblue hover:text-brand-darkgray"
-                >
-                  {{ item.label }}
-                </a>
-              </template>
-            </div>
-          </div>
-
-          <a v-if="authStore.isLoggedIn" href="#" class="transition hover:text-brand-orange"
-            >會員專區</a
+      <div class="flex items-center gap-3">
+        <nav class="mr-2 flex items-center gap-3" aria-label="快速導覽">
+          <RouterLink
+            to="/about"
+            aria-label="關於我們"
+            class="group relative grid size-11 place-items-center rounded-full bg-white shadow-[0_4px_14px_rgba(146,168,245,0.16)] transition duration-200 hover:-translate-y-0.5 hover:bg-brand-orange/10 hover:shadow-[0_7px_18px_rgba(255,160,2,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
           >
+            <img :src="aboutIcon" alt="" class="size-5 object-contain" />
+            <span
+              role="tooltip"
+              class="pointer-events-none invisible absolute left-1/2 top-full z-50 mt-2.5 -translate-x-1/2 translate-y-1 whitespace-nowrap rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-semibold text-white opacity-0 shadow-[0_8px_20px_rgba(53,76,130,0.22)] transition duration-150 before:absolute before:-top-1 before:left-1/2 before:size-2 before:-translate-x-1/2 before:rotate-45 before:bg-brand-navy group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:visible group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
+            >
+              關於我們
+            </span>
+          </RouterLink>
+
+          <a
+            href="#"
+            aria-label="小知識"
+            class="group relative grid size-11 place-items-center rounded-full bg-white shadow-[0_4px_14px_rgba(146,168,245,0.16)] transition duration-200 hover:-translate-y-0.5 hover:bg-brand-orange/10 hover:shadow-[0_7px_18px_rgba(255,160,2,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
+          >
+            <img :src="knowledgeIcon" alt="" class="size-5 object-contain" />
+            <span
+              role="tooltip"
+              class="pointer-events-none invisible absolute left-1/2 top-full z-50 mt-2.5 -translate-x-1/2 translate-y-1 whitespace-nowrap rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-semibold text-white opacity-0 shadow-[0_8px_20px_rgba(53,76,130,0.22)] transition duration-150 before:absolute before:-top-1 before:left-1/2 before:size-2 before:-translate-x-1/2 before:rotate-45 before:bg-brand-navy group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:visible group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
+            >
+              小知識
+            </span>
+          </a>
         </nav>
 
-        <div class="flex items-center gap-2">
-          <RouterLink
-            to="/hospital"
-            class="flex items-center justify-center rounded-full bg-brand-orange px-4 py-2 text-white transition hover:bg-[#e58f04]"
-          >
-            <img src="@/assets/icons/location.svg" class="size-5" />
-            搜尋附近醫院
-          </RouterLink>
+        <RouterLink
+          to="/hospital"
+          class="flex items-center justify-center rounded-full bg-brand-orange px-4 py-2 text-white shadow-[0_4px_14px_rgba(255,160,2,0.2)] transition hover:-translate-y-0.5 hover:bg-[#e58f04] hover:shadow-[0_7px_18px_rgba(255,160,2,0.28)]"
+        >
+          <img src="@/assets/icons/location.svg" alt="" class="size-5" />
+          搜尋附近醫院
+        </RouterLink>
 
-          <span class="ml-2 mr-0 h-8 w-px bg-[#D9DEE8]" aria-hidden="true" />
+        <span class="ml-2 mr-0 h-8 w-px bg-[#D9DEE8]" aria-hidden="true" />
 
-          <RouterLink
-            v-if="!authStore.isLoggedIn"
-            to="/login"
-            class="group flex h-12 items-center justify-center gap-2 rounded-full py-2 pl-2 pr-3 text-base font-medium text-brand-gray transition hover:text-brand-orange"
+        <RouterLink
+          v-if="!authStore.isLoggedIn"
+          to="/login"
+          class="group flex h-12 items-center justify-center gap-2 rounded-full py-2 pl-2 pr-3 text-base font-medium text-brand-gray transition hover:text-brand-orange"
+        >
+          <img :src="loginIcon" alt="" class="auth-action-icon size-6 shrink-0" />
+          <span>登入</span>
+        </RouterLink>
+
+        <div v-else ref="memberMenuRef" class="relative">
+          <button
+            type="button"
+            class="grid size-11 place-items-center rounded-full border border-[#D6DDE8] bg-white transition hover:border-brand-orange"
+            aria-label="開啟會員選單"
+            :aria-expanded="isMemberMenuOpen"
+            @click.stop="toggleMemberMenu"
           >
-            <svg
-              class="login-icon size-6 shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
+            <img
+              v-if="hasUploadedAvatar"
+              :src="memberAvatarUrl"
+              alt="會員頭像"
+              class="size-9 rounded-full object-cover"
+            />
+            <img
+              v-else
+              :src="defaultProfileIcon"
+              alt="預設會員頭像"
+              class="size-6 text-brand-gray"
+            />
+          </button>
+
+          <div
+            v-if="isMemberMenuOpen"
+            class="absolute right-0 top-full z-50 mt-3 w-[255px] overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-[0_14px_35px_rgba(31,41,55,0.16)]"
+          >
+            <div class="flex w-full items-center gap-3 px-4 py-4">
+              <div
+                class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border border-[#D6DDE8] bg-white"
+              >
+                <img
+                  v-if="hasUploadedAvatar"
+                  :src="memberAvatarUrl"
+                  alt="會員頭像"
+                  class="size-full object-cover"
+                />
+                <img
+                  v-else
+                  :src="defaultProfileIcon"
+                  alt="預設會員頭像"
+                  class="size-6 text-brand-gray"
+                />
+              </div>
+              <div class="min-w-0">
+                <p
+                  class="truncate text-lg font-semibold text-brand-navy"
+                >
+                  {{ memberDisplayName }}
+                </p>
+                <p
+                  class="truncate text-base font-medium text-brand-gray"
+                >
+                  {{ memberDisplayEmail }}
+                </p>
+              </div>
+            </div>
+
+            <RouterLink
+              to="/dashboard"
+              class="group flex w-full items-center gap-2 border-t border-[#EEF1F5] px-4 py-3 text-sm font-medium text-brand-gray transition hover:bg-[#F8FAFC] hover:text-brand-orange"
+              @click="closeMemberMenu"
             >
-              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-              <polyline points="10 17 15 12 10 7" />
-              <line x1="15" y1="12" x2="3" y2="12" />
-            </svg>
-            <span>登入</span>
-          </RouterLink>
+              <img :src="homeIcon" alt="" class="auth-action-icon size-4 shrink-0" />
+              會員首頁
+            </RouterLink>
 
-          <div v-else ref="memberMenuRef" class="relative">
             <button
               type="button"
-              class="grid size-11 place-items-center rounded-full border border-[#D6DDE8] bg-white transition hover:border-brand-orange"
-              aria-label="開啟會員選單"
-              :aria-expanded="isMemberMenuOpen"
-              @click.stop="toggleMemberMenu"
+              class="group flex w-full items-center gap-2 border-t border-[#EEF1F5] px-4 py-3 text-sm font-medium text-brand-gray transition hover:bg-[#F8FAFC] hover:text-brand-orange"
+              @click="handleOpenUserProfileModal"
             >
               <img
-                v-if="hasUploadedAvatar"
-                :src="memberAvatarUrl"
-                alt="會員頭像"
-                class="size-9 rounded-full object-cover"
-              />
-              <img
-                v-else
                 :src="defaultProfileIcon"
-                alt="預設會員頭像"
-                class="size-6 text-brand-gray"
+                alt=""
+                class="auth-action-icon size-4 shrink-0"
               />
+              個人資料
             </button>
 
-            <div
-              v-if="isMemberMenuOpen"
-              class="absolute right-0 top-full z-50 mt-3 w-[255px] overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-[0_14px_35px_rgba(31,41,55,0.16)]"
+            <button
+              type="button"
+              class="group flex w-full items-center gap-2 border-t border-[#EEF1F5] px-4 py-3 text-sm font-medium text-brand-gray transition hover:bg-[#F8FAFC] hover:text-brand-orange"
+              @click="handleLogout"
             >
-              <button
-                type="button"
-                class="group flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-[#F8FAFC]"
-                aria-label="查看個人資料"
-                @click="handleOpenUserProfileModal"
-              >
-                <div
-                  class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border border-[#D6DDE8] bg-white transition group-hover:border-brand-orange"
-                >
-                  <img
-                    v-if="hasUploadedAvatar"
-                    :src="memberAvatarUrl"
-                    alt="會員頭像"
-                    class="size-full object-cover"
-                  />
-                  <img
-                    v-else
-                    :src="defaultProfileIcon"
-                    alt="預設會員頭像"
-                    class="size-6 text-brand-gray"
-                  />
-                </div>
-                <div class="min-w-0">
-                  <p class="truncate text-lg font-semibold text-brand-navy transition group-hover:text-brand-orange">
-                    {{ memberDisplayName }}
-                  </p>
-                  <p class="truncate text-base font-medium text-brand-gray transition group-hover:text-brand-orange">
-                    {{ memberDisplayEmail }}
-                  </p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                class="group flex w-full items-center gap-2 border-t border-[#EEF1F5] px-4 py-3 text-sm font-medium text-brand-gray transition hover:bg-[#F8FAFC] hover:text-brand-orange"
-                @click="handleLogout"
-              >
-                <svg
-                  class="logout-icon size-4 shrink-0"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                  <polyline points="10 17 15 12 10 7" />
-                  <line x1="15" y1="12" x2="3" y2="12" />
-                </svg>
-                登出
-              </button>
-            </div>
+              <img
+                :src="loginIcon"
+                alt=""
+                class="auth-action-icon size-4 shrink-0 -scale-x-100"
+              />
+              登出
+            </button>
           </div>
         </div>
       </div>
     </div>
   </header>
 
-  <DashboardSidebar v-if="isMemberVariant" />
+  <DashboardSidebar v-if="isMemberVariant" @open-user-profile="handleOpenUserProfileModal" />
 
-  <DashboardSidebar v-else-if="shouldUseMemberSidebarOnMobile" :show-desktop="false" />
+  <DashboardSidebar
+    v-else-if="shouldUseMemberSidebarOnMobile"
+    :show-desktop="false"
+    @open-user-profile="handleOpenUserProfileModal"
+  />
 
   <UserProfileModal
     v-if="authStore.isLoggedIn"
@@ -312,17 +283,9 @@ const navGroups = [
 </template>
 
 <style scoped>
-.arrow-icon {
-  filter: invert(46%) sepia(8%) saturate(567%) hue-rotate(202deg) brightness(92%) contrast(88%);
-}
-
-.group:hover .arrow-icon {
-  filter: invert(63%) sepia(95%) saturate(700%) hue-rotate(1deg) brightness(103%) contrast(101%);
-}
-
-.login-icon,
-.logout-icon {
-  transition: color 0.1s ease;
+.group:hover .auth-action-icon {
+  filter: brightness(0) saturate(100%) invert(67%) sepia(99%) saturate(1924%) hue-rotate(359deg)
+    brightness(101%) contrast(104%);
 }
 
 .slide-enter-active,

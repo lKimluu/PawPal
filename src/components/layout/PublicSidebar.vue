@@ -1,9 +1,8 @@
 <script setup>
-import { useAuthStore } from '@/stores/auth'
 import { useSidebarStore } from '@/stores/sidebar'
+import loginIcon from '@/assets/icons/login.svg'
 
 const sidebarStore = useSidebarStore()
-const authStore = useAuthStore()
 </script>
 
 <template>
@@ -34,11 +33,13 @@ const authStore = useAuthStore()
         <section>
           <ul class="flex flex-col gap-4">
             <li>
-              <a
-                href="about"
+              <RouterLink
+                to="/about"
+                @click="sidebarStore.closeSidebar()"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >關於我們</a
               >
+                關於我們
+              </RouterLink>
             </li>
 
             <li>
@@ -54,21 +55,6 @@ const authStore = useAuthStore()
               >
             </li>
 
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >AI 即時診斷</a
-              >
-            </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >緊急處置教學
-              </a>
-            </li>
           </ul>
         </section>
 
@@ -84,23 +70,7 @@ const authStore = useAuthStore()
               <a
                 href="#"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >經驗分享討論區</a
-              >
-            </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >衛教文章</a
-              >
-            </li>
-
-            <li>
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >小知識測驗</a
+                >小知識</a
               >
             </li>
           </ul>
@@ -108,18 +78,6 @@ const authStore = useAuthStore()
 
         <section>
           <ul class="flex flex-col gap-4">
-            <li v-if="authStore.isLoggedIn">
-              <span class="text-base font-bold tracking-wider text-brand-navy">會員專區</span>
-            </li>
-
-            <li v-if="authStore.isLoggedIn">
-              <a
-                href="#"
-                class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >會員主頁</a
-              >
-            </li>
-
             <li>
               <div
                 class="flex items-center justify-center gap-20 border-t border-brand-lightblue pt-[50px]"
@@ -137,12 +95,12 @@ const authStore = useAuthStore()
                 <router-link
                   to="/login"
                   @click="sidebarStore.closeSidebar()"
-                  class="cursor-pointer flex items-center gap-1.5 text-base font-medium text-brand-gray active:text-brand-orange"
+                  class="group cursor-pointer flex items-center gap-1.5 text-base font-medium text-brand-gray active:text-brand-orange"
                 >
                   <img
-                    src="@/assets/icons/login.svg"
+                    :src="loginIcon"
                     alt="Login Icon"
-                    class="h-4 w-4 active:stroke-brand-orange"
+                    class="h-4 w-4 transition group-hover:[filter:brightness(0)_saturate(100%)_invert(67%)_sepia(99%)_saturate(1924%)_hue-rotate(359deg)_brightness(101%)_contrast(104%)]"
                   />
 
                   登入
