@@ -112,7 +112,7 @@ onMounted(async () => {
       <div class="relative flex-1">
         <div
           v-if="showLengthTooltip"
-          class="absolute -top-8 left-0 rounded-lg bg-brand-navy px-2 py-1 text-xs text-white"
+          class="absolute -top-8 left-0 rounded-lg bg-[#eb5656] px-2 py-1 text-sm text-white"
         >
           最多僅能輸入 150 字
         </div>
