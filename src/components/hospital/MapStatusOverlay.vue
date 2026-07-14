@@ -20,14 +20,14 @@ const emit = defineEmits(['retry'])
 <template>
   <div
     v-if="isLoading"
-    class="absolute left-4 top-4 z-[500] rounded-full bg-white px-3 py-2 text-xs font-bold text-brand-gray shadow"
+    class="absolute left-24 top-4 z-[500] w-fit max-w-[calc(100%-7rem)] rounded-full bg-white px-3 py-2 text-xs font-bold text-brand-gray shadow"
   >
     更新地圖中...
   </div>
 
   <div
     v-if="errorMessage"
-    class="absolute left-4 top-4 z-[500] rounded-xl bg-white p-3 text-xs font-bold text-brand-orange shadow"
+    class="absolute left-24 top-4 z-[500] w-[calc(100%-7rem)] max-w-xs rounded-xl bg-white p-3 text-xs font-bold text-brand-orange shadow"
   >
     {{ errorMessage }}
     <button

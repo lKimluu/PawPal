@@ -1,16 +1,25 @@
 <script setup>
-import { onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import bgImage from '@/assets/images/home-bg.png'
 import visualImage from '@/assets/images/home-visual.png'
 import aboutImage from '@/assets/images/home-about.png'
 import IconLocation from '@/assets/icons/location_o.svg'
 import Header from '@/components/layout/AppHeader.vue'
 import Footer from '@/components/layout/AppFooter.vue'
+import { useHospitalStore } from '@/stores/hospital.js'
 import { useLocationStore } from '@/stores/location.js'
 
+const router = useRouter()
 const locationStore = useLocationStore()
+const hospitalStore = useHospitalStore()
 const { userLocation, isLocating, locationError, hasRequestedLocation } = storeToRefs(locationStore)
+const { visibleHospitals, isLoading, errorMessage, locationFallbackMessage } =
+  storeToRefs(hospitalStore)
+const homeHospitals = computed(() => visibleHospitals.value.slice(0, 3))
+const isSummaryLoading = computed(() => isLocating.value || isLoading.value)
+let isHomeActive = true
 
 const services = [
   {
@@ -49,8 +58,31 @@ const getIconUrl = (name) => {
   return new URL(`../assets/icons/${name}`, import.meta.url).href
 }
 
-onMounted(() => {
-  locationStore.requestCurrentLocation()
+const formatDistance = (distance) => {
+  const numericDistance = Number(distance)
+  return Number.isFinite(numericDistance) ? `${numericDistance.toFixed(1)} km` : '距離資訊未提供'
+}
+
+const openHospital = (hospitalId) => {
+  hospitalStore.selectHospital(hospitalId)
+  router.push('/hospital')
+}
+
+onMounted(async () => {
+  await locationStore.requestCurrentLocation()
+
+  if (!isHomeActive) return
+
+  await hospitalStore.loadNearbyHospitals({
+    location: userLocation.value,
+    locationError: '',
+    radius: 5,
+    limit: 3,
+  })
+})
+
+onBeforeUnmount(() => {
+  isHomeActive = false
 })
 </script>
 
@@ -95,16 +127,37 @@ onMounted(() => {
         <div class="w-full max-w-5xl mx-auto px-4 relative z-1">
           <!-- 電腦版附近醫院卡片列表 -->
           <div class="hidden md:grid grid-cols-3 gap-4 w-full relative z-2">
-            <RouterLink
+            <div
+              v-if="isSummaryLoading"
               v-for="i in 3"
-              :key="i"
-              to="/#"
+              :key="`desktop-skeleton-${i}`"
+              class="h-[126px] animate-pulse rounded-2xl border border-[#E2E8F0] bg-white/45 shadow-[0_2px_10px_rgba(255,160,2,0.12)]"
+              aria-hidden="true"
+            ></div>
+            <div
+              v-else-if="errorMessage"
+              class="col-span-3 rounded-2xl border border-[#E2E8F0] bg-white/75 p-5 text-center text-sm font-bold text-brand-orange backdrop-blur"
+              role="status"
+            >
+              {{ errorMessage }}
+            </div>
+            <button
+              v-else-if="homeHospitals.length"
+              v-for="hospital in homeHospitals"
+              :key="hospital.id"
+              type="button"
               class="bg-white/30 backdrop-blur-md p-5 rounded-2xl border border-[#E2E8F0] text-left transition-all duration-300 shadow-[0_2px_10px_rgba(255,160,2,0.2)] lg:hover:-translate-y-1 lg:hover:shadow-[0_10px_30px_rgba(255,160,2,0.4)] cursor-pointer active:scale-[0.99]"
+              @click="openHospital(hospital.id)"
             >
               <p class="text-[10px] font-medium tracking-wide text-brand-gray">最近醫院</p>
-              <p class="text-base font-bold mt-0.5 text-brand-navy">嗨嗨動物醫院</p>
+              <p class="truncate text-base font-bold mt-0.5 text-brand-navy">{{ hospital.name }}</p>
+              <p class="mt-1 truncate text-xs text-brand-gray">
+                {{ hospital.district || hospital.city || '地區資訊未提供' }}
+              </p>
               <div class="flex justify-between items-center mt-4">
-                <span class="text-sm font-black text-brand-navy">0.4 km</span>
+                <span class="text-sm font-black text-brand-navy">
+                  {{ formatDistance(hospital.distanceKm) }}
+                </span>
                 <span class="text-xs font-black text-brand-orange flex items-center gap-1">
                   <span
                     class="w-1.5 h-1.5 rounded-full bg-brand-orange inline-block animate-pulse"
@@ -112,14 +165,30 @@ onMounted(() => {
                   營業中
                 </span>
               </div>
-            </RouterLink>
+            </button>
+            <div
+              v-else
+              class="col-span-3 rounded-2xl border border-[#E2E8F0] bg-white/75 p-5 text-center text-sm font-bold text-brand-gray backdrop-blur"
+              role="status"
+            >
+              附近 5 公里內暫無醫院
+            </div>
           </div>
           <div
-            v-if="hasRequestedLocation || isLocating || locationError || userLocation"
+            v-if="
+              hasRequestedLocation ||
+              isLocating ||
+              locationError ||
+              locationFallbackMessage ||
+              userLocation
+            "
             class="relative z-2 mx-auto mt-4 inline-flex max-w-full items-center justify-center rounded-full bg-white/75 px-4 py-2 text-xs font-bold shadow-[0_6px_18px_rgba(61,74,122,0.12)] backdrop-blur text-brand-navy"
             aria-live="polite"
           >
             <span v-if="isLocating">正在取得目前位置</span>
+            <span v-else-if="locationFallbackMessage" class="text-brand-orange">
+              {{ locationFallbackMessage }}
+            </span>
             <span v-else-if="locationError" class="text-brand-orange">{{ locationError }}</span>
             <span v-else-if="userLocation">已取得目前位置</span>
           </div>
@@ -135,11 +204,27 @@ onMounted(() => {
 
           <!-- 手機版附近醫院卡片列表 -->
           <div class="md:hidden flex flex-col gap-3 mt-4 mb-8 relative z-2 w-full">
-            <RouterLink
+            <div
+              v-if="isSummaryLoading"
               v-for="i in 3"
-              :key="i"
-              to="/#"
+              :key="`mobile-skeleton-${i}`"
+              class="h-[82px] animate-pulse rounded-2xl bg-white/70 shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
+              aria-hidden="true"
+            ></div>
+            <div
+              v-else-if="errorMessage"
+              class="rounded-2xl bg-white p-4 text-center text-sm font-bold text-brand-orange shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
+              role="status"
+            >
+              {{ errorMessage }}
+            </div>
+            <button
+              v-else-if="homeHospitals.length"
+              v-for="hospital in homeHospitals"
+              :key="hospital.id"
+              type="button"
               class="bg-white p-4 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex items-center justify-between text-left transition-all duration-150 active:scale-[0.99] active:bg-[#f8fafc] active:shadow-sm"
+              @click="openHospital(hospital.id)"
             >
               <div class="flex items-center gap-3">
                 <div class="flex items-center justify-center">
@@ -147,11 +232,16 @@ onMounted(() => {
                 </div>
                 <div>
                   <p class="text-[10px] font-medium tracking-wide text-brand-gray">最近醫院</p>
-                  <p class="text-sm font-bold mt-0.5 text-brand-navy">勝勝動物醫院</p>
+                  <p class="text-sm font-bold mt-0.5 text-brand-navy">{{ hospital.name }}</p>
+                  <p class="mt-0.5 text-[11px] text-brand-gray">
+                    {{ hospital.district || hospital.city || '地區資訊未提供' }}
+                  </p>
                 </div>
               </div>
               <div class="text-right shrink-0">
-                <p class="text-xs font-black text-brand-navy">0.4 km</p>
+                <p class="text-xs font-black text-brand-navy">
+                  {{ formatDistance(hospital.distanceKm) }}
+                </p>
                 <p
                   class="text-[11px] font-bold text-brand-orange mt-1 flex items-center gap-1 justify-end"
                 >
@@ -161,7 +251,14 @@ onMounted(() => {
                   營業中
                 </p>
               </div>
-            </RouterLink>
+            </button>
+            <div
+              v-else
+              class="rounded-2xl bg-white p-4 text-center text-sm font-bold text-brand-gray shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
+              role="status"
+            >
+              附近 5 公里內暫無醫院
+            </div>
           </div>
           <div
             class="w-full relative z-2 mt-4 md:mt-8 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between shadow-[0_12px_40px_rgba(235,140,0,0.25)] text-white gap-6 bg-gradient-to-r from-[#ffa002] to-[#ffb357]"
@@ -181,7 +278,7 @@ onMounted(() => {
             </div>
             <div class="w-full md:w-auto flex flex-col md:flex-row items-center gap-3 shrink-0">
               <RouterLink
-                to="/#"
+                to="/hospital"
                 class="w-full tracking-wider md:w-auto bg-white font-bold py-3 px-8 rounded-full shadow-md text-sm transition-all lg:hover:scale-105 active:scale-[0.99] block text-center text-brand-orange"
               >
                 立即搜尋醫院
@@ -243,7 +340,7 @@ onMounted(() => {
           PawPal將即時資訊、專業知識與溫慢陪伴整合在一起，讓你不論身處何地、何時，都能安心。
         </p>
         <RouterLink
-          to="/#"
+          to="/about"
           class="tracking-wider mt-6 inline-flex items-center justify-center gap-2 text-sm font-bold border-2 px-6 py-2.5 rounded-full transition-all duration-200 lg:hover:scale-[1.02] active:bg-brand-blue active:text-brand-white active:scale-[0.99] border-brand-blue text-brand-blue lg:hover:bg-brand-blue lg:hover:text-white"
         >
           了解更多 ➔

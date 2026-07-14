@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
@@ -25,13 +25,17 @@ const {
   selectedHospital,
   isLoading,
   errorMessage,
-  locationFallbackMessage,
 } = storeToRefs(hospitalStore)
 const headerVariant = computed(() => (authStore.isLoggedIn ? 'member' : 'public'))
 const isLocationPermissionBlocked = computed(() => permissionState.value === 'denied')
+const selectionRequestId = ref(0)
 
 async function requestCurrentLocation() {
-  await locationStore.requestCurrentLocation()
+  const locationSucceeded = await locationStore.requestCurrentLocation()
+
+  if (locationSucceeded) {
+    hospitalStore.selectHospital(null)
+  }
 
   return hospitalStore.loadNearbyHospitals({
     location: userLocation.value,
@@ -54,6 +58,7 @@ async function loadNearbyHospitals({ requestLocation = true } = {}) {
 
 function selectHospital(hospitalId) {
   hospitalStore.selectHospital(hospitalId)
+  selectionRequestId.value += 1
 }
 
 onMounted(() => {
@@ -81,9 +86,6 @@ onMounted(() => {
                 <span v-else-if="locationError" class="text-brand-orange">{{ locationError }}</span>
                 <span v-else-if="userLocation">已取得目前位置</span>
                 <span v-else>可使用目前位置搜尋附近醫院，若未取得定位會改用台北市中心。</span>
-              </p>
-              <p v-if="locationFallbackMessage" class="mt-1 text-xs text-brand-orange">
-                {{ locationFallbackMessage }}
               </p>
               <p v-if="isLocationPermissionBlocked" class="mt-1 text-xs text-brand-gray">
                 請從瀏覽器網址列或網站設定允許 PawPal 使用定位，再重新檢查定位權限。
@@ -120,6 +122,7 @@ onMounted(() => {
               :hospitals="mapHospitals"
               :selected-hospital-id="selectedHospitalId"
               :selected-hospital="selectedHospital"
+              :selection-request-id="selectionRequestId"
               :user-location="userLocation"
               :is-loading="mapLoading"
               :error-message="mapError"

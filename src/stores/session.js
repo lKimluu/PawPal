@@ -29,6 +29,26 @@ export const useSessionStore = defineStore('session', () => {
     return result
   }
 
+  async function loginWithGoogle(googleIdToken) {
+    const result = await authStore.loginWithGoogle(googleIdToken)
+
+    if (result.success) {
+      resetSessionStores()
+    }
+
+    return result
+  }
+
+  async function loginWithLine(code) {
+    const result = await authStore.loginWithLine(code)
+
+    if (result.success) {
+      resetSessionStores()
+    }
+
+    return result
+  }
+
   function logout() {
     resetSessionStores()
     authStore.logout()
@@ -36,6 +56,8 @@ export const useSessionStore = defineStore('session', () => {
 
   return {
     login,
+    loginWithGoogle,
+    loginWithLine,
     logout,
     resetSessionStores,
   }

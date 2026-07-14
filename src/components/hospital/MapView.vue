@@ -9,6 +9,13 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import MapStatusOverlay from '@/components/hospital/MapStatusOverlay.vue'
 import { TAIPEI_CENTER } from '@/api/hospitals.js'
 import { createHospitalMarker, createUserLocationIcon } from '@/utils/hospitalMapMarkers.js'
+import {
+  createHospitalMapSelectionCoordinator,
+  createMapBoundsScheduler,
+  createSpiderfyPopupSyncGuard,
+  resolveHospitalMapInitialCenter,
+  revealHospitalClusterMarker,
+} from '@/utils/hospitalMapSelection.js'
 
 const props = defineProps({
   hospitals: {
@@ -18,6 +25,10 @@ const props = defineProps({
   selectedHospitalId: {
     type: [String, Number],
     default: null,
+  },
+  selectionRequestId: {
+    type: Number,
+    default: 0,
   },
   userLocation: {
     type: Object,
@@ -31,17 +42,19 @@ const props = defineProps({
 
 const emit = defineEmits(['selectHospital', 'boundsChange', 'retry'])
 const mapObject = ref(null)
-let boundsTimer
 let clusterLayer
+let pendingLocationPosition = null
 const markerById = new Map()
+
+function hasValidHospitalCoordinates(hospital) {
+  return Number.isFinite(hospital?.latitude) && Number.isFinite(hospital?.longitude)
+}
 
 const validHospitals = computed(() => {
   const merged = [...props.hospitals]
   if (props.selectedHospital && !merged.some((item) => item.id === props.selectedHospital.id))
     merged.push(props.selectedHospital)
-  return merged.filter(
-    (hospital) => Number.isFinite(hospital.latitude) && Number.isFinite(hospital.longitude),
-  )
+  return merged.filter(hasValidHospitalCoordinates)
 })
 const emergencyCount = computed(
   () => validHospitals.value.filter((hospital) => hospital.is24H).length,
@@ -59,25 +72,14 @@ const selectedHospital = computed(() =>
   validHospitals.value.find((hospital) => hospital.id === props.selectedHospitalId),
 )
 const userLocationIcon = createUserLocationIcon()
-
-const center = computed(() => {
-  if (selectedHospital.value) {
-    return [selectedHospital.value.latitude, selectedHospital.value.longitude]
-  }
-
-  if (userPosition.value) return userPosition.value
-  if (validHospitals.value.length === 0) return TAIPEI_CENTER
-
-  const total = validHospitals.value.reduce(
-    (sum, hospital) => ({
-      lat: sum.lat + hospital.latitude,
-      lng: sum.lng + hospital.longitude,
-    }),
-    { lat: 0, lng: 0 },
-  )
-
-  return [total.lat / validHospitals.value.length, total.lng / validHospitals.value.length]
-})
+const initialCenter = ref(
+  resolveHospitalMapInitialCenter({
+    selectedHospital: selectedHospital.value,
+    userLocation: props.userLocation,
+    hospitals: validHospitals.value,
+    fallbackCenter: TAIPEI_CENTER,
+  }),
+)
 
 function emitBounds() {
   const bounds = mapObject.value?.getBounds()
@@ -89,16 +91,40 @@ function emitBounds() {
     west: bounds.getWest(),
   })
 }
-function scheduleBounds() {
-  clearTimeout(boundsTimer)
-  boundsTimer = setTimeout(emitBounds, 300)
+const boundsScheduler = createMapBoundsScheduler({ onBounds: emitBounds })
+const scheduleBounds = boundsScheduler.schedule
+function revealHospitalMarker(hospitalId, onPopupOpen) {
+  const marker = markerById.get(hospitalId)
+  if (!marker || !clusterLayer) {
+    onPopupOpen()
+    return undefined
+  }
+
+  return revealHospitalClusterMarker({
+    clusterLayer,
+    marker,
+    isCurrentMarker: () => markerById.get(hospitalId) === marker,
+    onPopupOpen,
+  })
 }
-function syncClusters() {
+function openMarkerPopupWithoutAutoPan(marker) {
+  const popup = marker?.getPopup()
+  if (!popup) return
+
+  const originalAutoPan = popup.options.autoPan
+  popup.options.autoPan = false
+  marker.openPopup()
+  popup.options.autoPan = originalAutoPan
+}
+function rebuildClusters({ restoreOpenPopup = true } = {}) {
   if (!mapObject.value) return
   if (!clusterLayer) {
     clusterLayer = L.markerClusterGroup()
     clusterLayer.addTo(mapObject.value)
   }
+  const selectedMarker = markerById.get(props.selectedHospitalId)
+  const shouldRestoreSelectedPopup =
+    restoreOpenPopup && Boolean(selectedMarker?.isPopupOpen())
   clusterLayer.clearLayers()
   markerById.clear()
   for (const hospital of validHospitals.value) {
@@ -106,30 +132,79 @@ function syncClusters() {
     markerById.set(hospital.id, marker)
     clusterLayer.addLayer(marker)
   }
+
+  if (shouldRestoreSelectedPopup) {
+    nextTick(() => openMarkerPopupWithoutAutoPan(markerById.get(props.selectedHospitalId)))
+  }
+}
+
+const spiderfyPopupSyncGuard = createSpiderfyPopupSyncGuard({
+  onDeferredSync: rebuildClusters,
+})
+
+function syncClusters(options = {}) {
+  const selectedMarker = markerById.get(props.selectedHospitalId)
+  if (spiderfyPopupSyncGuard.deferIfNeeded(selectedMarker, options)) return
+
+  spiderfyPopupSyncGuard.cancel()
+  rebuildClusters(options)
+}
+
+function isMapAtHospital(map, hospital, targetZoom) {
+  return (
+    map.getZoom() >= targetZoom &&
+    map.distance(map.getCenter(), [hospital.latitude, hospital.longitude]) <= 1
+  )
+}
+
+const selectionCoordinator = createHospitalMapSelectionCoordinator({
+  getMap: () => mapObject.value,
+  isAtTarget: isMapAtHospital,
+  syncClusters,
+  revealMarker: revealHospitalMarker,
+})
+
+function focusSelectedHospital() {
+  selectionCoordinator.focus(selectedHospital.value)
+}
+function panToPendingLocation() {
+  if (!mapObject.value || !pendingLocationPosition || props.selectedHospitalId !== null) return
+
+  const [latitude, longitude] = pendingLocationPosition
+  pendingLocationPosition = null
+  mapObject.value.closePopup()
+  mapObject.value.panTo([latitude, longitude])
 }
 function onMapReady(map) {
   mapObject.value = map
-  syncClusters()
-  scheduleBounds()
+  if (selectedHospital.value) {
+    focusSelectedHospital()
+  } else {
+    syncClusters()
+    scheduleBounds()
+  }
 }
-watch(validHospitals, () => nextTick(syncClusters), { deep: true })
+watch(validHospitals, () => nextTick(selectionCoordinator.requestClusterSync), { deep: true })
 watch(
-  () => props.selectedHospital,
-  (hospital) => {
-    if (hospital && Number.isFinite(hospital.latitude) && Number.isFinite(hospital.longitude)) {
-      mapObject.value?.flyTo(
-        [hospital.latitude, hospital.longitude],
-        Math.max(mapObject.value.getZoom(), 15),
-      )
-      nextTick(() => {
-        const marker = markerById.get(hospital.id)
-        if (marker) clusterLayer?.zoomToShowLayer(marker, () => marker.openPopup())
-      })
-    }
+  () => [props.selectedHospitalId, props.selectionRequestId, props.selectedHospital],
+  () => nextTick(focusSelectedHospital),
+)
+watch(
+  () => props.userLocation,
+  (location) => {
+    if (!Number.isFinite(location?.lat) || !Number.isFinite(location?.lng)) return
+    pendingLocationPosition = [location.lat, location.lng]
+    nextTick(panToPendingLocation)
   },
 )
+watch(
+  () => props.selectedHospitalId,
+  () => nextTick(panToPendingLocation),
+)
 onBeforeUnmount(() => {
-  clearTimeout(boundsTimer)
+  boundsScheduler.cancel()
+  selectionCoordinator.destroy()
+  spiderfyPopupSyncGuard.cancel()
   if (clusterLayer && mapObject.value) mapObject.value.removeLayer(clusterLayer)
 })
 </script>
@@ -163,7 +238,7 @@ onBeforeUnmount(() => {
     <div class="relative h-[520px] w-full bg-brand-lightblue/40 md:h-[680px]">
       <LMap
         :zoom="13"
-        :center="center"
+        :center="initialCenter"
         :zoom-control="false"
         class="hospital-map h-full w-full"
         @ready="onMapReady"

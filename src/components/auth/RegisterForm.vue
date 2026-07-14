@@ -1,12 +1,16 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useSessionStore } from '@/stores/session.js'
 import { useAuthStore } from '@/stores/auth.js'
+import { useToastStore } from '@/stores/toast'
 import { GoogleLogin } from 'vue3-google-login'
 import TermsModal from '@/components/auth/TermsModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const sessionStore = useSessionStore()
+const toastStore = useToastStore()
 
 const name = ref('')
 const email = ref('')
@@ -30,6 +34,7 @@ async function handleSubmit() {
 
   if (password.value !== confirmPassword.value) {
     errorMessage.value = '兩次輸入的密碼不一致'
+    toastStore.showToast(errorMessage.value, 'error')
     return
   }
 
@@ -43,11 +48,14 @@ async function handleSubmit() {
 
   if (!result.success) {
     errorMessage.value = result.message || '註冊失敗，請稍後再試'
+    toastStore.showToast(errorMessage.value, 'error')
     isSubmitting.value = false
     return
   }
 
   successMessage.value = result.message || '註冊成功'
+
+  toastStore.showToast('註冊成功！將轉至登入頁面 ', 'success')
 
   window.setTimeout(() => {
     router.push('/login')
@@ -62,28 +70,34 @@ const handleGoogleLoginCallback = async (response) => {
 
   if (!googleIdToken) {
     errorMessage.value = 'Google 認證失敗，未取得驗證憑證'
+    toastStore.showToast(errorMessage.value, 'error')
     isSubmitting.value = false
     return
   }
 
   try {
-    const result = await authStore.loginWithGoogle(googleIdToken)
+    const result = await sessionStore.loginWithGoogle(googleIdToken)
     isSubmitting.value = false
 
     if (result?.success) {
+      toastStore.showToast('使用 Google 帳戶登入成功！', 'success')
       router.push('/dashboard')
     } else {
       errorMessage.value = result?.message || 'Google 認證失敗'
+      toastStore.showToast(errorMessage.value, 'error')
     }
   } catch (err) {
     isSubmitting.value = false
     errorMessage.value = '伺服器連線失敗'
+    toastStore.showToast(errorMessage.value, 'error')
   }
 }
 
 const loginWithLine = () => {
   const clientID = import.meta.env.VITE_LINE_CHANNEL_ID
-  const redirectURI = encodeURIComponent(import.meta.env.VITE_LINE_REDIRECT_URI)
+
+  const currentOrigin = window.location.origin + '/login'
+  const redirectURI = encodeURIComponent(currentOrigin)
   const state = 'pawpal_line_login_secure'
 
   const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${clientID}&redirect_uri=${redirectURI}&state=${state}&scope=profile%20openid%20email`

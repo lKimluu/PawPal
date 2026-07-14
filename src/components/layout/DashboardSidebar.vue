@@ -66,11 +66,13 @@ const navItems = [
         <section>
           <ul class="flex flex-col gap-4">
             <li>
-              <a
-                href="#"
+              <RouterLink
+                to="/about"
+                @click="sidebarStore.closeSidebar()"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >關於我們</a
               >
+                關於我們
+              </RouterLink>
             </li>
 
             <li>

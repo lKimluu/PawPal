@@ -103,7 +103,7 @@ onBeforeUnmount(() => {
       <div class="flex items-center gap-3">
         <nav class="mr-2 flex items-center gap-3" aria-label="快速導覽">
           <RouterLink
-            to="/#about-pawpal"
+            to="/about"
             aria-label="關於我們"
             class="group relative grid size-11 place-items-center rounded-full bg-white shadow-[0_4px_14px_rgba(146,168,245,0.16)] transition duration-200 hover:-translate-y-0.5 hover:bg-brand-orange/10 hover:shadow-[0_7px_18px_rgba(255,160,2,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
           >

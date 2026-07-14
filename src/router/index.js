@@ -5,11 +5,21 @@ import Home from '@/views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior(to) {
+    if (['PrivacyPolicy', 'TermsOfService'].includes(to.name)) {
+      return { top: 0 }
+    }
+  },
   routes: [
     {
       path: '/',
       name: 'Home',
       component: Home,
+    },
+    {
+      path: '/about',
+      name: 'About',
+      component: () => import('@/views/AboutView.vue'),
     },
     {
       path: '/login',
@@ -70,11 +80,29 @@ const router = createRouter({
       component: () => import('@/views/HospitalView.vue'),
     },
     {
+      path: '/privacy-policy',
+      name: 'PrivacyPolicy',
+      component: () => import('@/views/PrivacyPolicyView.vue'),
+    },
+    {
+      path: '/terms-of-service',
+      name: 'TermsOfService',
+      component: () => import('@/views/TermsOfServiceView.vue'),
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
       component: () => import('@/views/NotFoundView.vue'),
     },
   ],
+
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    } else {
+      return { top: 0 }
+    }
+  },
 })
 
 router.beforeEach((to) => {
