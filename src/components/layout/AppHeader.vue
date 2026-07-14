@@ -121,7 +121,7 @@ const navGroups = [
 
       <div class="flex items-center gap-5 lg:contents">
         <nav class="flex items-center gap-5 lg:gap-16 text-brand-gray">
-          <a href="#" class="transition hover:text-[#FFA002]">關於我們</a>
+          <RouterLink to="/about" class="transition hover:text-[#FFA002]">關於我們</RouterLink>
 
           <div v-for="group in navGroups" :key="group.id" class="group relative">
             <button
@@ -158,10 +158,7 @@ const navGroups = [
             </div>
           </div>
 
-          <a
-            v-if="authStore.isLoggedIn"
-            href="#"
-            class="transition hover:text-brand-orange"
+          <a v-if="authStore.isLoggedIn" href="#" class="transition hover:text-brand-orange"
             >會員專區</a
           >
         </nav>
