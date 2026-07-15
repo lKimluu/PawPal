@@ -4,10 +4,12 @@ import helmet from 'helmet'
 import userRoutes from './routes/users.route.js'
 import authRoutes from './routes/auth.route.js'
 import calendarEventRoutes from './routes/calendar_events.route.js'
+import googleCalendarConnectionRoutes from './routes/google_calendar_connections.route.js'
 import growthRecordsRoutes from './routes/growth_records.route.js'
 import petRoutes from './routes/pets.route.js'
 import medicalRecordRoutes from './routes/medical_records.route.js'
 import hospitalRoutes from './routes/hospitals.route.js'
+import aiAssistantRoutes from './routes/ai_assistant.route.js'
 import { apiRateLimiter } from './config/rate_limit.js'
 
 const app = express()
@@ -25,10 +27,12 @@ app.use(API_PREFIX, apiRateLimiter)
 app.use(`${API_PREFIX}/users`, userRoutes)
 app.use(`${API_PREFIX}/auth`, authRoutes)
 app.use(`${API_PREFIX}/calendar-events`, calendarEventRoutes)
+app.use(`${API_PREFIX}/google-calendar`, googleCalendarConnectionRoutes)
 app.use(`${API_PREFIX}/growth-records`, growthRecordsRoutes)
 app.use(`${API_PREFIX}/pets`, petRoutes)
 app.use(`${API_PREFIX}/medical-records`, medicalRecordRoutes)
 app.use(`${API_PREFIX}/hospitals`, hospitalRoutes)
+app.use(`${API_PREFIX}/ai-assistant`, aiAssistantRoutes)
 
 app.get('/', (req, res) => {
   res.json({

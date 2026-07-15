@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import { pool } from '../src/config/db.js'
-import { findHospitals, findMapHospitals, findNearbyHospitals } from '../src/services/hospitals.service.js'
+import { findHospitalRegions, findHospitals, findMapHospitals, findNearbyHospitals } from '../src/services/hospitals.service.js'
 
 test('findHospitals 應套用 keyword、地區、animal_type 與分頁條件', async (t) => {
   const rows = [
@@ -199,6 +199,60 @@ test('findHospitals keyword 應可搜尋 address 且保留分頁資訊', async (
   })
 })
 
+test('findHospitals keyword relevance 排序應使用正確 SQL 參數順序', async (t) => {
+  const rows = [
+    {
+      id: 3,
+      name: '小尾巴動物醫院',
+      city: '新北市',
+      district: '淡水區',
+      address: '新北市淡水區新市三路',
+      phone: '02-5555-5555',
+      latitude: '25.1880000',
+      longitude: '121.4440000',
+      rating_average: null,
+      review_count: 0,
+      animal_types: [],
+    },
+  ]
+  const query = t.mock.method(pool, 'query', async (text, values) => {
+    if (query.mock.callCount() === 0) {
+      assert.deepEqual(values, ['%小尾巴%'])
+      return { rows: [{ total: 1 }] }
+    }
+
+    assert.match(text, /WHEN h\.name ILIKE '%' \|\| \$2 \|\| '%' THEN 0/)
+    assert.match(text, /LIMIT \$3/)
+    assert.match(text, /OFFSET \$4/)
+    assert.deepEqual(values, ['%小尾巴%', '小尾巴', 20, 0])
+    return { rows }
+  })
+
+  const result = await findHospitals({
+    keyword: '小尾巴',
+    sort: 'relevance',
+    page: 1,
+    limit: 20,
+  })
+
+  assert.equal(query.mock.callCount(), 2)
+  assert.deepEqual(result.hospitals, [
+    {
+      id: 3,
+      name: '小尾巴動物醫院',
+      city: '新北市',
+      district: '淡水區',
+      address: '新北市淡水區新市三路',
+      phone: '02-5555-5555',
+      latitude: 25.188,
+      longitude: 121.444,
+      rating_average: null,
+      review_count: 0,
+      animal_types: [],
+    },
+  ])
+})
+
 test('findHospitals 無符合資料時應回傳空陣列與分頁資訊', async (t) => {
   t.mock.method(pool, 'query', async () => {
     if (pool.query.mock.callCount() === 0) {
@@ -324,7 +378,15 @@ test('findNearbyHospitals 應支援 nearby animal_type slug 篩選', async (t) =
   assert.deepEqual(hospitals, [])
 })
 
-test('findMapHospitals 應依 bounds 回傳地圖醫院與評分聚合並揭露截斷', async (t) => {
+test('findHospitalRegions 應回傳穩定地區 shape', async (t) => {
+  t.mock.method(pool, 'query', async (text) => {
+    assert.match(text, /array_agg\(DISTINCT district ORDER BY district\)/)
+    return { rows: [{ city: '台北市', districts: ['大安區', '信義區'] }] }
+  })
+  assert.deepEqual(await findHospitalRegions(), [{ city: '台北市', districts: ['大安區', '信義區'] }])
+})
+
+test('findMapHospitals 應限制 bounds 結果並回傳評分聚合', async (t) => {
   const rows = [
     {
       id: 1,
@@ -342,23 +404,13 @@ test('findMapHospitals 應依 bounds 回傳地圖醫院與評分聚合並揭露�
   ]
   const query = t.mock.method(pool, 'query', async (text, values) => {
     assert.deepEqual(values, [24, 26, 120, 122])
-
-    if (query.mock.callCount() === 0) {
-      assert.match(text, /COUNT\(\*\)::int AS total/)
-      assert.match(text, /h\.latitude BETWEEN \$1 AND \$2/)
-      assert.match(text, /h\.longitude BETWEEN \$3 AND \$4/)
-      return { rows: [{ total: 1001 }] }
-    }
-
+    if (query.mock.callCount() === 0) return { rows: [{ total: 1001 }] }
     assert.match(text, /LEFT JOIN LATERAL/)
     assert.match(text, /AVG\(rating\)/)
     assert.match(text, /LIMIT 1000/)
     return { rows }
   })
-
-  const result = await findMapHospitals({ north: 26, south: 24, east: 122, west: 120 })
-
-  assert.deepEqual(result, {
+  assert.deepEqual(await findMapHospitals({ north: 26, south: 24, east: 122, west: 120 }), {
     hospitals: [
       {
         id: 1,

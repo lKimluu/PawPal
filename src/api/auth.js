@@ -36,6 +36,6 @@ export function loginWithGoogleApi(googleIdToken) {
   return request('/api/v1/auth/google-login', { token: googleIdToken })
 }
 
-export function loginWithLineApi(code) {
-  return request('/api/v1/auth/line-login', { code })
+export function loginWithLineApi({ code, redirectUri }) {
+  return request('/api/v1/auth/line-login', { code, redirectUri })
 }

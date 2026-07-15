@@ -40,6 +40,11 @@ function map_hospital_row(row) {
     animal_types: normalize_animal_types(row.animal_types),
   }
 
+  if (row.is_24h !== undefined) hospital.is_24h = Boolean(row.is_24h)
+  if (row.emergency_available !== undefined) {
+    hospital.emergency_available = Boolean(row.emergency_available)
+  }
+
   if (row.distance_km !== undefined) {
     hospital.distance_km = Number(Number(row.distance_km).toFixed(2))
   }
@@ -82,6 +87,11 @@ function add_hospital_filters(filters, values, conditions) {
       )
     `)
   }
+
+  if (filters.is_24h !== undefined) {
+    values.push(filters.is_24h)
+    conditions.push(`h.is_24h = $${values.length}`)
+  }
 }
 
 function build_where_clause(conditions) {
@@ -101,6 +111,8 @@ const HOSPITAL_SELECT_COLUMNS = `
   h.phone,
   h.latitude,
   h.longitude,
+  h.is_24h,
+  h.emergency_available,
   review_stats.rating_average,
   COALESCE(review_stats.review_count, 0) AS review_count,
   COALESCE(
@@ -118,8 +130,10 @@ const HOSPITAL_SELECT_COLUMNS = `
 `
 
 export async function findHospitals(filters = {}) {
-  const values = []
+  const uses_distance = filters.sort === 'distance'
+  const values = uses_distance ? [filters.lat, filters.lng] : []
   const conditions = []
+  if (uses_distance) conditions.push('$1::double precision IS NOT NULL', '$2::double precision IS NOT NULL')
   add_hospital_filters(filters, values, conditions)
   const where_clause = build_where_clause(conditions)
 
@@ -136,11 +150,32 @@ export async function findHospitals(filters = {}) {
   const page = filters.page
   const limit = filters.limit
   const offset = (page - 1) * limit
-  const list_values = [...values, limit, offset]
 
+  const distance_expression = `(${EARTH_RADIUS_KM} * 2 * ASIN(SQRT(
+    POWER(SIN((RADIANS(h.latitude::double precision) - RADIANS($1::double precision)) / 2), 2)
+    + COS(RADIANS($1::double precision)) * COS(RADIANS(h.latitude::double precision))
+    * POWER(SIN((RADIANS(h.longitude::double precision) - RADIANS($2::double precision)) / 2), 2)
+  )))`
+  const distance_select = uses_distance ? `, ${distance_expression} AS distance_km` : ''
+  let order_clause = 'h.id ASC'
+  if (filters.sort === 'name') {
+    order_clause = 'h.city ASC, h.district ASC NULLS LAST, h.name ASC, h.id ASC'
+  } else if (filters.sort === 'relevance' && filters.keyword) {
+    values.push(filters.keyword)
+    const keyword_index = values.length
+    order_clause = `CASE
+      WHEN h.name ILIKE '%' || $${keyword_index} || '%' THEN 0
+      WHEN h.city ILIKE '%' || $${keyword_index} || '%' THEN 1
+      WHEN h.district ILIKE '%' || $${keyword_index} || '%' THEN 2
+      ELSE 3
+    END ASC, h.city ASC, h.district ASC NULLS LAST, h.name ASC, h.id ASC`
+  } else if (uses_distance) {
+    order_clause = `${distance_expression} ASC NULLS LAST, h.id ASC`
+  }
+  const list_values = [...values, limit, offset]
   const hospitals_result = await pool.query(
     `
-      SELECT ${HOSPITAL_SELECT_COLUMNS}
+      SELECT ${HOSPITAL_SELECT_COLUMNS}${distance_select}
       FROM hospitals h
       LEFT JOIN LATERAL (
         SELECT
@@ -156,7 +191,7 @@ export async function findHospitals(filters = {}) {
         ON at.id = hat.animal_type_id
       ${where_clause}
       GROUP BY h.id, review_stats.rating_average, review_stats.review_count
-      ORDER BY h.id ASC
+      ORDER BY ${order_clause}
       LIMIT $${list_values.length - 1}
       OFFSET $${list_values.length}
     `,
@@ -213,6 +248,8 @@ export async function findNearbyHospitals(filters = {}) {
         nearby.phone,
         nearby.latitude,
         nearby.longitude,
+        nearby.is_24h,
+        nearby.emergency_available,
         nearby.distance_km,
         review_stats.rating_average,
         COALESCE(review_stats.review_count, 0) AS review_count,
@@ -243,7 +280,7 @@ export async function findNearbyHospitals(filters = {}) {
         ON at.id = hat.animal_type_id
       WHERE nearby.distance_km <= $${radius_index}
       GROUP BY nearby.id, nearby.name, nearby.city, nearby.district, nearby.address, nearby.phone,
-        nearby.latitude, nearby.longitude, nearby.distance_km,
+        nearby.latitude, nearby.longitude, nearby.is_24h, nearby.emergency_available, nearby.distance_km,
         review_stats.rating_average, review_stats.review_count
       ORDER BY nearby.distance_km ASC
       LIMIT $${limit_index}
@@ -254,46 +291,40 @@ export async function findNearbyHospitals(filters = {}) {
   return result.rows.map(map_hospital_row)
 }
 
+export async function findHospitalRegions() {
+  const result = await pool.query(`
+    SELECT city, COALESCE(array_agg(DISTINCT district ORDER BY district)
+      FILTER (WHERE district IS NOT NULL AND trim(district) <> ''), '{}') AS districts
+    FROM hospitals
+    GROUP BY city
+    ORDER BY city ASC
+  `)
+  return result.rows.map((row) => ({ city: row.city, districts: row.districts }))
+}
+
 export async function findMapHospitals({ north, south, east, west }) {
   const values = [south, north, west, east]
-  const count = await pool.query(
-    `
-      SELECT COUNT(*)::int AS total
-      FROM hospitals h
-      WHERE h.latitude BETWEEN $1 AND $2
-        AND h.longitude BETWEEN $3 AND $4
-    `,
-    values,
-  )
-  const result = await pool.query(
-    `
-      SELECT ${HOSPITAL_SELECT_COLUMNS}
-      FROM hospitals h
-      LEFT JOIN LATERAL (
-        SELECT
-          ROUND(AVG(rating)::numeric, 1) AS rating_average,
-          COUNT(*)::int AS review_count
-        FROM hospital_reviews
-        WHERE hospital_id = h.id
-      ) review_stats ON TRUE
-      LEFT JOIN hospital_animal_types hat
-        ON hat.hospital_id = h.id
-        AND hat.verification_status <> 'rejected'
-      LEFT JOIN animal_types at
-        ON at.id = hat.animal_type_id
-      WHERE h.latitude BETWEEN $1 AND $2
-        AND h.longitude BETWEEN $3 AND $4
-      GROUP BY h.id, review_stats.rating_average, review_stats.review_count
-      ORDER BY h.id ASC
-      LIMIT 1000
-    `,
-    values,
-  )
+  const count = await pool.query(`
+    SELECT COUNT(*)::int AS total FROM hospitals h
+    WHERE h.latitude BETWEEN $1 AND $2 AND h.longitude BETWEEN $3 AND $4
+  `, values)
+  const result = await pool.query(`
+    SELECT ${HOSPITAL_SELECT_COLUMNS}
+    FROM hospitals h
+    LEFT JOIN LATERAL (
+      SELECT
+        ROUND(AVG(rating)::numeric, 1) AS rating_average,
+        COUNT(*)::int AS review_count
+      FROM hospital_reviews
+      WHERE hospital_id = h.id
+    ) review_stats ON TRUE
+    LEFT JOIN hospital_animal_types hat ON hat.hospital_id = h.id AND hat.verification_status <> 'rejected'
+    LEFT JOIN animal_types at ON at.id = hat.animal_type_id
+    WHERE h.latitude BETWEEN $1 AND $2 AND h.longitude BETWEEN $3 AND $4
+    GROUP BY h.id, review_stats.rating_average, review_stats.review_count
+    ORDER BY h.id ASC
+    LIMIT 1000
+  `, values)
   const total = count.rows[0]?.total ?? 0
-
-  return {
-    hospitals: result.rows.map(map_hospital_row),
-    total,
-    truncated: total > 1000,
-  }
+  return { hospitals: result.rows.map(map_hospital_row), total, truncated: total > 1000 }
 }

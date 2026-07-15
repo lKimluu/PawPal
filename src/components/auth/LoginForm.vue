@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth.js'
+import { useSessionStore } from '@/stores/session.js'
+import { useToastStore } from '@/stores/toast'
 import { GoogleLogin } from 'vue3-google-login'
 import TermsModal from '@/components/auth/TermsModal.vue'
 
@@ -11,8 +12,8 @@ const errorMessage = ref('')
 const isSubmitting = ref(false)
 
 const router = useRouter()
-const authStore = useAuthStore()
-
+const sessionStore = useSessionStore()
+const toastStore = useToastStore()
 const isModalOpen = ref(false)
 const modalType = ref('privacy')
 
@@ -25,15 +26,17 @@ async function handleSubmit() {
   errorMessage.value = ''
   isSubmitting.value = true
 
-  const result = await authStore.login(email.value, password.value)
+  const result = await sessionStore.login(email.value, password.value)
 
   if (!result.success) {
     errorMessage.value = result.message || '登入失敗，請稍後再試'
+    toastStore.showToast(errorMessage.value, 'error')
     isSubmitting.value = false
     return
   }
 
   isSubmitting.value = false
+  toastStore.showToast('歡迎回來！', 'success')
   router.push('/dashboard')
 }
 
@@ -45,29 +48,35 @@ const handleGoogleLoginCallback = async (response) => {
 
   if (!googleIdToken) {
     errorMessage.value = 'Google 登入失敗，未取得驗證憑證'
+    toastStore.showToast(errorMessage.value, 'error')
     isSubmitting.value = false
     return
   }
 
   try {
-    const result = await authStore.loginWithGoogle(googleIdToken)
+    const result = await sessionStore.loginWithGoogle(googleIdToken)
 
     isSubmitting.value = false
 
     if (result?.success) {
+      toastStore.showToast('使用 Google 帳戶登入成功！', 'success')
       router.push('/dashboard')
     } else {
       errorMessage.value = result?.message || 'Google 登入失敗，請稍後再試'
+      toastStore.showToast(errorMessage.value, 'error')
     }
   } catch (err) {
     isSubmitting.value = false
     errorMessage.value = '伺服器連線失敗'
+    toastStore.showToast(errorMessage.value, 'error')
   }
 }
 
 const loginWithLine = () => {
   const clientID = import.meta.env.VITE_LINE_CHANNEL_ID
-  const redirectURI = encodeURIComponent(import.meta.env.VITE_LINE_REDIRECT_URI)
+
+  const currentOrigin = window.location.origin + '/login'
+  const redirectURI = encodeURIComponent(currentOrigin)
   const state = 'pawpal_line_login_secure'
 
   const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${clientID}&redirect_uri=${redirectURI}&state=${state}&scope=profile%20openid%20email`
@@ -83,14 +92,16 @@ onMounted(async () => {
     errorMessage.value = ''
     isSubmitting.value = true
 
-    const result = await authStore.loginWithLine(code)
+    const result = await sessionStore.loginWithLine(code)
 
     isSubmitting.value = false
 
     if (result?.success) {
+      toastStore.showToast('使用 LINE 帳戶登入成功！', 'success')
       router.push('/dashboard')
     } else {
       errorMessage.value = result?.message || 'LINE 登入失敗，請稍後再試'
+      toastStore.showToast(errorMessage.value, 'error')
     }
 
     window.history.replaceState({}, document.title, window.location.pathname)

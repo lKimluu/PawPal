@@ -8,9 +8,15 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  isSelected: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const position = computed(() => [props.hospital.lat, props.hospital.lng])
+const emit = defineEmits(['select'])
+
+const position = computed(() => [props.hospital.latitude, props.hospital.longitude])
 const statusLabel = computed(() => (props.hospital.isOpen ? '營業中' : '休息中'))
 const statusClass = computed(() =>
   props.hospital.isOpen ? 'bg-brand-lightblue text-brand-blue' : 'bg-gray-100 text-brand-gray',
@@ -22,7 +28,7 @@ const markerIcon = computed(() => {
   return L.divIcon({
     className: 'hospital-marker-icon',
     html: `
-      <span class="hospital-marker-pin ${stateClass} ${emergencyClass}">
+      <span class="hospital-marker-pin ${stateClass} ${emergencyClass} ${props.isSelected ? 'hospital-marker--selected' : ''}">
         <span class="hospital-marker-symbol">+</span>
       </span>
     `,
@@ -34,12 +40,12 @@ const markerIcon = computed(() => {
 </script>
 
 <template>
-  <LMarker :lat-lng="position" :icon="markerIcon">
+  <LMarker :lat-lng="position" :icon="markerIcon" @click="emit('select')">
     <LPopup>
       <article class="hospital-popup min-w-[230px] text-brand-navy">
         <div class="mb-3 flex items-start justify-between gap-3">
           <h3 class="max-w-[145px] text-[15px] font-bold leading-snug">
-            {{ hospital.name }}
+          {{ hospital.name }}
           </h3>
           <span
             class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none"
@@ -67,7 +73,7 @@ const markerIcon = computed(() => {
           <div class="flex items-center gap-1.5">
             <dt class="sr-only">評分</dt>
             <dd class="text-brand-orange">★</dd>
-            <dd class="font-bold text-brand-navy">{{ hospital.rating.toFixed(1) }}</dd>
+            <dd class="font-bold text-brand-navy">{{ Number(hospital.rating ?? 0).toFixed(1) }}</dd>
             <dd class="text-brand-gray">({{ hospital.reviewCount }} 則評論)</dd>
           </div>
         </dl>
@@ -85,69 +91,3 @@ const markerIcon = computed(() => {
     </LPopup>
   </LMarker>
 </template>
-
-<style>
-.hospital-marker-icon {
-  background: transparent;
-  border: 0;
-}
-
-.hospital-marker-pin {
-  position: relative;
-  display: flex;
-  width: 34px;
-  height: 34px;
-  align-items: center;
-  justify-content: center;
-  border: 3px solid #ffffff;
-  border-radius: 999px 999px 999px 6px;
-  box-shadow: 0 12px 24px rgba(61, 74, 122, 0.22);
-  transform: rotate(-45deg);
-}
-
-.hospital-marker-pin::after {
-  position: absolute;
-  right: -1px;
-  top: -1px;
-  width: 10px;
-  height: 10px;
-  border: 2px solid #ffffff;
-  border-radius: 999px;
-  background: #ffa002;
-  content: '';
-  opacity: 0;
-}
-
-.hospital-marker--emergency::after {
-  opacity: 1;
-}
-
-.hospital-marker--open {
-  background: #92a8f5;
-}
-
-.hospital-marker--closed {
-  background: #9ca3af;
-}
-
-.hospital-marker-symbol {
-  color: #ffffff;
-  font-size: 21px;
-  font-weight: 800;
-  line-height: 1;
-  transform: rotate(45deg) translateY(-1px);
-}
-
-.leaflet-popup-content-wrapper {
-  border-radius: 18px;
-  box-shadow: 0 18px 45px rgba(61, 74, 122, 0.2);
-}
-
-.leaflet-popup-content {
-  margin: 14px;
-}
-
-.leaflet-popup-tip {
-  box-shadow: 0 10px 24px rgba(61, 74, 122, 0.16);
-}
-</style>

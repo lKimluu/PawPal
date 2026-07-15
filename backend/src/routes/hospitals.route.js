@@ -1,6 +1,6 @@
 import { Router } from 'express'
 
-import { listHospitals, listMapHospitals, listNearbyHospitals } from '../controllers/hospitals.controller.js'
+import { listHospitalRegions, listHospitals, listMapHospitals, listNearbyHospitals } from '../controllers/hospitals.controller.js'
 import {
   createHospitalReview,
   deleteMyHospitalReview,
@@ -14,8 +14,8 @@ import {
   hospitalReviewParamsSchema,
 } from '../schemas/hospital_reviews.schema.js'
 import {
-  hospitalMapQuerySchema,
   hospitalsQuerySchema,
+  hospitalMapQuerySchema,
   nearbyHospitalsQuerySchema,
 } from '../schemas/hospitals.schema.js'
 
@@ -23,6 +23,7 @@ const router = Router()
 
 router.get('/', validate(hospitalsQuerySchema, 'query'), listHospitals)
 router.get('/nearby', validate(nearbyHospitalsQuerySchema, 'query'), listNearbyHospitals)
+router.get('/regions', listHospitalRegions)
 router.get('/map', validate(hospitalMapQuerySchema, 'query'), listMapHospitals)
 router.get('/:hospital_id/reviews', validate(hospitalReviewParamsSchema, 'params'), listHospitalReviews)
 router.post(

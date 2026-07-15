@@ -193,16 +193,19 @@ export async function googleLogin(req, res) {
 }
 
 export async function lineLogin(req, res) {
-  const { code } = req.body
+  const { code, redirectUri } = req.body
 
   try {
     const lineChannelId = process.env.LINE_CHANNEL_ID
     const lineChannelSecret = process.env.LINE_CHANNEL_SECRET
-    const redirectUri = process.env.LINE_REDIRECT_URI
 
-    if (!lineChannelId || !lineChannelSecret || !redirectUri) {
-      console.error('後端環境變數 LINE 未正確設定')
+    if (!lineChannelId || !lineChannelSecret) {
+      console.error('後端環境變數 LINE 金鑰未正確設定')
       return res.status(500).json({ message: '登入失敗，伺服器配置錯誤' })
+    }
+
+    if (!redirectUri) {
+      return res.status(400).json({ message: '前端未提供 redirectUri' })
     }
 
     if (!JWT_SECRET) {

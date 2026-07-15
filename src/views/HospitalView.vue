@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
@@ -7,13 +7,64 @@ import SearchBar from '@/components/hospital/SearchBar.vue'
 import MapView from '@/components/hospital/MapView.vue'
 import HospitalList from '@/components/hospital/HospitalList.vue'
 import { useAuthStore } from '@/stores/auth.js'
+import { useHospitalStore } from '@/stores/hospital.js'
 import { useLocationStore } from '@/stores/location.js'
 
 const authStore = useAuthStore()
 const locationStore = useLocationStore()
+const hospitalStore = useHospitalStore()
 const { userLocation, isLocating, locationError, permissionState } = storeToRefs(locationStore)
+const {
+  visibleHospitals,
+  mapHospitals,
+  pagination,
+  mapLoading,
+  mapError,
+  mapTruncated,
+  selectedHospitalId,
+  selectedHospital,
+  isLoading,
+  errorMessage,
+} = storeToRefs(hospitalStore)
 const headerVariant = computed(() => (authStore.isLoggedIn ? 'member' : 'public'))
 const isLocationPermissionBlocked = computed(() => permissionState.value === 'denied')
+const selectionRequestId = ref(0)
+
+async function requestCurrentLocation() {
+  const locationSucceeded = await locationStore.requestCurrentLocation()
+
+  if (locationSucceeded) {
+    hospitalStore.selectHospital(null)
+  }
+
+  return hospitalStore.loadNearbyHospitals({
+    location: userLocation.value,
+    locationError: locationError.value,
+  })
+}
+
+async function loadNearbyHospitals({ requestLocation = true } = {}) {
+  if (!userLocation.value) {
+    if (requestLocation) {
+      await locationStore.requestCurrentLocation()
+    }
+  }
+
+  return hospitalStore.loadNearbyHospitals({
+    location: userLocation.value,
+    locationError: locationError.value,
+  })
+}
+
+function selectHospital(hospitalId) {
+  hospitalStore.selectHospital(hospitalId)
+  selectionRequestId.value += 1
+}
+
+onMounted(() => {
+  hospitalStore.loadRegions()
+  loadNearbyHospitals({ requestLocation: false })
+})
 </script>
 
 <template>
@@ -34,33 +85,67 @@ const isLocationPermissionBlocked = computed(() => permissionState.value === 'de
                 <span v-if="isLocating">定位中...</span>
                 <span v-else-if="locationError" class="text-brand-orange">{{ locationError }}</span>
                 <span v-else-if="userLocation">已取得目前位置</span>
-                <span v-else>取得目前位置後，地圖會移到你的所在地。</span>
+                <span v-else>可使用目前位置搜尋附近醫院，若未取得定位會改用台北市中心。</span>
               </p>
               <p v-if="isLocationPermissionBlocked" class="mt-1 text-xs text-brand-gray">
                 請從瀏覽器網址列或網站設定允許 PawPal 使用定位，再重新檢查定位權限。
               </p>
             </div>
-            <button
-              type="button"
-              class="inline-flex h-11 items-center justify-center rounded-full bg-brand-blue px-5 text-sm font-bold text-white transition hover:bg-brand-navy disabled:cursor-not-allowed disabled:bg-brand-gray"
-              :disabled="isLocating"
-              @click="locationStore.requestCurrentLocation()"
-            >
-              {{
-                isLocating
-                  ? '定位中...'
-                  : isLocationPermissionBlocked
-                    ? '重新檢查定位權限'
-                    : '重新取得目前位置'
-              }}
-            </button>
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                class="inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-bold text-brand-blue ring-1 ring-brand-blue transition hover:bg-brand-lightblue active:scale-[0.98] active:bg-brand-lightblue disabled:cursor-not-allowed disabled:text-brand-gray disabled:ring-brand-gray disabled:active:scale-100"
+                :disabled="isLocating"
+                @click="requestCurrentLocation"
+              >
+                {{
+                  isLocating
+                    ? '定位中...'
+                    : isLocationPermissionBlocked
+                      ? '重新檢查定位權限'
+                      : '重新取得目前位置'
+                }}
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-11 items-center justify-center rounded-full bg-brand-blue px-5 text-sm font-bold text-white transition hover:bg-brand-navy active:scale-[0.98] active:bg-brand-navy disabled:cursor-not-allowed disabled:bg-brand-gray disabled:active:scale-100"
+                :disabled="isLocating || isLoading"
+                @click="loadNearbyHospitals()"
+              >
+                {{ isLoading ? '查詢中...' : '搜尋附近醫院' }}
+              </button>
+            </div>
           </div>
           <div class="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-            <MapView class="min-w-0" :user-location="userLocation" />
+            <MapView
+              class="min-w-0"
+              :hospitals="mapHospitals"
+              :selected-hospital-id="selectedHospitalId"
+              :selected-hospital="selectedHospital"
+              :selection-request-id="selectionRequestId"
+              :user-location="userLocation"
+              :is-loading="mapLoading"
+              :error-message="mapError"
+              :is-truncated="mapTruncated"
+              @bounds-change="hospitalStore.loadMapHospitals"
+              @retry="hospitalStore.retryMapQuery"
+              @select-hospital="selectHospital"
+            />
 
             <aside class="flex min-w-0 flex-col gap-5 xl:max-h-[760px]">
               <SearchBar />
-              <HospitalList class="min-h-[460px] xl:min-h-0 xl:flex-1" />
+              <HospitalList
+                class="min-h-[460px] xl:min-h-0 xl:flex-1"
+                :hospitals="visibleHospitals"
+                :selected-hospital-id="selectedHospitalId"
+                :is-loading="isLoading"
+                :error-message="errorMessage"
+                :is-empty="hospitalStore.isEmpty"
+                :pagination="pagination"
+                @select-hospital="selectHospital"
+                @retry="hospitalStore.retryCurrentQuery"
+                @page-change="hospitalStore.setPage"
+              />
             </aside>
           </div>
         </section>

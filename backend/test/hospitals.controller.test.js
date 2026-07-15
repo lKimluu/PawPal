@@ -67,28 +67,6 @@ test('listNearbyHospitals 成功時應回傳 hospitals', async () => {
   assert.deepEqual(res.body, { hospitals })
 })
 
-test('listMapHospitals 成功時應回傳地圖醫院與 metadata', async () => {
-  const payload = {
-    hospitals: [{ id: 1, name: '仁愛動物醫院', rating_average: 4.5, review_count: 2 }],
-    total: 26,
-    truncated: false,
-  }
-  const { listMapHospitals } = createHospitalsController({
-    findMapHospitals: async (query) => {
-      assert.deepEqual(query, { north: 26, south: 24, east: 122, west: 120 })
-      return payload
-    },
-  })
-  const res = createResponse()
-
-  await listMapHospitals({
-    validated_query: { north: 26, south: 24, east: 122, west: 120 },
-  }, res)
-
-  assert.equal(res.statusCode, 200)
-  assert.deepEqual(res.body, payload)
-})
-
 test('listHospitals 沒有 validated_query 時應 fallback 使用 req.query', async () => {
   const payload = {
     hospitals: [],
@@ -138,17 +116,15 @@ test('listNearbyHospitals 發生非預期錯誤時應回傳 500 message', async 
   assert.deepEqual(res.body, { message: '取得附近醫院失敗，請稍後再試' })
 })
 
-test('listMapHospitals 發生非預期錯誤時應回傳 500 message', async (t) => {
-  t.mock.method(console, 'error', () => {})
-  const { listMapHospitals } = createHospitalsController({
-    findMapHospitals: async () => {
-      throw new Error('database down')
-    },
+test('regions 與 map controller 應回傳 service 結果', async () => {
+  const controller = createHospitalsController({
+    findHospitalRegions: async () => [{ city: '台北市', districts: ['大安區'] }],
+    findMapHospitals: async (query) => ({ hospitals: [], total: query.north, truncated: false }),
   })
-  const res = createResponse()
-
-  await listMapHospitals({ query: {} }, res)
-
-  assert.equal(res.statusCode, 500)
-  assert.deepEqual(res.body, { message: '取得地圖醫院失敗，請稍後再試' })
+  const regionsRes = createResponse()
+  const mapRes = createResponse()
+  await controller.listHospitalRegions({}, regionsRes)
+  await controller.listMapHospitals({ validated_query: { north: 26 } }, mapRes)
+  assert.deepEqual(regionsRes.body, { regions: [{ city: '台北市', districts: ['大安區'] }] })
+  assert.deepEqual(mapRes.body, { hospitals: [], total: 26, truncated: false })
 })

@@ -6,6 +6,7 @@ import PetProfileModal from '@/components/pet/PetProfileModal.vue'
 import AddPetButton from '@/components/pet/AddPetButton.vue'
 import AddPetModal from '@/components/pet/AddPetModal.vue'
 import CalendarGrid from '@/components/calendar/CalendarGrid.vue'
+import GoogleCalendarSyncButton from '@/components/calendar/GoogleCalendarSyncButton.vue'
 import EventList from '@/components/calendar/EventList.vue'
 import AddEventModal from '@/components/calendar/AddEventModal.vue'
 import EditEventModal from '@/components/calendar/EditEventModal.vue'
@@ -103,6 +104,15 @@ const handleEditSubmit = async (payload) => {
 const handleEditDelete = (event) => {
   showEditModal.value = false
   handleDeleteRequest(event)
+}
+
+const handleResync = async (event) => {
+  const result = await calendarStore.resyncEvent(event.id)
+  if (result.success) {
+    toastStore.showToast(result.message || '重新同步成功')
+  } else {
+    toastStore.showToast(result.message || '重新同步失敗，請稍後再試', 'error')
+  }
 }
 
 const dashboardPets = computed(() =>
@@ -260,6 +270,9 @@ const handleCreatePet = async (payload) => {
     </section>
 
     <div class="w-full px-4 lg:px-8 pb-16 mt-2 md:mt-6">
+      <div class="mb-3 flex justify-end">
+        <GoogleCalendarSyncButton />
+      </div>
       <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 lg:gap-x-6 lg:gap-y-8">
         <CalendarGrid @open-add-modal="openAddModal" @open-day-modal="openDayModal" />
 
@@ -272,15 +285,11 @@ const handleCreatePet = async (payload) => {
             @add="openAddModal()"
             @edit="openEditModal"
             @delete="handleDeleteRequest"
+            @resync="handleResync"
           />
         </div>
 
         <section class="lg:col-span-2 min-w-0">
-          <div class="flex items-center gap-2 mb-4">
-            <span class="text-xl">🐾</span>
-            <h2 class="text-lg font-semibold text-[var(--color-brand-darkgray)]">寵物健康護照</h2>
-          </div>
-
           <div
             class="flex flex-col md:flex-row gap-3 md:gap-4 overflow-y-auto max-h-[360px] md:overflow-y-hidden md:overflow-x-auto md:max-h-none pb-2"
           >
@@ -308,6 +317,7 @@ const handleCreatePet = async (payload) => {
     @add="handleDayModalAdd"
     @edit="handleDayModalEdit"
     @delete="handleDayModalDelete"
+    @resync="handleResync"
   />
   <AddEventModal
     :is-open="showAddModal"

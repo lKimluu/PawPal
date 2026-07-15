@@ -10,9 +10,11 @@ const requiredEnvVars = [
   'DB_PASSWORD',
   'JWT_SECRET',
   'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
   'LINE_CHANNEL_ID',
   'LINE_CHANNEL_SECRET',
   'LINE_REDIRECT_URI',
+  'GEMINI_API_KEY',
 ]
 
 const missingEnvVars = requiredEnvVars.filter((envVar) => {

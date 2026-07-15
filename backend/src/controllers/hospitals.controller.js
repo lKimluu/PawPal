@@ -27,14 +27,20 @@ export function createHospitalsController(hospitalService) {
     }
   }
 
-  async function listMapHospitals(req, res) {
+  async function listHospitalRegions(_req, res) {
     try {
-      return res.status(200).json(
-        await hospitalService.findMapHospitals(req.validated_query ?? req.query),
-      )
+      return res.status(200).json({ regions: await hospitalService.findHospitalRegions() })
     } catch (error) {
       console.error(error)
+      return res.status(500).json({ message: '取得醫院地區失敗，請稍後再試' })
+    }
+  }
 
+  async function listMapHospitals(req, res) {
+    try {
+      return res.status(200).json(await hospitalService.findMapHospitals(req.validated_query ?? req.query))
+    } catch (error) {
+      console.error(error)
       return res.status(500).json({ message: '取得地圖醫院失敗，請稍後再試' })
     }
   }
@@ -42,9 +48,10 @@ export function createHospitalsController(hospitalService) {
   return {
     listHospitals,
     listNearbyHospitals,
+    listHospitalRegions,
     listMapHospitals,
   }
 }
 
-export const { listHospitals, listNearbyHospitals, listMapHospitals } =
+export const { listHospitals, listNearbyHospitals, listHospitalRegions, listMapHospitals } =
   createHospitalsController(defaultHospitalService)
