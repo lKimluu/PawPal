@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getClientIdHeaders } from './clientId.js'
 
 const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? ''
 const API_PREFIX = '/api/v1'
@@ -207,7 +208,10 @@ export async function fetchHospitalRegions() {
 export async function fetchMapHospitals(bounds = {}) {
   const params = buildHospitalMapQuery(bounds)
   try {
-    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/map`, { params })
+    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/map`, {
+      params,
+      headers: getClientIdHeaders(),
+    })
     return {
       success: true,
       hospitals: (response.data?.hospitals ?? []).map(normalizeHospital),
