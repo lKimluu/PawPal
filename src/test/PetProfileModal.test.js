@@ -24,9 +24,9 @@ test('PetCard 會發出 click 事件讓父層開啟寵物資料彈窗', () => {
   assert.match(petCard, /@click="emit\('click'\)"/)
 })
 
-test('PetCard 會用 birthday 計算 Dashboard 年齡顯示', () => {
-  assert.match(petCard, /formatPetAge/)
-  assert.match(petCard, /props\.pet\?\.birthday/)
+test('PetCard 圓形頭像不再顯示年齡，年齡改由 PetProfileModal 呈現', () => {
+  assert.doesNotMatch(petCard, /formatPetAge/)
+  assert.doesNotMatch(petCard, /props\.pet\?\.birthday/)
 })
 
 test('PetProfileModal 會用 birthday 計算詳細資料年齡顯示', () => {
