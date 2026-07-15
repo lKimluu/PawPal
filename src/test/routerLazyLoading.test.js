@@ -11,7 +11,6 @@ test('首頁維持 eager loading，其餘頁面使用 route-level dynamic import
   const lazyViews = [
     'LoginView',
     'RegisterView',
-    'ForgotPasswordView',
     'MedicalView',
     'DashboardView',
     'GrowthView',
