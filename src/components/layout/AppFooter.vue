@@ -12,7 +12,9 @@
     </a>
     <p class="text-center text-xs text-[#E9EEFD] sm:text-sm">© 2026 PawPal.All rights reserved.</p>
 
-    <div class="flex items-center justify-self-end gap-3 text-xs text-[#E9EEFD] md:mr-16">
+    <div
+      class="flex items-center justify-self-center gap-3 text-xs text-[#E9EEFD] md:mr-16 md:justify-self-end"
+    >
       <RouterLink to="/privacy-policy" class="hover:text-[#FFA002]">隱私權政策</RouterLink>
       <span class="text-[#E9EEFD]/50">|</span>
       <RouterLink to="/terms-of-service" class="hover:text-[#FFA002]">服務條款</RouterLink>
