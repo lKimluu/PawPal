@@ -44,15 +44,24 @@ watch(
 )
 
 const handleSubmit = async (formData) => {
-  const results = await growthStore.createRecordsFrom(
-    petStore.selectedPetId,
-    formData,
-    authStore.token,
-  )
-  const allSuccess = results.every((r) => r.success)
-  if (allSuccess) {
-    isModalOpen.value = false
-    growthStore.fetchRecords(petStore.selectedPetId, authStore.token)
+  try {
+    const results = await growthStore.createRecordsFrom(
+      petStore.selectedPetId,
+      formData,
+      authStore.token,
+    )
+
+    const allSuccess = results.every((r) => r.success)
+
+    if (allSuccess) {
+      isModalOpen.value = false
+      toastStore.showToast('成長記錄新增成功', 'success')
+      growthStore.fetchRecords(petStore.selectedPetId, authStore.token)
+    } else {
+      toastStore.showToast('新增紀錄失敗，請檢查輸入內容', 'error')
+    }
+  } catch (err) {
+    toastStore.showToast(err.message || '新增失敗，請稍後再試', 'error')
   }
 }
 
@@ -64,14 +73,20 @@ const handleDeleteRecord = (record) => {
 const handleConfirmDelete = async () => {
   if (!pendingDeleteRecord.value) return
 
-  const result = await growthStore.deleteRecord(pendingDeleteRecord.value.id, authStore.token)
+  try {
+    const result = await growthStore.deleteRecord(pendingDeleteRecord.value.id, authStore.token)
 
-  isDeleteOpen.value = false
-  pendingDeleteRecord.value = null
+    isDeleteOpen.value = false
+    pendingDeleteRecord.value = null
 
-  if (result.success) {
-    toastStore.showToast('紀錄已刪除')
-  } else {
+    if (result.success) {
+      toastStore.showToast('成長紀錄刪除成功', 'success')
+    } else {
+      toastStore.showToast('刪除失敗，請稍後再試', 'error')
+    }
+  } catch (err) {
+    isDeleteOpen.value = false
+    pendingDeleteRecord.value = null
     toastStore.showToast('刪除失敗，請稍後再試', 'error')
   }
 }

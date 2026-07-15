@@ -84,14 +84,19 @@ async function saveEdit(record) {
   if (isNaN(num) || num < 0) return
 
   isSaving.value = true
-  const result = await growthStore.updateRecord(record.id, num, authStore.token)
-  isSaving.value = false
+  try {
+    const result = await growthStore.updateRecord(record.id, num, authStore.token)
 
-  if (result.success) {
-    toastStore.showToast('紀錄已更新')
-    editingId.value = null
-  } else {
+    if (result.success) {
+      toastStore.showToast('成長紀錄已更新', 'success')
+      editingId.value = null
+    } else {
+      toastStore.showToast('更新失敗，請稍後再試', 'error')
+    }
+  } catch (err) {
     toastStore.showToast('更新失敗，請稍後再試', 'error')
+  } finally {
+    isSaving.value = false
   }
 }
 
