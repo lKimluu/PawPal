@@ -10,12 +10,27 @@ defineProps({
 
 const emit = defineEmits(['send'])
 
+const MAX_MESSAGE_LENGTH = 150
+const LENGTH_TOOLTIP_DURATION = 2000
+
 const inputText = ref('')
 const scrollContainerRef = ref(null)
 const canScrollLeft = ref(false)
 const canScrollRight = ref(false)
+const showLengthTooltip = ref(false)
+let lengthTooltipTimer = null
 
 const quickQuestions = ['貓咪一天要吃幾餐？', '狗狗多久洗一次澡比較好？', '毛孩情緒緊張怎麼安撫？']
+
+function handleInputChange(event) {
+  if (event.target.value.length >= MAX_MESSAGE_LENGTH) {
+    showLengthTooltip.value = true
+    clearTimeout(lengthTooltipTimer)
+    lengthTooltipTimer = setTimeout(() => {
+      showLengthTooltip.value = false
+    }, LENGTH_TOOLTIP_DURATION)
+  }
+}
 
 function handleSend() {
   const text = inputText.value.trim()
@@ -94,13 +109,23 @@ onMounted(async () => {
     </div>
 
     <form class="flex items-center gap-2" @submit.prevent="handleSend">
-      <input
-        v-model="inputText"
-        type="text"
-        placeholder="請輸入您想詢問的問題..."
-        :disabled="isLoading"
-        class="flex-1 rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-brand-darkgray placeholder-brand-gray/40 outline-none transition duration-200 hover:border-brand-blue hover:bg-brand-blue/5 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-blue/10 disabled:cursor-not-allowed disabled:opacity-60"
-      />
+      <div class="relative flex-1">
+        <div
+          v-if="showLengthTooltip"
+          class="absolute -top-8 left-0 rounded-lg bg-[#eb5656] px-2 py-1 text-sm text-white"
+        >
+          最多僅能輸入 150 字
+        </div>
+        <input
+          v-model="inputText"
+          type="text"
+          placeholder="請輸入您想詢問的問題..."
+          :disabled="isLoading"
+          maxlength="150"
+          class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-brand-darkgray placeholder-brand-gray/40 outline-none transition duration-200 hover:border-brand-blue hover:bg-brand-blue/5 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-blue/10 disabled:cursor-not-allowed disabled:opacity-60"
+          @input="handleInputChange"
+        />
+      </div>
       <button
         type="submit"
         :disabled="isLoading || !inputText.trim()"

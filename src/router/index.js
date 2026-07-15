@@ -12,6 +12,11 @@ const router = createRouter({
       component: Home,
     },
     {
+      path: '/about',
+      name: 'About',
+      component: () => import('@/views/AboutView.vue'),
+    },
+    {
       path: '/login',
       name: 'Login',
       component: () => import('@/views/LoginView.vue'),
@@ -70,11 +75,29 @@ const router = createRouter({
       component: () => import('@/views/HospitalView.vue'),
     },
     {
+      path: '/privacy-policy',
+      name: 'PrivacyPolicy',
+      component: () => import('@/views/PrivacyPolicyView.vue'),
+    },
+    {
+      path: '/terms-of-service',
+      name: 'TermsOfService',
+      component: () => import('@/views/TermsOfServiceView.vue'),
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
       component: () => import('@/views/NotFoundView.vue'),
     },
   ],
+
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    } else {
+      return { top: 0 }
+    }
+  },
 })
 
 router.beforeEach((to) => {

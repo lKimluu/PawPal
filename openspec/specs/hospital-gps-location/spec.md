@@ -8,7 +8,7 @@ TBD - created by archiving change 'hospital-gps-location'. Update Purpose after 
 
 ### Requirement: Home page automatically requests the user's current location
 
-The home page SHALL request the user's current location through navigator.geolocation.getCurrentPosition when the home page loads. The frontend SHALL store a successful location as latitude and longitude in shared frontend state. The location request MUST NOT call any PawPal backend API.
+The home page SHALL request the user's current location through navigator.geolocation.getCurrentPosition when the home page loads. The frontend SHALL store a successful location as latitude and longitude in shared frontend state. After the location request settles, the home page SHALL use the resulting shared location state to initiate its nearby hospital summary request.
 
 #### Scenario: Home page load allows GPS location
 
@@ -23,59 +23,26 @@ The home page SHALL request the user's current location through navigator.geoloc
 - **WHEN** getCurrentPosition succeeds with latitude 25.033964 and longitude 121.564468
 - **THEN** userLocation becomes { lat: 25.033964, lng: 121.564468 }
 
-#### Scenario: Home page location request does not call hospital APIs
+#### Scenario: Home page location request precedes nearby hospital request
 
-- **WHEN** the home page requests the user's current location
-- **THEN** the frontend calls navigator.geolocation.getCurrentPosition
-- **AND** the frontend does not call GET /api/v1/hospitals
-- **AND** the frontend does not call GET /api/v1/hospitals/nearby
+- **WHEN** the home page begins its automatic location request
+- **THEN** the frontend calls navigator.geolocation.getCurrentPosition before requesting nearby hospitals
+- **AND** the subsequent nearby request uses the successful shared coordinate or the documented Taipei City center fallback
 
 
 <!-- @trace
-source: hospital-gps-location
-updated: 2026-07-09
+source: connect-home-nearby-hospitals
+updated: 2026-07-14
 code:
+  - src/components/hospital/MapStatusOverlay.vue
   - src/components/hospital/MapView.vue
   - src/views/HomeView.vue
-  - backend/src/schemas/hospitals.schema.js
+  - src/utils/hospitalMapSelection.js
   - src/views/HospitalView.vue
-  - src/api/pet.js
-  - src/components/common/BaseButton.vue
-  - backend/src/middlewares/validate.js
-  - src/components/calendar/EditEventModal.vue
-  - src/components/pet/AddPetButton.vue
-  - src/stores/petStore.js
-  - src/views/DashboardView.vue
-  - src/components/pet/PetCard.vue
-  - src/stores/location.js
-  - src/components/pet/PetProfileModal.vue
-  - src/components/pet/AddPetModal.vue
-  - src/components/calendar/AddEventModal.vue
-  - backend/src/app.js
-  - backend/src/routes/hospitals.route.js
-  - src/components/calendar/DeleteEventModal.vue
-  - backend/src/controllers/hospitals.controller.js
-  - backend/src/services/hospitals.service.js
-  - src/utils/petDisplay.js
 tests:
-  - src/test/petDisplay.test.js
+  - src/test/hospitalMapSelection.test.js
   - src/test/hospitalGpsView.test.js
-  - backend/test/hospitals.controller.test.js
-  - backend/test/hospitals.schema.test.js
-  - backend/test/hospitals.route.test.js
-  - src/test/petCardMetaAlignment.test.js
-  - src/test/petProfileEditMode.test.js
-  - src/test/addPetGenderOptions.test.js
-  - src/test/petApi.test.js
-  - src/test/petCardThemeColors.test.js
-  - src/test/PetProfileModal.test.js
-  - src/test/petCardWidth.test.js
-  - src/test/petProfileDeleteButton.test.js
-  - src/test/petProfilePlaceholders.test.js
-  - src/test/petCardPawTheme.test.js
-  - src/test/locationStore.test.js
-  - backend/test/hospitals.service.test.js
-  - src/test/petModalCloseIcon.test.js
+  - src/test/hospitalApiIntegration.test.js
 -->
 
 ---
@@ -223,65 +190,51 @@ tests:
 ---
 ### Requirement: Hospital map centers on the user's current location
 
-The hospital map SHALL accept the stored user location as an input. When a user location exists, the map center SHALL use the user location coordinates. When no user location exists, the map SHALL preserve the existing hospital-centered behavior.
+The hospital map SHALL resolve its initial center once using this precedence: a valid selected hospital, a valid stored user location, the average of valid initial hospital markers, then `TAIPEI_CENTER`. Later map hospital responses MUST NOT change that initial center. When a hospital-page location refresh succeeds, the frontend SHALL clear the selected hospital and pan the map to the refreshed user coordinates once at the current zoom. When the refresh fails, the frontend MUST preserve the current selection and viewport.
 
-#### Scenario: User location takes center precedence
+#### Scenario: User location takes initial center precedence
 
-- **WHEN** userLocation has lat 25.033964 and lng 121.564468
-- **THEN** the Leaflet map center is [25.033964, 121.564468]
+- **WHEN** no hospital is selected and userLocation has lat 25.033964 and lng 121.564468 as the map is created
+- **THEN** the Leaflet map initial center is [25.033964, 121.564468]
 
-#### Scenario: No user location preserves existing map center
+#### Scenario: Selected hospital takes initial center precedence
 
-- **WHEN** userLocation is null
-- **THEN** the Leaflet map center is calculated from valid hospital markers when they exist
-- **AND** the Leaflet map falls back to the existing Taipei center when no valid hospital marker exists
+- **WHEN** a valid hospital is selected before the map is created
+- **THEN** the Leaflet map initial center uses the selected hospital coordinates
+
+#### Scenario: No initial user location preserves hospital center fallback
+
+- **WHEN** no hospital is selected and userLocation is null as the map is created
+- **THEN** the initial center is calculated from valid initial hospital markers when they exist
+- **AND** the initial center falls back to `TAIPEI_CENTER` when no valid initial hospital marker exists
+
+#### Scenario: Successful location refresh replaces hospital focus
+
+- **WHEN** a hospital-page location refresh succeeds with valid coordinates while a hospital is selected
+- **THEN** the frontend clears the hospital selection and popup
+- **AND** the map pans to the refreshed coordinates once without changing zoom
+- **AND** the settled viewport triggers one debounced bounds request
+
+#### Scenario: Failed location refresh preserves hospital focus
+
+- **WHEN** a hospital-page location refresh fails
+- **THEN** the selected hospital and popup remain unchanged
+- **AND** the map viewport remains unchanged
 
 
 <!-- @trace
-source: hospital-gps-location
-updated: 2026-07-09
+source: connect-home-nearby-hospitals
+updated: 2026-07-14
 code:
+  - src/components/hospital/MapStatusOverlay.vue
   - src/components/hospital/MapView.vue
   - src/views/HomeView.vue
-  - backend/src/schemas/hospitals.schema.js
+  - src/utils/hospitalMapSelection.js
   - src/views/HospitalView.vue
-  - src/api/pet.js
-  - src/components/common/BaseButton.vue
-  - backend/src/middlewares/validate.js
-  - src/components/calendar/EditEventModal.vue
-  - src/components/pet/AddPetButton.vue
-  - src/stores/petStore.js
-  - src/views/DashboardView.vue
-  - src/components/pet/PetCard.vue
-  - src/stores/location.js
-  - src/components/pet/PetProfileModal.vue
-  - src/components/pet/AddPetModal.vue
-  - src/components/calendar/AddEventModal.vue
-  - backend/src/app.js
-  - backend/src/routes/hospitals.route.js
-  - src/components/calendar/DeleteEventModal.vue
-  - backend/src/controllers/hospitals.controller.js
-  - backend/src/services/hospitals.service.js
-  - src/utils/petDisplay.js
 tests:
-  - src/test/petDisplay.test.js
+  - src/test/hospitalMapSelection.test.js
   - src/test/hospitalGpsView.test.js
-  - backend/test/hospitals.controller.test.js
-  - backend/test/hospitals.schema.test.js
-  - backend/test/hospitals.route.test.js
-  - src/test/petCardMetaAlignment.test.js
-  - src/test/petProfileEditMode.test.js
-  - src/test/addPetGenderOptions.test.js
-  - src/test/petApi.test.js
-  - src/test/petCardThemeColors.test.js
-  - src/test/PetProfileModal.test.js
-  - src/test/petCardWidth.test.js
-  - src/test/petProfileDeleteButton.test.js
-  - src/test/petProfilePlaceholders.test.js
-  - src/test/petCardPawTheme.test.js
-  - src/test/locationStore.test.js
-  - backend/test/hospitals.service.test.js
-  - src/test/petModalCloseIcon.test.js
+  - src/test/hospitalApiIntegration.test.js
 -->
 
 ---

@@ -19,6 +19,17 @@ function readSource(path) {
   return existsSync(url) ? readFileSync(url, 'utf8') : ''
 }
 
+function createDeferred() {
+  let resolve
+  let reject
+  const promise = new Promise((promiseResolve, promiseReject) => {
+    resolve = promiseResolve
+    reject = promiseReject
+  })
+
+  return { promise, resolve, reject }
+}
+
 test('Hospital list query supports filters and pagination', () => {
   const query = buildHospitalListQuery({
     keyword: '仁愛',
@@ -236,6 +247,67 @@ test('Hospital store retry preserves fallback and real-location semantics', asyn
   }
 })
 
+test('Newer full-search nearby request supersedes stale home response, error, and completion', async () => {
+  const originalGet = axios.get
+  const requests = []
+  const location = { lat: 25.033964, lng: 121.564468 }
+
+  axios.get = (url, config) => {
+    const deferred = createDeferred()
+    requests.push({ url, config, deferred })
+    return deferred.promise
+  }
+
+  try {
+    setActivePinia(createPinia())
+    const store = useHospitalStore()
+    const homeRequest = store.loadNearbyHospitals({ location, radius: 5, limit: 3 })
+    const fullSearchRequest = store.loadNearbyHospitals({ location, radius: 5, limit: 20 })
+
+    assert.equal(requests[0].config.params.limit, 3)
+    assert.equal(requests[1].config.params.limit, 20)
+
+    requests[1].deferred.resolve({
+      data: {
+        hospitals: [{ id: 'full-search-hospital', name: '完整搜尋醫院', distance_km: 0.8 }],
+      },
+    })
+    await fullSearchRequest
+
+    requests[0].deferred.resolve({
+      data: { hospitals: [{ id: 'stale-home-hospital', name: '舊首頁醫院', distance_km: 0.4 }] },
+    })
+    await homeRequest
+
+    assert.deepEqual(store.visibleHospitals.map(({ id }) => id), ['full-search-hospital'])
+    assert.deepEqual(store.pagination, { page: 1, limit: 20, total: 1, totalPages: 1 })
+    assert.equal(store.errorMessage, '')
+    assert.equal(store.isLoading, false)
+
+    setActivePinia(createPinia())
+    const errorStore = useHospitalStore()
+    const staleErrorRequest = errorStore.loadNearbyHospitals({ location, radius: 5, limit: 3 })
+    const currentRequest = errorStore.loadNearbyHospitals({ location, radius: 5, limit: 20 })
+
+    requests[3].deferred.resolve({
+      data: {
+        hospitals: [{ id: 'current-hospital', name: '目前醫院', distance_km: 1.2 }],
+      },
+    })
+    await currentRequest
+
+    requests[2].deferred.reject(new Error('舊首頁錯誤'))
+    await staleErrorRequest
+
+    assert.deepEqual(errorStore.visibleHospitals.map(({ id }) => id), ['current-hospital'])
+    assert.deepEqual(errorStore.pagination, { page: 1, limit: 20, total: 1, totalPages: 1 })
+    assert.equal(errorStore.errorMessage, '')
+    assert.equal(errorStore.isLoading, false)
+  } finally {
+    axios.get = originalGet
+  }
+})
+
 test('Hospital store reconciles contextual sorting when real location becomes available', async () => {
   const originalGet = axios.get
   const calls = []
@@ -365,8 +437,8 @@ test('Hospital components use store-owned data for list, map, selection, and sta
   assert.match(hospitalList, /重新查詢/)
 
   assert.match(mapView, /const merged = \[\.\.\.props\.hospitals\]/)
-  assert.match(mapView, /Number\.isFinite\(hospital\.latitude\)/)
-  assert.match(mapView, /Number\.isFinite\(hospital\.longitude\)/)
+  assert.match(mapView, /Number\.isFinite\(hospital\?\.latitude\)/)
+  assert.match(mapView, /Number\.isFinite\(hospital\?\.longitude\)/)
   assert.match(mapView, /selectedHospital/)
   assert.match(marker, /emit\('select'\)/)
   assert.match(marker, /props\.hospital\.latitude/)
@@ -377,6 +449,65 @@ test('Hospital components use store-owned data for list, map, selection, and sta
   assert.match(searchBar, /hospitalStore\.setAnimalType/)
   assert.match(searchBar, /hospitalStore\.set24H/)
   assert.doesNotMatch(searchBar, /只顯示營業中/)
+})
+
+test('Hospital list selection issues repeatable map focus requests', () => {
+  const hospitalView = readSource('../views/HospitalView.vue')
+
+  assert.match(hospitalView, /const selectionRequestId = ref\(0\)/)
+  assert.match(
+    hospitalView,
+    /function selectHospital\(hospitalId\) \{\s*hospitalStore\.selectHospital\(hospitalId\)\s*selectionRequestId\.value \+= 1\s*\}/,
+  )
+  assert.match(hospitalView, /:selection-request-id="selectionRequestId"/)
+})
+
+test('Map selection delegates move completion and popup lifecycle to the coordinator', () => {
+  const mapView = readSource('../components/hospital/MapView.vue')
+  const coordinator = readSource('../utils/hospitalMapSelection.js')
+
+  assert.match(mapView, /selectionRequestId:\s*\{\s*type: Number,\s*default: 0/)
+  assert.match(mapView, /function hasValidHospitalCoordinates\(hospital\)/)
+  assert.match(mapView, /createHospitalMapSelectionCoordinator/)
+  assert.match(mapView, /revealHospitalClusterMarker/)
+  assert.match(mapView, /selectionCoordinator\.focus\(selectedHospital\.value\)/)
+  assert.match(mapView, /nextTick\(selectionCoordinator\.requestClusterSync\)/)
+  assert.match(
+    mapView,
+    /\[props\.selectedHospitalId, props\.selectionRequestId, props\.selectedHospital\]/,
+  )
+  assert.match(mapView, /if \(selectedHospital\.value\) \{\s*focusSelectedHospital\(\)/)
+  assert.match(coordinator, /map\.once\('moveend', pendingMoveEnd\)/)
+  assert.match(coordinator, /map\.flyTo\(\[hospital\.latitude, hospital\.longitude\], targetZoom\)/)
+  assert.match(coordinator, /clusterLayer\._inZoomAnimation > 0/)
+  assert.match(coordinator, /clusterLayer\.once\('animationend', animationEndHandler\)/)
+  assert.match(coordinator, /clusterLayer\.zoomToShowLayer\(marker/)
+  assert.match(coordinator, /marker\.once\('popupopen', handlePopupOpen\)/)
+  assert.match(coordinator, /syncQueued = true/)
+  assert.match(coordinator, /syncClusters\(\{ restoreOpenPopup: true \}\)/)
+})
+
+test('Map ready and bounds refresh do not issue duplicate viewport requests', () => {
+  const mapView = readSource('../components/hospital/MapView.vue')
+
+  assert.match(mapView, /createMapBoundsScheduler/)
+  assert.match(
+    mapView,
+    /if \(selectedHospital\.value\) \{\s*focusSelectedHospital\(\)\s*\} else \{\s*syncClusters\(\)\s*scheduleBounds\(\)/,
+  )
+  assert.match(mapView, /@moveend="scheduleBounds"/)
+  assert.match(mapView, /@zoomend="scheduleBounds"/)
+  assert.match(mapView, /:center="initialCenter"/)
+  assert.doesNotMatch(mapView, /const center = computed\(/)
+})
+
+test('Map bounds refresh restores an open popup without refocusing or auto-pan', () => {
+  const mapView = readSource('../components/hospital/MapView.vue')
+
+  assert.doesNotMatch(mapView, /syncClusters\(\{ reopenSelected: true \}\)/)
+  assert.match(mapView, /selectedMarker\?\.isPopupOpen\(\)/)
+  assert.match(mapView, /popup\.options\.autoPan = false/)
+  assert.match(mapView, /marker\.openPopup\(\)/)
 })
 
 test('Hospital page no longer imports static hospital data for page results', () => {

@@ -10,6 +10,7 @@ import petRoutes from './routes/pets.route.js'
 import medicalRecordRoutes from './routes/medical_records.route.js'
 import hospitalRoutes from './routes/hospitals.route.js'
 import hospitalReviewRoutes from './routes/hospital_reviews.route.js'
+import aiAssistantRoutes from './routes/ai_assistant.route.js'
 import { apiRateLimiter } from './config/rate_limit.js'
 
 const app = express()
@@ -33,6 +34,7 @@ app.use(`${API_PREFIX}/pets`, petRoutes)
 app.use(`${API_PREFIX}/medical-records`, medicalRecordRoutes)
 app.use(`${API_PREFIX}/hospitals`, hospitalRoutes)
 app.use(`${API_PREFIX}/hospitals/:hospitalId/reviews`, hospitalReviewRoutes)
+app.use(`${API_PREFIX}/ai-assistant`, aiAssistantRoutes)
 
 app.get('/', (req, res) => {
   res.json({
