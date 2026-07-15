@@ -37,11 +37,15 @@ test('醫院路由應提供清單、附近、地區與地圖查詢', () => {
   )
 
   assert.equal(routes.find((route) => route.path === '/regions').middleware.length, 1)
-  for (const path of ['/', '/nearby', '/map']) {
+  for (const path of ['/', '/nearby']) {
     const middleware = routes.find((route) => route.path === path).middleware
     assert.equal(middleware.length, 2)
     assert.equal(typeof middleware[0].handle, 'function')
   }
+
+  const mapMiddleware = routes.find((route) => route.path === '/map').middleware
+  assert.equal(mapMiddleware.length, 4)
+  assert.equal(typeof mapMiddleware[0].handle, 'function')
 })
 
 test('應將醫院路由掛載在 /api/v1/hospitals', () => {
