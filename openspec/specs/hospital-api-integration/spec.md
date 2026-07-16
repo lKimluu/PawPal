@@ -645,7 +645,7 @@ tests:
 ---
 ### Requirement: Map bounds refresh follows the settled viewport without recentering
 
-The hospital map SHALL request map hospitals for the final settled viewport. A bounds API response MUST update marker data without changing the current map center, zoom, or viewport. Map initialization with a selected hospital and one manual zoom gesture MUST each produce no more than one debounced bounds request after the corresponding movement has settled.
+The hospital map SHALL request map hospitals for the final settled viewport. When a valid selected hospital is about to receive programmatic focus, the frontend MUST cancel any bounds callback that was scheduled by an earlier initialization, move, or zoom event. When no valid hospital will receive programmatic focus, the frontend MUST preserve an already scheduled bounds callback. A bounds API response MUST update marker data without changing the current map center, zoom, or viewport. Map initialization with a selected hospital, a programmatic hospital focus, and one manual zoom gesture MUST each produce no more than one debounced bounds request after the corresponding movement has settled.
 
 #### Scenario: bounds response updates markers without moving the map
 
@@ -660,22 +660,114 @@ The hospital map SHALL request map hospitals for the final settled viewport. A b
 - **THEN** the map completes its programmatic focus before requesting bounds
 - **AND** the initial ready state does not issue a separate earlier bounds request
 
+#### Scenario: pending bounds callback is discarded before hospital focus
+
+- **GIVEN** a map initialization, move, or zoom event has scheduled a debounced bounds callback
+- **WHEN** the user selects a hospital before that callback executes
+- **THEN** the frontend cancels the scheduled callback before programmatic focus begins
+- **AND** the canceled callback does not request bounds during the focus movement
+- **AND** the final movement completion schedules the bounds request for the settled viewport
+
+#### Scenario: clearing hospital selection preserves pending bounds refresh
+
+- **GIVEN** a manual map move or current-location pan has scheduled a debounced bounds callback
+- **WHEN** the selected hospital becomes `null`
+- **THEN** the frontend preserves the scheduled callback
+- **AND** no programmatic hospital focus is started
+- **AND** the scheduled callback requests hospitals for the settled viewport
+
 #### Scenario: one manual zoom produces one bounds request
 
 - **WHEN** one zoom gesture emits both `moveend` and `zoomend`
 - **THEN** the frontend combines those events into one debounced bounds request
 
 <!-- @trace
-source: connect-home-nearby-hospitals
-updated: 2026-07-14
+source: cancel-pending-map-bounds-on-focus
+updated: 2026-07-16
 code:
-  - src/components/hospital/MapStatusOverlay.vue
+  - src/views/DashboardView.vue
+  - src/views/TermsOfServiceView.vue
+  - src/components/layout/AppHeader.vue
+  - backend/src/routes/hospitals.route.js
+  - backend/src/routes/auth.route.js
+  - src/assets/icons/instagram-icon.svg
+  - src/components/auth/ForgotPasswordForm.vue
   - src/components/hospital/MapView.vue
+  - src/components/layout/DashboardSidebar.vue
+  - src/assets/icons/knowledge-lightbulb.svg
+  - src/api/user.js
+  - src/components/pet/AddPetButton.vue
+  - backend/src/middlewares/upload_image.js
+  - src/router/index.js
+  - backend/src/services/users.service.js
+  - src/api/auth.js
+  - src/assets/icons/angle-arrow.svg
+  - src/assets/icons/apple.svg
+  - src/assets/icons/setting_o.svg
+  - src/assets/icons/setting.svg
+  - src/views/ForgotPasswordView.vue
+  - src/views/MedicalView.vue
+  - src/components/ai/AiAssistantPanel.vue
+  - src/components/pet/PetProfileCard.vue
+  - src/assets/icons/default-icon.svg
+  - backend/src/routes/users.route.js
+  - src/assets/icons/email-icon.svg
+  - src/composables/useRequirePet.js
+  - src/assets/icons/about-team.svg
+  - src/api/ai.js
+  - src/assets/icons/notice_o.svg
+  - src/components/pet/PetCard.vue
+  - src/constants/legalContent.js
+  - src/stores/aiAssistant.js
+  - backend/src/app.js
+  - src/components/ai/AiAssistantInput.vue
+  - src/api/hospitals.js
+  - src/stores/auth.js
+  - backend/src/schemas/ai_assistant.schema.js
+  - src/components/member/UserProfileModal.vue
+  - README.md
+  - backend/src/config/rate_limit.js
+  - src/assets/icons/member.svg
+  - src/assets/icons/notice.svg
   - src/views/HomeView.vue
-  - src/utils/hospitalMapSelection.js
-  - src/views/HospitalView.vue
+  - src/assets/icons/account-profile-icon.svg
+  - src/views/PrivacyPolicyView.vue
+  - src/components/ai/AiAssistantMessageList.vue
+  - src/components/auth/TermsModal.vue
+  - backend/.env.example
+  - src/api/clientId.js
+  - src/assets/icons/plus_g.svg
+  - src/components/layout/AppFooter.vue
+  - src/components/layout/PublicSidebar.vue
+  - src/stores/counter.js
+  - src/views/GrowthView.vue
+  - src/assets/icons/bugs.svg
+  - backend/src/schemas/users.schema.js
+  - src/assets/icons/facebook-icon.svg
+  - backend/src/controllers/users.controller.js
+  - src/components/auth/LoginForm.vue
 tests:
-  - src/test/hospitalMapSelection.test.js
-  - src/test/hospitalGpsView.test.js
+  - src/test/userAvatarUploadApi.test.js
+  - backend/test/users.avatar_upload.test.js
+  - src/test/useRequirePet.test.js
+  - src/test/appHeaderLoginButton.test.js
+  - src/test/routerLazyLoading.test.js
+  - backend/test/users.me.test.js
+  - src/test/petCardThemeColors.test.js
+  - backend/test/users.schema.test.js
+  - src/test/appHeaderMemberMenu.test.js
+  - backend/test/ai_assistant.schema.test.js
   - src/test/hospitalApiIntegration.test.js
+  - backend/test/rate_limit.test.js
+  - src/test/userProfileModal.test.js
+  - src/test/petCardPawTheme.test.js
+  - src/test/hospitalMapSelection.test.js
+  - src/test/PetProfileModal.test.js
+  - backend/test/users.route.test.js
+  - backend/test/hospitals.route.test.js
+  - src/test/petCardWidth.test.js
+  - src/test/clientId.test.js
+  - src/test/userApi.test.js
+  - backend/test/users.service.test.js
+  - src/test/petCardMetaAlignment.test.js
 -->
