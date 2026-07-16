@@ -179,11 +179,18 @@ export function createHospitalMapSelectionCoordinator({
     generation += 1
     const requestGeneration = generation
     const map = getMap()
+    const hasFocusTarget = Boolean(map && hasValidCoordinates(hospital))
+    const hasPendingMovement = Boolean(pendingMoveEnd)
+    const shouldFlushQueuedSync = syncQueued && !hasFocusTarget
 
     cancelPendingWork()
     isFocusing = false
     syncQueued = false
-    if (!map || !hasValidCoordinates(hospital)) return
+    if (!hasFocusTarget) {
+      if (hasPendingMovement) map?.stop?.()
+      if (shouldFlushQueuedSync) syncClusters({ restoreOpenPopup: true })
+      return
+    }
 
     map.stop?.()
     syncClusters({ restoreOpenPopup: false })

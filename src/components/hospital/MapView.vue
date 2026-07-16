@@ -165,9 +165,9 @@ const selectionCoordinator = createHospitalMapSelectionCoordinator({
 })
 
 function focusSelectedHospital() {
-  if (!selectedHospital.value) return
-  boundsScheduler.cancel()
-  selectionCoordinator.focus(selectedHospital.value)
+  const hospital = selectedHospital.value
+  if (hospital) boundsScheduler.cancel()
+  selectionCoordinator.focus(hospital ?? null)
 }
 function panToPendingLocation() {
   if (!mapObject.value || !pendingLocationPosition || props.selectedHospitalId !== null) return

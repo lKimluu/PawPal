@@ -466,7 +466,7 @@ test('Map selection delegates move completion and popup lifecycle to the coordin
   assert.match(mapView, /function hasValidHospitalCoordinates\(hospital\)/)
   assert.match(mapView, /createHospitalMapSelectionCoordinator/)
   assert.match(mapView, /revealHospitalClusterMarker/)
-  assert.match(mapView, /selectionCoordinator\.focus\(selectedHospital\.value\)/)
+  assert.match(mapView, /selectionCoordinator\.focus\(hospital \?\? null\)/)
   assert.match(mapView, /nextTick\(selectionCoordinator\.requestClusterSync\)/)
   assert.match(
     mapView,
@@ -489,7 +489,7 @@ test('Map ready and bounds refresh do not issue duplicate viewport requests', ()
   assert.match(mapView, /createMapBoundsScheduler/)
   assert.match(
     mapView,
-    /function focusSelectedHospital\(\) \{\s*if \(!selectedHospital\.value\) return\s*boundsScheduler\.cancel\(\)\s*selectionCoordinator\.focus\(selectedHospital\.value\)\s*\}/,
+    /function focusSelectedHospital\(\) \{\s*const hospital = selectedHospital\.value\s*if \(hospital\) boundsScheduler\.cancel\(\)\s*selectionCoordinator\.focus\(hospital \?\? null\)\s*\}/,
   )
   assert.match(
     mapView,

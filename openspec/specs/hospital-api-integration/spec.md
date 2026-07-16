@@ -645,7 +645,7 @@ tests:
 ---
 ### Requirement: Map bounds refresh follows the settled viewport without recentering
 
-The hospital map SHALL request map hospitals for the final settled viewport. When a valid selected hospital is about to receive programmatic focus, the frontend MUST cancel any bounds callback that was scheduled by an earlier initialization, move, or zoom event. When no valid hospital will receive programmatic focus, the frontend MUST preserve an already scheduled bounds callback. A bounds API response MUST update marker data without changing the current map center, zoom, or viewport. Map initialization with a selected hospital, a programmatic hospital focus, and one manual zoom gesture MUST each produce no more than one debounced bounds request after the corresponding movement has settled.
+The hospital map SHALL request map hospitals for the final settled viewport. When a valid selected hospital is about to receive programmatic focus, the frontend MUST cancel any bounds callback that was scheduled by an earlier initialization, move, or zoom event. When no valid hospital will receive programmatic focus, the frontend MUST preserve an already scheduled bounds callback and MUST cancel any pending selection focus, reveal, or popup work. If the canceled focus still has an active programmatic movement waiting for completion, the frontend MUST unregister its stale movement-completion work before stopping that movement at the current viewport. The frontend MUST NOT stop the map when the canceled focus no longer owns an active programmatic movement. If marker synchronization was queued during the canceled focus and no replacement focus starts, the frontend MUST flush that synchronization using the latest hospital data without restoring the canceled popup or changing the viewport. A bounds API response MUST update marker data without changing the current map center, zoom, or viewport. Map initialization with a selected hospital, a programmatic hospital focus, and one manual zoom gesture MUST each produce no more than one debounced bounds request after the corresponding movement has settled.
 
 #### Scenario: bounds response updates markers without moving the map
 
@@ -668,13 +668,41 @@ The hospital map SHALL request map hospitals for the final settled viewport. Whe
 - **AND** the canceled callback does not request bounds during the focus movement
 - **AND** the final movement completion schedules the bounds request for the settled viewport
 
-#### Scenario: clearing hospital selection preserves pending bounds refresh
+#### Scenario: clearing hospital selection preserves pending bounds refresh and cancels stale selection work
 
 - **GIVEN** a manual map move or current-location pan has scheduled a debounced bounds callback
+- **AND** an earlier hospital focus is still waiting for movement, marker reveal, or popup completion
 - **WHEN** the selected hospital becomes `null`
-- **THEN** the frontend preserves the scheduled callback
+- **THEN** the frontend preserves the scheduled bounds callback
+- **AND** the frontend cancels the earlier hospital focus, reveal, and popup work
 - **AND** no programmatic hospital focus is started
 - **AND** the scheduled callback requests hospitals for the settled viewport
+- **AND** the cleared hospital popup does not open
+
+#### Scenario: clearing selection flushes marker synchronization queued during focus
+
+- **GIVEN** a bounds response changes the valid hospital markers while a hospital focus is still waiting for movement, marker reveal, or popup completion
+- **AND** the selection coordinator has queued marker synchronization until that focus completes
+- **WHEN** the selected hospital becomes `null` before the focus completes
+- **THEN** the frontend cancels the earlier hospital focus, reveal, and popup work
+- **AND** the frontend flushes the queued synchronization once using the latest hospital data
+- **AND** the frontend does not restore the cleared hospital popup or change the current map center, zoom, or viewport
+
+#### Scenario: clearing selection stops an unfinished hospital focus movement
+
+- **GIVEN** a selected hospital has started a programmatic map movement that is still waiting for `moveend`
+- **WHEN** the selected hospital becomes `null`
+- **THEN** the frontend unregisters the stale `moveend` work before stopping the programmatic movement
+- **AND** the map remains at the viewport reached when the selection was cleared
+- **AND** the map does not continue moving toward or recenter on the cleared hospital
+- **AND** the cleared hospital popup does not open
+
+#### Scenario: clearing selection after movement does not stop unrelated map activity
+
+- **GIVEN** the selected hospital's programmatic movement has completed and no coordinator-owned movement is waiting for `moveend`
+- **WHEN** the selected hospital becomes `null` while reveal or popup work is pending
+- **THEN** the frontend cancels the stale reveal or popup work
+- **AND** the frontend does not issue another map stop operation
 
 #### Scenario: one manual zoom produces one bounds request
 
@@ -682,92 +710,12 @@ The hospital map SHALL request map hospitals for the final settled viewport. Whe
 - **THEN** the frontend combines those events into one debounced bounds request
 
 <!-- @trace
-source: cancel-pending-map-bounds-on-focus
+source: cancel-cleared-hospital-map-focus
 updated: 2026-07-16
 code:
-  - src/views/DashboardView.vue
-  - src/views/TermsOfServiceView.vue
-  - src/components/layout/AppHeader.vue
-  - backend/src/routes/hospitals.route.js
-  - backend/src/routes/auth.route.js
-  - src/assets/icons/instagram-icon.svg
-  - src/components/auth/ForgotPasswordForm.vue
+  - src/utils/hospitalMapSelection.js
   - src/components/hospital/MapView.vue
-  - src/components/layout/DashboardSidebar.vue
-  - src/assets/icons/knowledge-lightbulb.svg
-  - src/api/user.js
-  - src/components/pet/AddPetButton.vue
-  - backend/src/middlewares/upload_image.js
-  - src/router/index.js
-  - backend/src/services/users.service.js
-  - src/api/auth.js
-  - src/assets/icons/angle-arrow.svg
-  - src/assets/icons/apple.svg
-  - src/assets/icons/setting_o.svg
-  - src/assets/icons/setting.svg
-  - src/views/ForgotPasswordView.vue
-  - src/views/MedicalView.vue
-  - src/components/ai/AiAssistantPanel.vue
-  - src/components/pet/PetProfileCard.vue
-  - src/assets/icons/default-icon.svg
-  - backend/src/routes/users.route.js
-  - src/assets/icons/email-icon.svg
-  - src/composables/useRequirePet.js
-  - src/assets/icons/about-team.svg
-  - src/api/ai.js
-  - src/assets/icons/notice_o.svg
-  - src/components/pet/PetCard.vue
-  - src/constants/legalContent.js
-  - src/stores/aiAssistant.js
-  - backend/src/app.js
-  - src/components/ai/AiAssistantInput.vue
-  - src/api/hospitals.js
-  - src/stores/auth.js
-  - backend/src/schemas/ai_assistant.schema.js
-  - src/components/member/UserProfileModal.vue
-  - README.md
-  - backend/src/config/rate_limit.js
-  - src/assets/icons/member.svg
-  - src/assets/icons/notice.svg
-  - src/views/HomeView.vue
-  - src/assets/icons/account-profile-icon.svg
-  - src/views/PrivacyPolicyView.vue
-  - src/components/ai/AiAssistantMessageList.vue
-  - src/components/auth/TermsModal.vue
-  - backend/.env.example
-  - src/api/clientId.js
-  - src/assets/icons/plus_g.svg
-  - src/components/layout/AppFooter.vue
-  - src/components/layout/PublicSidebar.vue
-  - src/stores/counter.js
-  - src/views/GrowthView.vue
-  - src/assets/icons/bugs.svg
-  - backend/src/schemas/users.schema.js
-  - src/assets/icons/facebook-icon.svg
-  - backend/src/controllers/users.controller.js
-  - src/components/auth/LoginForm.vue
 tests:
-  - src/test/userAvatarUploadApi.test.js
-  - backend/test/users.avatar_upload.test.js
-  - src/test/useRequirePet.test.js
-  - src/test/appHeaderLoginButton.test.js
-  - src/test/routerLazyLoading.test.js
-  - backend/test/users.me.test.js
-  - src/test/petCardThemeColors.test.js
-  - backend/test/users.schema.test.js
-  - src/test/appHeaderMemberMenu.test.js
-  - backend/test/ai_assistant.schema.test.js
-  - src/test/hospitalApiIntegration.test.js
-  - backend/test/rate_limit.test.js
-  - src/test/userProfileModal.test.js
-  - src/test/petCardPawTheme.test.js
   - src/test/hospitalMapSelection.test.js
-  - src/test/PetProfileModal.test.js
-  - backend/test/users.route.test.js
-  - backend/test/hospitals.route.test.js
-  - src/test/petCardWidth.test.js
-  - src/test/clientId.test.js
-  - src/test/userApi.test.js
-  - backend/test/users.service.test.js
-  - src/test/petCardMetaAlignment.test.js
+  - src/test/hospitalApiIntegration.test.js
 -->
