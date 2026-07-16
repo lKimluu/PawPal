@@ -205,12 +205,13 @@ export async function fetchHospitalRegions() {
   }
 }
 
-export async function fetchMapHospitals(bounds = {}) {
+export async function fetchMapHospitals(bounds = {}, options = {}) {
   const params = buildHospitalMapQuery(bounds)
   try {
     const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/map`, {
       params,
       headers: getClientIdHeaders(),
+      signal: options.signal,
     })
     return {
       success: true,
@@ -219,6 +220,17 @@ export async function fetchMapHospitals(bounds = {}) {
       truncated: Boolean(response.data?.truncated),
     }
   } catch (error) {
-    return { success: false, hospitals: [], total: 0, truncated: false, message: getErrorMessage(error, '取得地圖醫院失敗，請稍後再試') }
+    if (axios.isCancel(error)) {
+      return { success: false, canceled: true, hospitals: [], total: 0, truncated: false }
+    }
+
+    return {
+      success: false,
+      canceled: false,
+      hospitals: [],
+      total: 0,
+      truncated: false,
+      message: getErrorMessage(error, '取得地圖醫院失敗，請稍後再試'),
+    }
   }
 }

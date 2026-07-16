@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, onScopeDispose, ref } from 'vue'
 import { defineStore } from 'pinia'
 import {
   fetchHospitalRegions,
@@ -35,6 +35,7 @@ export const useHospitalStore = defineStore('hospital', () => {
   let listRequestId = 0
   let mapRequestId = 0
   let regionsRequestId = 0
+  let mapRequestController = null
 
   const visibleHospitals = computed(() => hospitals.value)
   const markerHospitals = computed(() => mapHospitals.value)
@@ -107,16 +108,20 @@ export const useHospitalStore = defineStore('hospital', () => {
 
   async function loadMapHospitals(bounds) {
     const requestId = ++mapRequestId
+    mapRequestController?.abort()
+    const requestController = new AbortController()
+    mapRequestController = requestController
     lastMapQuery.value = bounds
     mapLoading.value = true
     mapError.value = ''
-    const result = await fetchMapHospitals(bounds)
-    if (requestId !== mapRequestId) return result
+    const result = await fetchMapHospitals(bounds, { signal: requestController.signal })
+    if (requestId !== mapRequestId || requestController !== mapRequestController) return result
     if (result.success) {
       mapHospitals.value = result.hospitals
       mapTruncated.value = result.truncated
-    } else mapError.value = result.message
+    } else if (!result.canceled) mapError.value = result.message
     mapLoading.value = false
+    mapRequestController = null
     return result
   }
 
@@ -154,6 +159,12 @@ export const useHospitalStore = defineStore('hospital', () => {
   function selectHospital(id) { selectedHospitalId.value = id }
   function retryCurrentQuery() { return lastQuery.value.type === 'nearby' ? loadNearbyHospitals(lastQuery.value.query) : loadHospitals(lastQuery.value.query) }
   function retryMapQuery() { return lastMapQuery.value ? loadMapHospitals(lastMapQuery.value) : Promise.resolve() }
+
+  onScopeDispose(() => {
+    mapRequestId += 1
+    mapRequestController?.abort()
+    mapRequestController = null
+  })
 
   return {
     hospitals, visibleHospitals, mapHospitals, markerHospitals, regions, availableDistricts,
