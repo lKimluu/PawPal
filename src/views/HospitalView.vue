@@ -43,6 +43,7 @@ const reviewToDelete = ref(null)
 const isReviewDeleteOpen = ref(false)
 const currentUserId = computed(() => authStore.user?.id ?? authStore.user?.user_id ?? null)
 const selectionRequestId = ref(0)
+const reviewRequestToken = ref(0)
 
 async function requestCurrentLocation() {
   const locationSucceeded = await locationStore.requestCurrentLocation()
@@ -75,17 +76,29 @@ function selectHospital(hospitalId) {
   selectionRequestId.value += 1
 }
 
+function isCurrentReviewRequest(hospitalId, requestToken) {
+  return (
+    isReviewModalOpen.value &&
+    reviewRequestToken.value === requestToken &&
+    String(reviewHospital.value?.id) === String(hospitalId)
+  )
+}
+
 async function openHospitalReviewModal(hospital) {
+  const requestToken = ++reviewRequestToken.value
   reviewHospital.value = hospital
   reviewMode.value = 'list'
   reviewList.value = []
   isReviewModalOpen.value = true
-  await reloadHospitalReviews(hospital.id)
+  await reloadHospitalReviews(hospital.id, requestToken)
 }
 
-async function reloadHospitalReviews(hospitalId) {
+async function reloadHospitalReviews(hospitalId, requestToken = reviewRequestToken.value) {
   isReviewLoading.value = true
   const result = await hospitalStore.loadHospitalReviews(hospitalId)
+
+  if (!isCurrentReviewRequest(hospitalId, requestToken)) return result
+
   isReviewLoading.value = false
   const latestHospital = hospitalStore.getHospitalById(hospitalId)
   if (latestHospital) reviewHospital.value = latestHospital
@@ -95,10 +108,13 @@ async function reloadHospitalReviews(hospitalId) {
 }
 
 function closeHospitalReviewModal() {
+  reviewRequestToken.value += 1
   isReviewModalOpen.value = false
   reviewMode.value = 'list'
   reviewHospital.value = null
   reviewList.value = []
+  isReviewLoading.value = false
+  isReviewSubmitting.value = false
   editingReview.value = null
   reviewToDelete.value = null
   isReviewDeleteOpen.value = false
@@ -137,10 +153,16 @@ async function submitHospitalReview(payload) {
     return
   }
 
+  const hospitalId = reviewHospital.value.id
+  const reviewId = editingReview.value?.id
+  const requestToken = reviewRequestToken.value
   isReviewSubmitting.value = true
-  const result = editingReview.value
-    ? await editHospitalReview(payload)
-    : await hospitalStore.submitHospitalReview(reviewHospital.value.id, payload)
+  const result = reviewId
+    ? await editHospitalReview(hospitalId, reviewId, payload)
+    : await hospitalStore.submitHospitalReview(hospitalId, payload)
+
+  if (!isCurrentReviewRequest(hospitalId, requestToken)) return
+
   isReviewSubmitting.value = false
 
   if (!result.success) {
@@ -148,16 +170,17 @@ async function submitHospitalReview(payload) {
     return
   }
 
-  const latestHospital = hospitalStore.getHospitalById(reviewHospital.value.id)
+  const latestHospital = hospitalStore.getHospitalById(hospitalId)
   if (latestHospital) reviewHospital.value = latestHospital
   editingReview.value = null
   reviewMode.value = 'list'
-  await reloadHospitalReviews(reviewHospital.value.id)
+  await reloadHospitalReviews(hospitalId, requestToken)
+  if (!isCurrentReviewRequest(hospitalId, requestToken)) return
   toastStore.showToast(result.message || '評論已送出')
 }
 
-function editHospitalReview(payload) {
-  return hospitalStore.updateHospitalReview(reviewHospital.value.id, editingReview.value.id, payload)
+function editHospitalReview(hospitalId, reviewId, payload) {
+  return hospitalStore.updateHospitalReview(hospitalId, reviewId, payload)
 }
 
 async function deleteHospitalReview() {
@@ -168,7 +191,12 @@ async function deleteHospitalReview() {
     return
   }
 
-  const result = await hospitalStore.deleteHospitalReview(reviewHospital.value.id, reviewToDelete.value.id)
+  const hospitalId = reviewHospital.value.id
+  const reviewId = reviewToDelete.value.id
+  const requestToken = reviewRequestToken.value
+  const result = await hospitalStore.deleteHospitalReview(hospitalId, reviewId)
+
+  if (!isCurrentReviewRequest(hospitalId, requestToken)) return
 
   if (!result.success) {
     toastStore.showToast(result.message, 'error')
@@ -176,9 +204,10 @@ async function deleteHospitalReview() {
   }
 
   closeReviewDeleteConfirm()
-  const latestHospital = hospitalStore.getHospitalById(reviewHospital.value.id)
+  const latestHospital = hospitalStore.getHospitalById(hospitalId)
   if (latestHospital) reviewHospital.value = latestHospital
-  await reloadHospitalReviews(reviewHospital.value.id)
+  await reloadHospitalReviews(hospitalId, requestToken)
+  if (!isCurrentReviewRequest(hospitalId, requestToken)) return
   toastStore.showToast(result.message || '評論已刪除')
 }
 

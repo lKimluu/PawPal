@@ -211,3 +211,30 @@ test('HospitalView wires review modal to map popup and list card review events',
   assert.match(hospitalCard, /defineEmits\(\['reviewHospital'\]\)/)
   assert.match(hospitalCard, /@click\.stop="emit\('reviewHospital'\)"/)
 })
+
+test('HospitalView 切換或關閉評論 Modal 後應忽略過期評論請求', () => {
+  const hospitalView = readSource('../views/HospitalView.vue')
+
+  assert.match(hospitalView, /const reviewRequestToken = ref\(0\)/)
+  assert.match(
+    hospitalView,
+    /function isCurrentReviewRequest\(hospitalId, requestToken\) \{[\s\S]*isReviewModalOpen\.value[\s\S]*reviewRequestToken\.value === requestToken[\s\S]*String\(reviewHospital\.value\?\.id\) === String\(hospitalId\)[\s\S]*\}/,
+  )
+  assert.match(hospitalView, /const requestToken = \+\+reviewRequestToken\.value/)
+  assert.match(hospitalView, /await reloadHospitalReviews\(hospital\.id, requestToken\)/)
+  assert.match(hospitalView, /if \(!isCurrentReviewRequest\(hospitalId, requestToken\)\) return result/)
+  assert.match(hospitalView, /reviewRequestToken\.value \+= 1/)
+  assert.match(hospitalView, /const hospitalId = reviewHospital\.value\.id/)
+  assert.match(hospitalView, /await reloadHospitalReviews\(hospitalId/)
+  assert.doesNotMatch(hospitalView, /await reloadHospitalReviews\(reviewHospital\.value\.id\)/)
+
+  const submitStart = hospitalView.indexOf('async function submitHospitalReview')
+  const staleSubmitGuard = hospitalView.indexOf(
+    'if (!isCurrentReviewRequest(hospitalId, requestToken)) return',
+    submitStart,
+  )
+  const submitLoadingReset = hospitalView.indexOf('isReviewSubmitting.value = false', submitStart)
+  assert.ok(staleSubmitGuard !== -1)
+  assert.ok(submitLoadingReset !== -1)
+  assert.ok(staleSubmitGuard < submitLoadingReset)
+})
