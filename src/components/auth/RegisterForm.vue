@@ -53,13 +53,19 @@ async function handleSubmit() {
     return
   }
 
-  successMessage.value = result.message || '註冊成功'
+  const loginResult = await sessionStore.login(email.value, password.value)
 
-  toastStore.showToast('註冊成功！將轉至登入頁面 ', 'success')
+  if (!loginResult.success) {
+    errorMessage.value = loginResult.message || '註冊成功，但自動登入失敗，請前往登入頁面'
+    toastStore.showToast(errorMessage.value, 'error')
+    isSubmitting.value = false
+    return
+  }
 
-  window.setTimeout(() => {
-    router.push('/login')
-  }, 1000)
+  successMessage.value = '註冊成功，已自動登入'
+  isSubmitting.value = false
+  toastStore.showToast('註冊成功，已自動登入', 'success')
+  router.push('/dashboard')
 }
 
 const handleGoogleLoginCallback = async (response) => {
