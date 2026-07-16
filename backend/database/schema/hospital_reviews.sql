@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS hospital_reviews (
   CONSTRAINT chk_hospital_reviews_rating
     CHECK (rating BETWEEN 1 AND 5),
   CONSTRAINT chk_hospital_reviews_comment
-    CHECK (char_length(trim(comment)) BETWEEN 1 AND 1000),
+    CHECK (comment = trim(comment) AND char_length(comment) BETWEEN 1 AND 1000),
   CONSTRAINT uq_hospital_reviews_user_hospital
     UNIQUE (user_id, hospital_id)
 );

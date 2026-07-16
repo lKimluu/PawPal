@@ -4,6 +4,7 @@ import { test } from 'node:test'
 import { createHospitalReviewsController } from '../src/controllers/hospital_reviews.controller.js'
 import {
   DuplicateHospitalReviewError,
+  HospitalNotFoundError,
   HospitalReviewNotFoundError,
 } from '../src/services/hospital_reviews.service.js'
 
@@ -41,14 +42,18 @@ test('listHospitalReviews 成功時應回傳公開評論列表', async () => {
     },
   ]
   const { listHospitalReviews } = createHospitalReviewsController({
-    listHospitalReviews: async (hospitalId) => {
+    listHospitalReviews: async (hospitalId, pagination) => {
       assert.equal(hospitalId, 15)
+      assert.deepEqual(pagination, { page: 1, limit: 50 })
       return reviews
     },
   })
   const res = createResponse()
 
-  await listHospitalReviews({ params: { hospital_id: 15 } }, res)
+  await listHospitalReviews({
+    params: { hospital_id: 15 },
+    validated_query: { page: 1, limit: 50 },
+  }, res)
 
   assert.equal(res.statusCode, 200)
   assert.deepEqual(res.body, { reviews })
@@ -107,6 +112,24 @@ test('createHospitalReview 重複評論時應回傳 409', async () => {
 
   assert.equal(res.statusCode, 409)
   assert.deepEqual(res.body, { message: '你已經評論過這間醫院' })
+})
+
+test('createHospitalReview 醫院不存在時應回傳 404', async () => {
+  const { createHospitalReview } = createHospitalReviewsController({
+    createHospitalReview: async () => {
+      throw new HospitalNotFoundError()
+    },
+  })
+  const res = createResponse()
+
+  await createHospitalReview({
+    params: { hospital_id: 9999 },
+    userId: 7,
+    body: { rating: 5, comment: 'Careful doctor' },
+  }, res)
+
+  assert.equal(res.statusCode, 404)
+  assert.deepEqual(res.body, { message: '找不到醫院' })
 })
 
 test('updateMyHospitalReview 成功時應更新目前會員評論並回傳 200', async () => {

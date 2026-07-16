@@ -30,7 +30,7 @@ The system SHALL provide a hospital_reviews table for member-authored hospital r
 
 ### Requirement: Hospital review list is public and excludes private user data
 
-The system SHALL expose GET /api/v1/hospitals/:hospital_id/reviews as a public endpoint. The endpoint SHALL return reviews for the requested hospital ordered by created_at descending. Each review item SHALL include id, hospital_id, user_id, user_name, user_avatar_url, rating, comment, created_at, and updated_at. The response MUST NOT include user email, password, JWT data, or other private account fields.
+The system SHALL expose GET /api/v1/hospitals/:hospital_id/reviews as a public endpoint. The endpoint SHALL return reviews for the requested hospital ordered by created_at descending. The endpoint SHALL support page and limit query parameters with defaults of page 1 and limit 50, and limit MUST NOT exceed 100. Each review item SHALL include id, hospital_id, user_id, user_name, user_avatar_url, rating, comment, created_at, and updated_at. The response MUST NOT include user email, password, JWT data, or other private account fields.
 
 #### Scenario: Anonymous caller reads hospital reviews
 
@@ -69,7 +69,7 @@ The system SHALL require a valid member JWT for creating, updating, and deleting
 
 ### Requirement: Hospital review write failures return explicit status codes
 
-The system SHALL validate hospital_id route params and review request bodies before service logic. Invalid hospital_id, rating, or comment values MUST return HTTP 400 with a JSON body containing a Traditional Chinese message string. Creating a second review for the same member and hospital MUST return HTTP 409. Updating or deleting a review that the caller has not created MUST return HTTP 404.
+The system SHALL validate hospital_id route params and review request bodies before service logic. Invalid hospital_id, rating, or comment values MUST return HTTP 400 with a JSON body containing a Traditional Chinese message string. Creating a second review for the same member and hospital MUST return HTTP 409. Creating a review for a syntactically valid hospital_id that does not exist MUST return HTTP 404. Updating or deleting a review that the caller has not created MUST return HTTP 404.
 
 #### Scenario: Invalid review body is rejected
 

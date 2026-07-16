@@ -14,6 +14,13 @@ export class HospitalReviewNotFoundError extends Error {
   }
 }
 
+export class HospitalNotFoundError extends Error {
+  constructor() {
+    super('Hospital not found')
+    this.name = 'HospitalNotFoundError'
+  }
+}
+
 function map_review_row(row) {
   const review = {
     id: row.id,
@@ -35,7 +42,12 @@ function is_duplicate_hospital_review(error) {
   return error?.code === '23505' && error?.constraint === 'uq_hospital_reviews_user_hospital'
 }
 
-export async function listHospitalReviews(hospitalId) {
+function is_missing_hospital(error) {
+  return error?.code === '23503' && error?.constraint === 'fk_hospital_reviews_hospital'
+}
+
+export async function listHospitalReviews(hospitalId, { page = 1, limit = 50 } = {}) {
+  const offset = (page - 1) * limit
   const result = await pool.query(
     `
       SELECT
@@ -53,8 +65,10 @@ export async function listHospitalReviews(hospitalId) {
         ON u.id = hr.user_id
       WHERE hr.hospital_id = $1
       ORDER BY hr.created_at DESC, hr.id DESC
+      LIMIT $2
+      OFFSET $3
     `,
-    [hospitalId],
+    [hospitalId, limit, offset],
   )
 
   return result.rows.map(map_review_row)
@@ -75,6 +89,10 @@ export async function createHospitalReview(hospitalId, userId, data) {
   } catch (error) {
     if (is_duplicate_hospital_review(error)) {
       throw new DuplicateHospitalReviewError()
+    }
+
+    if (is_missing_hospital(error)) {
+      throw new HospitalNotFoundError()
     }
 
     throw error

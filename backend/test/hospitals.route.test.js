@@ -51,7 +51,7 @@ test('醫院路由應提供清單、附近、地區、地圖與評論查詢', ()
   assert.equal(mapMiddleware.length, 4)
   assert.equal(typeof mapMiddleware[0].handle, 'function')
 
-  assert.equal(routes[4].middleware.length, 2)
+  assert.equal(routes[4].middleware.length, 3)
   assert.equal(routes[5].middleware.length, 4)
   assert.equal(routes[6].middleware.length, 4)
   assert.equal(routes[7].middleware.length, 3)

@@ -6,6 +6,7 @@ import {
   createHospitalReview,
   deleteMyHospitalReview,
   DuplicateHospitalReviewError,
+  HospitalNotFoundError,
   HospitalReviewNotFoundError,
   listHospitalReviews,
   updateMyHospitalReview,
@@ -32,11 +33,13 @@ test('listHospitalReviews 應公開回傳指定醫院評論並依建立時間新
     assert.match(text, /INNER JOIN users u/)
     assert.match(text, /WHERE hr\.hospital_id = \$1/)
     assert.match(text, /ORDER BY hr\.created_at DESC/)
-    assert.deepEqual(values, [15])
+    assert.match(text, /LIMIT \$2/)
+    assert.match(text, /OFFSET \$3/)
+    assert.deepEqual(values, [15, 50, 0])
     return { rows }
   })
 
-  const reviews = await listHospitalReviews(15)
+  const reviews = await listHospitalReviews(15, { page: 1, limit: 50 })
 
   assert.deepEqual(reviews, [
     {
@@ -91,6 +94,20 @@ test('createHospitalReview 重複建立同會員同醫院評論時應丟出 Dupl
   await assert.rejects(
     () => createHospitalReview(15, 7, { rating: 5, comment: 'Careful doctor' }),
     DuplicateHospitalReviewError,
+  )
+})
+
+test('createHospitalReview 建立不存在醫院評論時應丟出 HospitalNotFoundError', async (t) => {
+  t.mock.method(pool, 'query', async () => {
+    const error = new Error('foreign key')
+    error.code = '23503'
+    error.constraint = 'fk_hospital_reviews_hospital'
+    throw error
+  })
+
+  await assert.rejects(
+    () => createHospitalReview(9999, 7, { rating: 5, comment: 'Careful doctor' }),
+    HospitalNotFoundError,
   )
 })
 

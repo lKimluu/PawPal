@@ -1,13 +1,17 @@
 import * as defaultHospitalReviewService from '../services/hospital_reviews.service.js'
 import {
   DuplicateHospitalReviewError,
+  HospitalNotFoundError,
   HospitalReviewNotFoundError,
 } from '../services/hospital_reviews.service.js'
 
 export function createHospitalReviewsController(hospitalReviewService) {
   async function listHospitalReviews(req, res) {
     try {
-      const reviews = await hospitalReviewService.listHospitalReviews(req.params.hospital_id)
+      const reviews = await hospitalReviewService.listHospitalReviews(
+        req.params.hospital_id,
+        req.validated_query,
+      )
 
       return res.status(200).json({ reviews })
     } catch (error) {
@@ -29,6 +33,10 @@ export function createHospitalReviewsController(hospitalReviewService) {
     } catch (error) {
       if (error instanceof DuplicateHospitalReviewError) {
         return res.status(409).json({ message: '你已經評論過這間醫院' })
+      }
+
+      if (error instanceof HospitalNotFoundError) {
+        return res.status(404).json({ message: '找不到醫院' })
       }
 
       console.error(error)
