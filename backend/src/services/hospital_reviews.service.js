@@ -1,38 +1,54 @@
 import { pool } from '../config/db.js'
 
-function toNumber(value, fallback = 0) {
-  const numberValue = Number(value)
-  return Number.isFinite(numberValue) ? numberValue : fallback
+export class DuplicateHospitalReviewError extends Error {
+  constructor() {
+    super('Duplicate hospital review')
+    this.name = 'DuplicateHospitalReviewError'
+  }
 }
 
-function mapReviewRow(row) {
-  return {
+export class HospitalReviewNotFoundError extends Error {
+  constructor() {
+    super('Hospital review not found')
+    this.name = 'HospitalReviewNotFoundError'
+  }
+}
+
+export class HospitalNotFoundError extends Error {
+  constructor() {
+    super('Hospital not found')
+    this.name = 'HospitalNotFoundError'
+  }
+}
+
+function to_number(value, fallback = 0) {
+  const number_value = Number(value)
+  return Number.isFinite(number_value) ? number_value : fallback
+}
+
+function map_review_row(row) {
+  const review = {
     id: row.id,
     hospital_id: row.hospital_id,
     user_id: row.user_id,
-    user_name: row.user_name ?? '',
     rating: Number(row.rating),
     comment: row.comment,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }
+
+  if (Object.hasOwn(row, 'user_name')) review.user_name = row.user_name ?? ''
+  if (Object.hasOwn(row, 'user_avatar_url')) review.user_avatar_url = row.user_avatar_url
+
+  return review
 }
 
-const REVIEW_TIMESTAMP_SQL_FORMAT = 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
+function is_duplicate_hospital_review(error) {
+  return error?.code === '23505' && error?.constraint === 'uq_hospital_reviews_user_hospital'
+}
 
-export async function hospitalExists(hospitalId) {
-  const result = await pool.query(
-    `
-      SELECT EXISTS (
-        SELECT 1
-        FROM hospitals
-        WHERE id = $1
-      ) AS exists
-    `,
-    [hospitalId],
-  )
-
-  return Boolean(result.rows[0]?.exists)
+function is_missing_hospital(error) {
+  return error?.code === '23503' && error?.constraint === 'fk_hospital_reviews_hospital'
 }
 
 export async function findHospitalReviewSummary(hospitalId) {
@@ -49,92 +65,97 @@ export async function findHospitalReviewSummary(hospitalId) {
   const row = result.rows[0] ?? {}
 
   return {
-    average_rating: toNumber(row.average_rating),
-    review_count: toNumber(row.review_count),
+    average_rating: to_number(row.average_rating),
+    review_count: to_number(row.review_count),
   }
 }
 
-export async function findHospitalReviews(hospitalId) {
+export async function listHospitalReviews(hospitalId, { page = 1, limit = 50 } = {}) {
+  const offset = (page - 1) * limit
   const result = await pool.query(
     `
       SELECT
         hr.id,
         hr.hospital_id,
         hr.user_id,
-        COALESCE(u.name, '') AS user_name,
+        u.name AS user_name,
+        u.avatar_url AS user_avatar_url,
         hr.rating,
         hr.comment,
-        to_char(hr.created_at, '${REVIEW_TIMESTAMP_SQL_FORMAT}') AS created_at,
-        to_char(hr.updated_at, '${REVIEW_TIMESTAMP_SQL_FORMAT}') AS updated_at
-      FROM hospital_reviews AS hr
-      LEFT JOIN users AS u ON u.id = hr.user_id
+        hr.created_at,
+        hr.updated_at
+      FROM hospital_reviews hr
+      INNER JOIN users u
+        ON u.id = hr.user_id
       WHERE hr.hospital_id = $1
       ORDER BY hr.created_at DESC, hr.id DESC
-      LIMIT 50
+      LIMIT $2
+      OFFSET $3
     `,
-    [hospitalId],
+    [hospitalId, limit, offset],
   )
 
-  return result.rows.map(mapReviewRow)
+  return result.rows.map(map_review_row)
 }
 
-export async function createHospitalReview({ hospitalId, userId, rating, comment }) {
-  const result = await pool.query(
-    `
-      INSERT INTO hospital_reviews (hospital_id, user_id, rating, comment)
-      VALUES ($1, $2, $3, $4)
-      RETURNING
-        id,
-        hospital_id,
-        user_id,
-        '' AS user_name,
-        rating,
-        comment,
-        to_char(created_at, '${REVIEW_TIMESTAMP_SQL_FORMAT}') AS created_at,
-        to_char(updated_at, '${REVIEW_TIMESTAMP_SQL_FORMAT}') AS updated_at
-    `,
-    [hospitalId, userId, rating, comment],
-  )
+export async function createHospitalReview(hospitalId, userId, data) {
+  try {
+    const result = await pool.query(
+      `
+        INSERT INTO hospital_reviews (hospital_id, user_id, rating, comment)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, hospital_id, user_id, rating, comment, created_at, updated_at
+      `,
+      [hospitalId, userId, data.rating, data.comment],
+    )
 
-  return mapReviewRow(result.rows[0])
+    return map_review_row(result.rows[0])
+  } catch (error) {
+    if (is_duplicate_hospital_review(error)) {
+      throw new DuplicateHospitalReviewError()
+    }
+
+    if (is_missing_hospital(error)) {
+      throw new HospitalNotFoundError()
+    }
+
+    throw error
+  }
 }
 
-export async function updateHospitalReview({ reviewId, hospitalId, userId, rating, comment }) {
+export async function updateMyHospitalReview(hospitalId, userId, data) {
   const result = await pool.query(
     `
       UPDATE hospital_reviews
       SET rating = $1,
-          comment = $2,
-          updated_at = NOW()
-      WHERE id = $3
-        AND hospital_id = $4
-        AND user_id = $5
-      RETURNING
-        id,
-        hospital_id,
-        user_id,
-        '' AS user_name,
-        rating,
-        comment,
-        to_char(created_at, '${REVIEW_TIMESTAMP_SQL_FORMAT}') AS created_at,
-        to_char(updated_at, '${REVIEW_TIMESTAMP_SQL_FORMAT}') AS updated_at
+          comment = $2
+      WHERE hospital_id = $3
+        AND user_id = $4
+      RETURNING id, hospital_id, user_id, rating, comment, created_at, updated_at
     `,
-    [rating, comment, reviewId, hospitalId, userId],
+    [data.rating, data.comment, hospitalId, userId],
   )
 
-  return result.rows[0] ? mapReviewRow(result.rows[0]) : null
+  if (!result.rows[0]) {
+    throw new HospitalReviewNotFoundError()
+  }
+
+  return map_review_row(result.rows[0])
 }
 
-export async function deleteHospitalReview({ reviewId, hospitalId, userId }) {
+export async function deleteMyHospitalReview(hospitalId, userId) {
   const result = await pool.query(
     `
       DELETE FROM hospital_reviews
-      WHERE id = $1
-        AND hospital_id = $2
-        AND user_id = $3
+      WHERE hospital_id = $1
+        AND user_id = $2
     `,
-    [reviewId, hospitalId, userId],
+    [hospitalId, userId],
   )
 
-  return result.rowCount > 0
+  if (result.rowCount === 0) {
+    throw new HospitalReviewNotFoundError()
+  }
+
+  return true
 }

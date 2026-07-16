@@ -1,12 +1,14 @@
 import axios from 'axios'
+import { getClientIdHeaders } from './clientId.js'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? ''
 
 async function request(path, payload) {
   try {
     const response = await axios.post(`${API_BASE_URL}${path}`, payload, {
       headers: {
         'Content-Type': 'application/json',
+        ...getClientIdHeaders(),
       },
     })
 

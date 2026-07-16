@@ -16,12 +16,14 @@ import GrowthHistoryButton from '@/components/growth/GrowthHistoryButton.vue'
 import GrowthHistoryModal from '@/components/growth/GrowthHistoryModal.vue'
 import DeleteConfirmModal from '@/components/common/DeleteConfirmModal.vue'
 import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
+import { useRequirePet } from '@/composables/useRequirePet.js'
 
 const growthStore = useGrowthStore()
 const authStore = useAuthStore()
 const petStore = usePetStore()
 const { pets, selectedPetId } = storeToRefs(petStore)
 const toastStore = useToastStore()
+const { ensurePetOrPrompt } = useRequirePet()
 const activeRange = ref('6 個月')
 
 const isModalOpen = ref(false)
@@ -43,16 +45,31 @@ watch(
   { immediate: true },
 )
 
+const openAddModal = () => {
+  if (!ensurePetOrPrompt()) return
+
+  isModalOpen.value = true
+}
+
 const handleSubmit = async (formData) => {
-  const results = await growthStore.createRecordsFrom(
-    petStore.selectedPetId,
-    formData,
-    authStore.token,
-  )
-  const allSuccess = results.every((r) => r.success)
-  if (allSuccess) {
-    isModalOpen.value = false
-    growthStore.fetchRecords(petStore.selectedPetId, authStore.token)
+  try {
+    const results = await growthStore.createRecordsFrom(
+      petStore.selectedPetId,
+      formData,
+      authStore.token,
+    )
+
+    const allSuccess = results.every((r) => r.success)
+
+    if (allSuccess) {
+      isModalOpen.value = false
+      toastStore.showToast('成長記錄新增成功', 'success')
+      growthStore.fetchRecords(petStore.selectedPetId, authStore.token)
+    } else {
+      toastStore.showToast('新增紀錄失敗，請檢查輸入內容', 'error')
+    }
+  } catch (err) {
+    toastStore.showToast(err.message || '新增失敗，請稍後再試', 'error')
   }
 }
 
@@ -64,14 +81,20 @@ const handleDeleteRecord = (record) => {
 const handleConfirmDelete = async () => {
   if (!pendingDeleteRecord.value) return
 
-  const result = await growthStore.deleteRecord(pendingDeleteRecord.value.id, authStore.token)
+  try {
+    const result = await growthStore.deleteRecord(pendingDeleteRecord.value.id, authStore.token)
 
-  isDeleteOpen.value = false
-  pendingDeleteRecord.value = null
+    isDeleteOpen.value = false
+    pendingDeleteRecord.value = null
 
-  if (result.success) {
-    toastStore.showToast('紀錄已刪除')
-  } else {
+    if (result.success) {
+      toastStore.showToast('成長紀錄刪除成功', 'success')
+    } else {
+      toastStore.showToast('刪除失敗，請稍後再試', 'error')
+    }
+  } catch (err) {
+    isDeleteOpen.value = false
+    pendingDeleteRecord.value = null
     toastStore.showToast('刪除失敗，請稍後再試', 'error')
   }
 }
@@ -104,7 +127,7 @@ const deleteItemName = computed(() => {
             <h1 class="text-xl font-bold text-brand-navy md:text-2xl">成長歷程</h1>
             <div class="flex items-center gap-2">
               <GrowthHistoryButton @click="isHistoryOpen = true" />
-              <AddGrowthButton @click="isModalOpen = true" />
+              <AddGrowthButton @click="openAddModal" />
             </div>
           </div>
           <div
@@ -116,7 +139,7 @@ const deleteItemName = computed(() => {
             <GrowthChartCard
               :records="growthStore.records"
               :range="activeRange"
-              @add-record="isModalOpen = true"
+              @add-record="openAddModal"
             />
           </div>
         </section>

@@ -4,23 +4,14 @@ import { test } from 'node:test'
 import { pool } from '../src/config/db.js'
 import {
   createHospitalReview,
-  deleteHospitalReview,
-  findHospitalReviews,
+  deleteMyHospitalReview,
+  DuplicateHospitalReviewError,
   findHospitalReviewSummary,
-  hospitalExists,
-  updateHospitalReview,
+  HospitalNotFoundError,
+  HospitalReviewNotFoundError,
+  listHospitalReviews,
+  updateMyHospitalReview,
 } from '../src/services/hospital_reviews.service.js'
-
-test('hospitalExists checks whether the hospital id is present', async (t) => {
-  t.mock.method(pool, 'query', async (text, values) => {
-    assert.match(text, /SELECT EXISTS/)
-    assert.match(text, /FROM hospitals/)
-    assert.deepEqual(values, [12])
-    return { rows: [{ exists: true }] }
-  })
-
-  assert.equal(await hospitalExists(12), true)
-})
 
 test('findHospitalReviewSummary returns average rating and review count', async (t) => {
   t.mock.method(pool, 'query', async (text, values) => {
@@ -47,150 +38,160 @@ test('findHospitalReviewSummary returns zero summary when there are no reviews',
   })
 })
 
-test('findHospitalReviews lists newest reviews for a hospital', async (t) => {
+test('listHospitalReviews returns paginated public reviews with user metadata', async (t) => {
   t.mock.method(pool, 'query', async (text, values) => {
-    assert.match(text, /FROM hospital_reviews/)
-    assert.match(text, /LEFT JOIN users AS u ON u\.id = hr\.user_id/)
-    assert.match(text, /to_char\(hr\.created_at/)
-    assert.match(text, /to_char\(hr\.updated_at/)
-    assert.match(text, /WHERE hr\.hospital_id = \$1/)
-    assert.match(text, /ORDER BY hr\.created_at DESC/)
-    assert.deepEqual(values, [7])
+    assert.match(text, /INNER JOIN users/)
+    assert.match(text, /LIMIT \$2/)
+    assert.match(text, /OFFSET \$3/)
+    assert.deepEqual(values, [15, 25, 25])
     return {
       rows: [
         {
           id: 9,
-          hospital_id: 7,
-          user_id: 2,
-          user_name: '小明',
-          rating: 5,
-          comment: '醫師親切',
-          created_at: '2026-07-14T09:00:00.000Z',
-          updated_at: '2026-07-14T09:00:00.000Z',
+          hospital_id: 15,
+          user_id: 7,
+          user_name: 'Alice',
+          user_avatar_url: 'avatar.png',
+          rating: '5',
+          comment: 'Careful doctor',
+          created_at: '2026-07-13T10:00:00.000Z',
+          updated_at: '2026-07-13T10:00:00.000Z',
         },
       ],
     }
   })
 
-  assert.deepEqual(await findHospitalReviews(7), [
+  assert.deepEqual(await listHospitalReviews(15, { page: 2, limit: 25 }), [
     {
       id: 9,
-      hospital_id: 7,
-      user_id: 2,
-      user_name: '小明',
+      hospital_id: 15,
+      user_id: 7,
+      user_name: 'Alice',
+      user_avatar_url: 'avatar.png',
       rating: 5,
-      comment: '醫師親切',
-      created_at: '2026-07-14T09:00:00.000Z',
-      updated_at: '2026-07-14T09:00:00.000Z',
+      comment: 'Careful doctor',
+      created_at: '2026-07-13T10:00:00.000Z',
+      updated_at: '2026-07-13T10:00:00.000Z',
     },
   ])
 })
 
-test('createHospitalReview inserts the user review and returns the created row', async (t) => {
+test('createHospitalReview inserts one review for the current user', async (t) => {
   t.mock.method(pool, 'query', async (text, values) => {
     assert.match(text, /INSERT INTO hospital_reviews/)
-    assert.match(text, /RETURNING/)
-    assert.match(text, /to_char\(created_at/)
-    assert.match(text, /to_char\(updated_at/)
-    assert.deepEqual(values, [7, 2, 4, '整體服務良好'])
+    assert.deepEqual(values, [15, 7, 5, 'Careful doctor'])
     return {
       rows: [
         {
-          id: 10,
-          hospital_id: 7,
-          user_id: 2,
-          user_name: '',
-          rating: 4,
-          comment: '整體服務良好',
-          created_at: '2026-07-14T09:00:00.000Z',
-          updated_at: '2026-07-14T09:00:00.000Z',
+          id: 9,
+          hospital_id: 15,
+          user_id: 7,
+          rating: '5',
+          comment: 'Careful doctor',
+          created_at: '2026-07-13T10:00:00.000Z',
+          updated_at: '2026-07-13T10:00:00.000Z',
         },
       ],
     }
   })
 
-  assert.deepEqual(
-    await createHospitalReview({
-      hospitalId: 7,
-      userId: 2,
-      rating: 4,
-      comment: '整體服務良好',
-    }),
-    {
-      id: 10,
-      hospital_id: 7,
-      user_id: 2,
-      user_name: '',
-      rating: 4,
-      comment: '整體服務良好',
-      created_at: '2026-07-14T09:00:00.000Z',
-      updated_at: '2026-07-14T09:00:00.000Z',
-    },
+  assert.deepEqual(await createHospitalReview(15, 7, { rating: 5, comment: 'Careful doctor' }), {
+    id: 9,
+    hospital_id: 15,
+    user_id: 7,
+    rating: 5,
+    comment: 'Careful doctor',
+    created_at: '2026-07-13T10:00:00.000Z',
+    updated_at: '2026-07-13T10:00:00.000Z',
+  })
+})
+
+test('createHospitalReview maps unique constraint violation to DuplicateHospitalReviewError', async (t) => {
+  t.mock.method(pool, 'query', async () => {
+    const error = new Error('duplicate')
+    error.code = '23505'
+    error.constraint = 'uq_hospital_reviews_user_hospital'
+    throw error
+  })
+
+  await assert.rejects(
+    () => createHospitalReview(15, 7, { rating: 5, comment: 'Careful doctor' }),
+    DuplicateHospitalReviewError,
   )
 })
 
-test('updateHospitalReview updates only the owner review and returns the row', async (t) => {
+test('createHospitalReview maps missing hospital foreign key to HospitalNotFoundError', async (t) => {
+  t.mock.method(pool, 'query', async () => {
+    const error = new Error('missing hospital')
+    error.code = '23503'
+    error.constraint = 'fk_hospital_reviews_hospital'
+    throw error
+  })
+
+  await assert.rejects(
+    () => createHospitalReview(999, 7, { rating: 5, comment: 'Careful doctor' }),
+    HospitalNotFoundError,
+  )
+})
+
+test('updateMyHospitalReview updates by hospital and current user', async (t) => {
   t.mock.method(pool, 'query', async (text, values) => {
     assert.match(text, /UPDATE hospital_reviews/)
-    assert.match(text, /to_char\(created_at/)
-    assert.match(text, /to_char\(updated_at/)
-    assert.match(text, /WHERE id = \$3/)
-    assert.match(text, /hospital_id = \$4/)
-    assert.match(text, /user_id = \$5/)
-    assert.deepEqual(values, [3, 'updated comment', 11, 7, 2])
+    assert.match(text, /WHERE hospital_id = \$3/)
+    assert.match(text, /AND user_id = \$4/)
+    assert.deepEqual(values, [4, 'Long wait', 15, 7])
     return {
       rows: [
         {
-          id: 11,
-          hospital_id: 7,
-          user_id: 2,
-          user_name: '',
-          rating: 3,
-          comment: 'updated comment',
-          created_at: '2026-07-14T09:00:00.000Z',
-          updated_at: '2026-07-14T10:00:00.000Z',
+          id: 9,
+          hospital_id: 15,
+          user_id: 7,
+          rating: '4',
+          comment: 'Long wait',
+          created_at: '2026-07-13T10:00:00.000Z',
+          updated_at: '2026-07-13T11:00:00.000Z',
         },
       ],
     }
   })
 
-  assert.deepEqual(
-    await updateHospitalReview({
-      reviewId: 11,
-      hospitalId: 7,
-      userId: 2,
-      rating: 3,
-      comment: 'updated comment',
-    }),
-    {
-      id: 11,
-      hospital_id: 7,
-      user_id: 2,
-      user_name: '',
-      rating: 3,
-      comment: 'updated comment',
-      created_at: '2026-07-14T09:00:00.000Z',
-      updated_at: '2026-07-14T10:00:00.000Z',
-    },
+  assert.deepEqual(await updateMyHospitalReview(15, 7, { rating: 4, comment: 'Long wait' }), {
+    id: 9,
+    hospital_id: 15,
+    user_id: 7,
+    rating: 4,
+    comment: 'Long wait',
+    created_at: '2026-07-13T10:00:00.000Z',
+    updated_at: '2026-07-13T11:00:00.000Z',
+  })
+})
+
+test('updateMyHospitalReview throws when the current user has no review', async (t) => {
+  t.mock.method(pool, 'query', async () => ({ rows: [] }))
+
+  await assert.rejects(
+    () => updateMyHospitalReview(15, 7, { rating: 4, comment: 'Long wait' }),
+    HospitalReviewNotFoundError,
   )
 })
 
-test('deleteHospitalReview deletes only the owner review and reports success', async (t) => {
+test('deleteMyHospitalReview deletes by hospital and current user', async (t) => {
   t.mock.method(pool, 'query', async (text, values) => {
     assert.match(text, /DELETE FROM hospital_reviews/)
-    assert.match(text, /WHERE id = \$1/)
-    assert.match(text, /hospital_id = \$2/)
-    assert.match(text, /user_id = \$3/)
-    assert.deepEqual(values, [11, 7, 2])
+    assert.match(text, /WHERE hospital_id = \$1/)
+    assert.match(text, /AND user_id = \$2/)
+    assert.deepEqual(values, [15, 7])
     return { rowCount: 1 }
   })
 
-  assert.equal(
-    await deleteHospitalReview({
-      reviewId: 11,
-      hospitalId: 7,
-      userId: 2,
-    }),
-    true,
+  assert.equal(await deleteMyHospitalReview(15, 7), true)
+})
+
+test('deleteMyHospitalReview throws when the current user has no review', async (t) => {
+  t.mock.method(pool, 'query', async () => ({ rowCount: 0 }))
+
+  await assert.rejects(
+    () => deleteMyHospitalReview(15, 7),
+    HospitalReviewNotFoundError,
   )
 })

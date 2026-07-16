@@ -11,9 +11,13 @@ import DeleteConfirmModal from '@/components/common/DeleteConfirmModal.vue'
 import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 import { useMedicalStore } from '@/stores/medical.js'
 import { usePetStore } from '@/stores/petStore.js'
+import { useToastStore } from '@/stores/toast.js'
+import { useRequirePet } from '@/composables/useRequirePet.js'
 
 const medicalStore = useMedicalStore()
 const petStore = usePetStore()
+const toastStore = useToastStore()
+const { ensurePetOrPrompt } = useRequirePet()
 
 const isModalOpen = ref(false)
 const selectedRecord = ref(null)
@@ -32,6 +36,7 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('初始化頁面失敗:', error)
+    toastStore.showToast('初始化頁面失敗，請重新整理試試', 'error')
   }
 })
 
@@ -39,9 +44,13 @@ watch(
   () => currentPetId.value,
   async (newPetId) => {
     if (newPetId !== null && newPetId !== undefined) {
-      await medicalStore.fetchRecords(Number(newPetId), '全部')
-      if (medicalStore.errorMsg) {
-        alert(medicalStore.errorMsg)
+      try {
+        await medicalStore.fetchRecords(Number(newPetId), '全部')
+        if (medicalStore.errorMsg) {
+          toastStore.showToast(medicalStore.errorMsg, 'error')
+        }
+      } catch (err) {
+        toastStore.showToast('取得醫療紀錄失敗，請稍後再試', 'error')
       }
     }
   },
@@ -74,16 +83,24 @@ const openDeleteConfirm = (record) => {
 
 const handleConfirmDelete = async () => {
   if (!recordToDelete.value) return
-  const result = await medicalStore.deleteRecord(recordToDelete.value.id, currentPetId.value)
-  if (result.success) {
-    isDeleteOpen.value = false
-    recordToDelete.value = null
-  } else {
-    alert(`刪除失敗：${result.message || '請確認該病歷的刪除權限'}`)
+
+  try {
+    const result = await medicalStore.deleteRecord(recordToDelete.value.id, currentPetId.value)
+    if (result.success) {
+      isDeleteOpen.value = false
+      recordToDelete.value = null
+      toastStore.showToast('醫療紀錄刪除成功', 'success')
+    } else {
+      toastStore.showToast(`刪除失敗：${result.message || '請確認該病歷的刪除權限'}`, 'error')
+    }
+  } catch (err) {
+    toastStore.showToast('刪除失敗，請稍後再試', 'error')
   }
 }
 
 const handleAddFirstRecord = () => {
+  if (!ensurePetOrPrompt()) return
+
   openAddModal()
 }
 
@@ -91,16 +108,26 @@ const onModalSubmit = async ({ mode, data }) => {
   let result
   const activePetId = Number(currentPetId.value)
 
-  if (mode === 'create') {
-    result = await medicalStore.addRecord(activePetId, data)
-  } else if (mode === 'edit') {
-    result = await medicalStore.updateRecord(selectedRecord.value.id, activePetId, data)
-  }
-
-  if (result?.success) {
-    isModalOpen.value = false
-  } else {
-    alert(`儲存失敗：${result?.message || '未知欄位錯誤，請檢查輸入內容'}`)
+  try {
+    if (mode === 'create') {
+      result = await medicalStore.addRecord(activePetId, data)
+      if (result?.success) {
+        isModalOpen.value = false
+        toastStore.showToast('醫療記錄新增成功', 'success')
+      } else {
+        toastStore.showToast(`新增紀錄失敗：${result?.message || '請檢查輸入內容'}`, 'error')
+      }
+    } else if (mode === 'edit') {
+      result = await medicalStore.updateRecord(selectedRecord.value.id, activePetId, data)
+      if (result?.success) {
+        isModalOpen.value = false
+        toastStore.showToast('醫療紀錄已更新', 'success')
+      } else {
+        toastStore.showToast(`儲存失敗：${result?.message || '請檢查輸入內容'}`, 'error')
+      }
+    }
+  } catch (err) {
+    toastStore.showToast('儲存失敗，請稍後再試', 'error')
   }
 }
 </script>

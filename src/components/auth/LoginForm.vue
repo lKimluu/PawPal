@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session.js'
 import { useToastStore } from '@/stores/toast'
-import { GoogleLogin } from 'vue3-google-login'
+import { googleTokenLogin } from 'vue3-google-login'
 import TermsModal from '@/components/auth/TermsModal.vue'
 
 const email = ref('')
@@ -70,6 +70,10 @@ const handleGoogleLoginCallback = async (response) => {
     errorMessage.value = '伺服器連線失敗'
     toastStore.showToast(errorMessage.value, 'error')
   }
+}
+
+function handleGoogleAuthClick() {
+  googleTokenLogin().then(handleGoogleLoginCallback).catch(() => {})
 }
 
 const loginWithLine = () => {
@@ -165,21 +169,14 @@ onMounted(async () => {
       </div>
 
       <div class="w-full">
-        <GoogleLogin
-          :callback="handleGoogleLoginCallback"
-          popup-type="TOKEN"
-          v-slot="{ activate }"
-          class="w-full"
+        <button
+          class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer"
+          type="button"
+          @click="handleGoogleAuthClick"
         >
-          <button
-            class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer"
-            type="button"
-            @click="activate"
-          >
-            <img src="@/assets/icons/google.svg" alt="Google" class="w-5 h-5" />
-            使用 Google 帳戶登入
-          </button>
-        </GoogleLogin>
+          <img src="@/assets/icons/google.svg" alt="Google" class="w-5 h-5" />
+          使用 Google 帳戶登入
+        </button>
 
         <button
           class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer mt-3"
@@ -214,12 +211,6 @@ onMounted(async () => {
           class="text-brand-orange transition active:text-[#E89000] lg:hover:text-[#E89000]"
           to="/register"
           >註冊帳號</RouterLink
-        >
-        <span class="text-[#DDE5FC]">・</span>
-        <RouterLink
-          class="text-brand-gray transition active:text-brand-navy lg:hover:text-brand-navy"
-          to="/forgot-password"
-          >忘記密碼</RouterLink
         >
       </div>
     </form>

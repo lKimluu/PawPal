@@ -33,14 +33,6 @@ const router = createRouter({
       },
     },
     {
-      path: '/forgot-password',
-      name: 'ForgotPassword',
-      component: () => import('@/views/ForgotPasswordView.vue'),
-      meta: {
-        guestOnly: true,
-      },
-    },
-    {
       path: '/medical',
       name: 'Medical',
       component: () => import('@/views/MedicalView.vue'),

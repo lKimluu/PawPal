@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getClientIdHeaders } from './clientId.js'
 
 const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? ''
 const API_PREFIX = '/api/v1'
@@ -95,6 +96,7 @@ export function normalizeHospital(hospital = {}) {
   const categories = hospital.categories ?? animalTypes.map((animalType) => animalType.name).filter(Boolean)
   const is24H = Boolean(hospital.is_24h ?? hospital.is24H ?? hospital.is24h)
   const businessHours = hospital.business_hours ?? hospital.businessHours ?? (is24H ? '24 小時營業' : '請洽醫院')
+  const rating = Number(hospital.rating_average ?? hospital.average_rating ?? hospital.rating ?? 0)
 
   return {
     ...hospital,
@@ -115,7 +117,7 @@ export function normalizeHospital(hospital = {}) {
     isOpen: Boolean(hospital.is_open ?? hospital.isOpen ?? is24H),
     is24H,
     businessHours,
-    rating: Number(hospital.average_rating ?? hospital.rating ?? 0),
+    rating,
     reviewCount: Number(hospital.review_count ?? hospital.reviewCount ?? 0),
   }
 }
@@ -223,7 +225,10 @@ export async function fetchHospitalRegions() {
 export async function fetchMapHospitals(bounds = {}) {
   const params = buildHospitalMapQuery(bounds)
   try {
-    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/map`, { params })
+    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/map`, {
+      params,
+      headers: getClientIdHeaders(),
+    })
     return {
       success: true,
       hospitals: (response.data?.hospitals ?? []).map(normalizeHospital),
@@ -231,7 +236,13 @@ export async function fetchMapHospitals(bounds = {}) {
       truncated: Boolean(response.data?.truncated),
     }
   } catch (error) {
-    return { success: false, hospitals: [], total: 0, truncated: false, message: getErrorMessage(error, '取得地圖醫院失敗，請稍後再試') }
+    return {
+      success: false,
+      hospitals: [],
+      total: 0,
+      truncated: false,
+      message: getErrorMessage(error, '取得地圖醫院失敗，請稍後再試'),
+    }
   }
 }
 
@@ -281,10 +292,10 @@ export async function submitHospitalReview(hospitalId, payload = {}) {
   }
 }
 
-export async function updateHospitalReview(hospitalId, reviewId, payload = {}) {
+export async function updateHospitalReview(hospitalId, _reviewId, payload = {}) {
   try {
     const response = await axios.patch(
-      `${API_BASE_URL}${API_PREFIX}/hospitals/${hospitalId}/reviews/${reviewId}`,
+      `${API_BASE_URL}${API_PREFIX}/hospitals/${hospitalId}/reviews/me`,
       {
         rating: payload.rating,
         comment: payload.comment,
@@ -308,10 +319,10 @@ export async function updateHospitalReview(hospitalId, reviewId, payload = {}) {
   }
 }
 
-export async function deleteHospitalReview(hospitalId, reviewId) {
+export async function deleteHospitalReview(hospitalId, _reviewId) {
   try {
     const response = await axios.delete(
-      `${API_BASE_URL}${API_PREFIX}/hospitals/${hospitalId}/reviews/${reviewId}`,
+      `${API_BASE_URL}${API_PREFIX}/hospitals/${hospitalId}/reviews/me`,
       { headers: getAuthHeaders() },
     )
 

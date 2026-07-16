@@ -130,6 +130,7 @@ test('setup-db：應只執行 schema 且不得刪除既有資料表', () => {
     'animal_types.seed',
   ])
   assert.ok(!SEED_FILES_IN_ORDER.includes('hospitals'))
+  assert.ok(!SEED_FILES_IN_ORDER.includes('hospital_reviews'))
 })
 
 test('animal_types schema：應建立固定動物種類 reference data 結構', () => {
@@ -201,6 +202,33 @@ test('hospital_animal_types schema：應支援雙向 join 查詢契約', () => {
   assert.match(schema, /UNIQUE \(hospital_id, animal_type_id\)/)
   assert.match(schema, /idx_hospital_animal_types_hospital_id/)
   assert.match(schema, /idx_hospital_animal_types_animal_type_id/)
+})
+
+test('hospital_reviews schema：應建立會員醫院評論與心數評分契約', () => {
+  const schema = readProjectFile('database/schema/hospital_reviews.sql')
+
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS hospital_reviews/)
+  assert.match(schema, /id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY/)
+  assert.match(schema, /hospital_id INTEGER NOT NULL/)
+  assert.match(schema, /user_id INTEGER NOT NULL/)
+  assert.match(schema, /rating SMALLINT NOT NULL/)
+  assert.match(schema, /comment TEXT NOT NULL/)
+  assert.match(schema, /created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP/)
+  assert.match(schema, /updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP/)
+  assert.match(schema, /CONSTRAINT fk_hospital_reviews_hospital/)
+  assert.match(schema, /REFERENCES hospitals\(id\)/)
+  assert.match(schema, /CONSTRAINT fk_hospital_reviews_user/)
+  assert.match(schema, /REFERENCES users\(id\)/)
+  assert.match(schema, /CONSTRAINT chk_hospital_reviews_rating/)
+  assert.match(schema, /CHECK \(rating BETWEEN 1 AND 5\)/)
+  assert.match(schema, /CONSTRAINT chk_hospital_reviews_comment/)
+  assert.match(schema, /char_length\(comment\) BETWEEN 1 AND 1000/)
+  assert.match(schema, /comment = trim\(comment\)/)
+  assert.match(schema, /CONSTRAINT uq_hospital_reviews_user_hospital/)
+  assert.match(schema, /UNIQUE \(user_id, hospital_id\)/)
+  assert.match(schema, /idx_hospital_reviews_hospital_id/)
+  assert.match(schema, /idx_hospital_reviews_user_id/)
+  assert.match(schema, /idx_hospital_reviews_hospital_created_at/)
 })
 
 test('schema：所有 CREATE TABLE 都應使用 IF NOT EXISTS', () => {

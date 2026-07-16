@@ -21,7 +21,7 @@ test('normalizeHospital accepts backend review summary fields', () => {
   const normalized = normalizeHospital({
     id: 7,
     name: '安心動物醫院',
-    average_rating: '4.2',
+    rating_average: '4.2',
     review_count: '89',
   })
 
@@ -111,10 +111,10 @@ test('hospital review API fetches reviews and submits authenticated reviews', as
     assert.equal(calls[1].url.endsWith('/api/v1/hospitals/7/reviews'), true)
     assert.deepEqual(calls[1].data, { rating: 5, comment: '環境乾淨' })
     assert.equal(calls[1].config.headers.Authorization, 'Bearer token-123')
-    assert.equal(calls[2].url.endsWith('/api/v1/hospitals/7/reviews/2'), true)
+    assert.equal(calls[2].url.endsWith('/api/v1/hospitals/7/reviews/me'), true)
     assert.deepEqual(calls[2].data, { rating: 4, comment: 'updated review' })
     assert.equal(calls[2].config.headers.Authorization, 'Bearer token-123')
-    assert.equal(calls[3].url.endsWith('/api/v1/hospitals/7/reviews/2'), true)
+    assert.equal(calls[3].url.endsWith('/api/v1/hospitals/7/reviews/me'), true)
     assert.equal(calls[3].config.headers.Authorization, 'Bearer token-123')
   } finally {
     axios.get = originalGet

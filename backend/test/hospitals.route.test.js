@@ -19,7 +19,7 @@ function createResponse() {
   }
 }
 
-test('醫院路由應提供清單、附近、地區與地圖查詢', () => {
+test('醫院路由應提供清單、附近、地區、地圖與評論查詢', () => {
   const routes = hospitalRoutes.stack.map((layer) => ({
     path: layer.route?.path,
     methods: Object.keys(layer.route?.methods ?? {}),
@@ -33,15 +33,28 @@ test('醫院路由應提供清單、附近、地區與地圖查詢', () => {
       { path: '/nearby', methods: ['get'] },
       { path: '/regions', methods: ['get'] },
       { path: '/map', methods: ['get'] },
+      { path: '/:hospital_id/reviews', methods: ['get'] },
+      { path: '/:hospital_id/reviews', methods: ['post'] },
+      { path: '/:hospital_id/reviews/me', methods: ['patch'] },
+      { path: '/:hospital_id/reviews/me', methods: ['delete'] },
     ],
   )
 
   assert.equal(routes.find((route) => route.path === '/regions').middleware.length, 1)
-  for (const path of ['/', '/nearby', '/map']) {
+  for (const path of ['/', '/nearby']) {
     const middleware = routes.find((route) => route.path === path).middleware
     assert.equal(middleware.length, 2)
     assert.equal(typeof middleware[0].handle, 'function')
   }
+
+  const mapMiddleware = routes.find((route) => route.path === '/map').middleware
+  assert.equal(mapMiddleware.length, 4)
+  assert.equal(typeof mapMiddleware[0].handle, 'function')
+
+  assert.equal(routes[4].middleware.length, 3)
+  assert.equal(routes[5].middleware.length, 4)
+  assert.equal(routes[6].middleware.length, 4)
+  assert.equal(routes[7].middleware.length, 3)
 })
 
 test('應將醫院路由掛載在 /api/v1/hospitals', () => {
