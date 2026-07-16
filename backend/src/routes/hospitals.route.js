@@ -1,6 +1,7 @@
 import { Router } from 'express'
 
 import { listHospitalRegions, listHospitals, listMapHospitals, listNearbyHospitals } from '../controllers/hospitals.controller.js'
+import { hospitalMapIpRateLimiter, hospitalMapRateLimiter } from '../config/rate_limit.js'
 import {
   createHospitalReview,
   deleteMyHospitalReview,
@@ -24,7 +25,13 @@ const router = Router()
 router.get('/', validate(hospitalsQuerySchema, 'query'), listHospitals)
 router.get('/nearby', validate(nearbyHospitalsQuerySchema, 'query'), listNearbyHospitals)
 router.get('/regions', listHospitalRegions)
-router.get('/map', validate(hospitalMapQuerySchema, 'query'), listMapHospitals)
+router.get(
+  '/map',
+  hospitalMapIpRateLimiter,
+  hospitalMapRateLimiter,
+  validate(hospitalMapQuerySchema, 'query'),
+  listMapHospitals,
+)
 router.get('/:hospital_id/reviews', validate(hospitalReviewParamsSchema, 'params'), listHospitalReviews)
 router.post(
   '/:hospital_id/reviews',
