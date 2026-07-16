@@ -20,7 +20,7 @@ const emit = defineEmits(['reviewHospital'])
 const favoriteHospitalStore = useFavoriteHospitalStore()
 const isFav = computed(() => favoriteHospitalStore.isFavorite(props.hospital.id))
 const displayDistance = computed(() =>
-  props.hospital.distance === '??' || props.hospital.distance === undefined
+  props.hospital.distance === '—' || props.hospital.distance === undefined
     ? '距離未知'
     : `${props.hospital.distance} km`,
 )
