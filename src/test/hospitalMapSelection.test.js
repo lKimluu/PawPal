@@ -98,6 +98,73 @@ test('同一次 moveend 與 zoomend 只執行一個 debounced bounds request', (
   assert.equal(boundsRequestCount, 1)
 })
 
+test('醫院聚焦前取消 pending bounds，最終 moveend 仍可重新排程', () => {
+  const timers = new Map()
+  let nextTimerId = 0
+  let boundsRequestCount = 0
+  const scheduler = createMapBoundsScheduler({
+    onBounds: () => {
+      boundsRequestCount += 1
+    },
+    setTimer(callback) {
+      nextTimerId += 1
+      timers.set(nextTimerId, callback)
+      return nextTimerId
+    },
+    clearTimer(timerId) {
+      timers.delete(timerId)
+    },
+  })
+
+  scheduler.schedule()
+  const pendingTimerId = nextTimerId
+  scheduler.cancel()
+
+  assert.equal(timers.has(pendingTimerId), false)
+  timers.get(pendingTimerId)?.()
+  assert.equal(boundsRequestCount, 0)
+
+  scheduler.schedule()
+  timers.get(nextTimerId)?.()
+  assert.equal(boundsRequestCount, 1)
+})
+
+test('清除醫院選取時保留 pending bounds request', () => {
+  const timers = new Map()
+  let nextTimerId = 0
+  let boundsRequestCount = 0
+  let focusCount = 0
+  let selectedHospital = hospitals.first
+  const scheduler = createMapBoundsScheduler({
+    onBounds: () => {
+      boundsRequestCount += 1
+    },
+    setTimer(callback) {
+      nextTimerId += 1
+      timers.set(nextTimerId, callback)
+      return nextTimerId
+    },
+    clearTimer(timerId) {
+      timers.delete(timerId)
+    },
+  })
+  const focusSelectedHospital = () => {
+    if (!selectedHospital) return
+    scheduler.cancel()
+    focusCount += 1
+  }
+
+  scheduler.schedule()
+  const pendingTimerId = nextTimerId
+  selectedHospital = null
+  focusSelectedHospital()
+
+  assert.equal(timers.has(pendingTimerId), true)
+  assert.equal(focusCount, 0)
+  timers.get(pendingTimerId)?.()
+  assert.equal(boundsRequestCount, 1)
+})
+
 function createClusterLayer(animationCount = 0) {
   const listeners = new Map()
   const zoomCalls = []

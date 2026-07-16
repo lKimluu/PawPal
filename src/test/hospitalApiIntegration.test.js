@@ -489,6 +489,10 @@ test('Map ready and bounds refresh do not issue duplicate viewport requests', ()
   assert.match(mapView, /createMapBoundsScheduler/)
   assert.match(
     mapView,
+    /function focusSelectedHospital\(\) \{\s*if \(!selectedHospital\.value\) return\s*boundsScheduler\.cancel\(\)\s*selectionCoordinator\.focus\(selectedHospital\.value\)\s*\}/,
+  )
+  assert.match(
+    mapView,
     /if \(selectedHospital\.value\) \{\s*focusSelectedHospital\(\)\s*\} else \{\s*syncClusters\(\)\s*scheduleBounds\(\)/,
   )
   assert.match(mapView, /@moveend="scheduleBounds"/)
