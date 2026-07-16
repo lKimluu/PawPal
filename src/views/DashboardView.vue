@@ -20,12 +20,13 @@ import { useAuthStore } from '@/stores/auth.js'
 import { useCalendarStore } from '@/stores/calendar.js'
 import { usePetStore } from '@/stores/petStore.js'
 import { useToastStore } from '@/stores/toast.js'
+import { useRequirePet } from '@/composables/useRequirePet.js'
 
-const themeColors = ['green', 'orange', 'blue']
 const authStore = useAuthStore()
 const calendarStore = useCalendarStore()
 const petStore = usePetStore()
 const toastStore = useToastStore()
+const { ensurePetOrPrompt } = useRequirePet()
 const { pets } = storeToRefs(petStore)
 const selectedPet = ref(null)
 const isPetProfileOpen = ref(false)
@@ -42,6 +43,8 @@ const showAddModal = ref(false)
 const addModalDate = ref('')
 
 const openAddModal = (date = '') => {
+  if (!ensurePetOrPrompt()) return
+
   addModalDate.value = date
   showAddModal.value = true
 }
@@ -119,7 +122,6 @@ const dashboardPets = computed(() =>
   pets.value.map((p) => ({
     ...p,
     image: p.photoUrl ?? p.image ?? null,
-    ageUnit: p.ageUnit ?? '',
   })),
 )
 
@@ -270,8 +272,17 @@ const handleCreatePet = async (payload) => {
     </section>
 
     <div class="w-full px-4 lg:px-8 pb-16 mt-2 md:mt-6">
-      <div class="mb-3 flex justify-end">
-        <GoogleCalendarSyncButton />
+      <div class="mb-3 flex flex-col gap-3 md:flex-row md:items-center">
+        <div class="flex min-w-0 flex-1 gap-0.5 overflow-x-auto px-1 py-2 md:gap-1 lg:gap-2">
+          <AddPetButton @click="openAddPetModal" />
+          <PetCard
+            v-for="pet in dashboardPets"
+            :key="pet.id"
+            :pet="pet"
+            @click="openPetProfile(pet)"
+          />
+        </div>
+        <GoogleCalendarSyncButton class="self-end shrink-0 md:self-auto" />
       </div>
       <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 lg:gap-x-6 lg:gap-y-8">
         <CalendarGrid @open-add-modal="openAddModal" @open-day-modal="openDayModal" />
@@ -288,22 +299,6 @@ const handleCreatePet = async (payload) => {
             @resync="handleResync"
           />
         </div>
-
-        <section class="lg:col-span-2 min-w-0">
-          <div
-            class="flex flex-col md:flex-row gap-3 md:gap-4 overflow-y-auto max-h-[360px] md:overflow-y-hidden md:overflow-x-auto md:max-h-none pb-2"
-          >
-            <AddPetButton class="md:min-w-[142px] md:flex-1" @click="openAddPetModal" />
-            <PetCard
-              v-for="(pet, index) in dashboardPets"
-              :key="pet.id"
-              :pet="pet"
-              :theme="themeColors[index % themeColors.length]"
-              class="md:min-w-[142px] md:flex-1"
-              @click="openPetProfile(pet)"
-            />
-          </div>
-        </section>
       </div>
     </div>
   </div>

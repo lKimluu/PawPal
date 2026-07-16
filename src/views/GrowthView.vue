@@ -16,12 +16,14 @@ import GrowthHistoryButton from '@/components/growth/GrowthHistoryButton.vue'
 import GrowthHistoryModal from '@/components/growth/GrowthHistoryModal.vue'
 import DeleteConfirmModal from '@/components/common/DeleteConfirmModal.vue'
 import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
+import { useRequirePet } from '@/composables/useRequirePet.js'
 
 const growthStore = useGrowthStore()
 const authStore = useAuthStore()
 const petStore = usePetStore()
 const { pets, selectedPetId } = storeToRefs(petStore)
 const toastStore = useToastStore()
+const { ensurePetOrPrompt } = useRequirePet()
 const activeRange = ref('6 個月')
 
 const isModalOpen = ref(false)
@@ -42,6 +44,12 @@ watch(
   },
   { immediate: true },
 )
+
+const openAddModal = () => {
+  if (!ensurePetOrPrompt()) return
+
+  isModalOpen.value = true
+}
 
 const handleSubmit = async (formData) => {
   const results = await growthStore.createRecordsFrom(
@@ -104,7 +112,7 @@ const deleteItemName = computed(() => {
             <h1 class="text-xl font-bold text-brand-navy md:text-2xl">成長歷程</h1>
             <div class="flex items-center gap-2">
               <GrowthHistoryButton @click="isHistoryOpen = true" />
-              <AddGrowthButton @click="isModalOpen = true" />
+              <AddGrowthButton @click="openAddModal" />
             </div>
           </div>
           <div
@@ -116,7 +124,7 @@ const deleteItemName = computed(() => {
             <GrowthChartCard
               :records="growthStore.records"
               :range="activeRange"
-              @add-record="isModalOpen = true"
+              @add-record="openAddModal"
             />
           </div>
         </section>
