@@ -12,10 +12,12 @@ import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 import { useMedicalStore } from '@/stores/medical.js'
 import { usePetStore } from '@/stores/petStore.js'
 import { useToastStore } from '@/stores/toast.js'
+import { useRequirePet } from '@/composables/useRequirePet.js'
 
 const medicalStore = useMedicalStore()
 const petStore = usePetStore()
 const toastStore = useToastStore()
+const { ensurePetOrPrompt } = useRequirePet()
 
 const isModalOpen = ref(false)
 const selectedRecord = ref(null)
@@ -97,6 +99,8 @@ const handleConfirmDelete = async () => {
 }
 
 const handleAddFirstRecord = () => {
+  if (!ensurePetOrPrompt()) return
+
   openAddModal()
 }
 

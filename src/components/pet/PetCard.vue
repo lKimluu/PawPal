@@ -1,58 +1,26 @@
 <script setup>
 import { computed } from 'vue'
-import { formatPetAge } from '@/utils/petDisplay.js'
 
 const props = defineProps({
   pet: {
     type: Object,
     default: null,
   },
-  theme: {
-    type: String,
-    default: 'green',
-    validator: (value) => ['green', 'orange', 'blue'].includes(value),
-  },
 })
 
 const emit = defineEmits(['click'])
 
-const themeClassMap = {
-  green: 'bg-[var(--color-brand-green)]/50',
-  orange: 'bg-[var(--color-brand-orange)]/50',
-  blue: 'bg-[var(--color-brand-blue)]/50',
-}
-
-const pawThemeClassMap = {
-  green: 'text-[var(--color-brand-green)]/50',
-  orange: 'text-[var(--color-brand-orange)]/50',
-  blue: 'text-[var(--color-brand-blue)]/50',
-}
-
-const cardThemeClass = computed(() => themeClassMap[props.theme] ?? themeClassMap.green)
-const pawThemeClass = computed(() => pawThemeClassMap[props.theme] ?? pawThemeClassMap.green)
 const hasPetImage = computed(() => props.pet?.hasCustomPhoto !== false && Boolean(props.pet?.image))
-
-const ageText = computed(() => {
-  if (props.pet?.age !== '' && props.pet?.age != null) {
-    return props.pet?.ageUnit ? `${props.pet.age} ${props.pet.ageUnit}` : props.pet.age
-  }
-
-  return formatPetAge(props.pet?.birthday)
-})
 </script>
 
 <template>
-  <article
-    class="flex w-full cursor-pointer items-center gap-4 rounded-[28px] p-4 transition duration-200 active:scale-[0.99] md:max-w-[142px] md:flex-col md:items-center md:gap-3 md:px-5 md:py-6"
-    :class="cardThemeClass"
-    tabindex="0"
-    role="button"
+  <button
+    type="button"
+    class="flex shrink-0 flex-col items-center gap-1 rounded-2xl px-2 py-1 transition cursor-pointer active:scale-95 lg:hover:bg-brand-lightblue/60 md:gap-1 lg:gap-2"
     @click="emit('click')"
-    @keydown.enter.prevent="emit('click')"
-    @keydown.space.prevent="emit('click')"
   >
     <div
-      class="grid h-[74px] w-[74px] shrink-0 place-items-center overflow-hidden rounded-full border-4 border-white bg-white md:h-[88px] md:w-[88px]"
+      class="h-10 w-10 overflow-hidden rounded-full border-2 border-white bg-brand-lightblue transition md:h-12 md:w-12 lg:h-14 lg:w-14"
     >
       <img
         v-if="hasPetImage"
@@ -62,8 +30,7 @@ const ageText = computed(() => {
       />
       <svg
         v-else
-        :class="pawThemeClass"
-        class="h-12 w-12 md:h-14 md:w-14"
+        class="h-full w-full p-2 text-brand-blue/50"
         viewBox="0 0 640 640"
         aria-hidden="true"
       >
@@ -73,23 +40,10 @@ const ageText = computed(() => {
         />
       </svg>
     </div>
-
-    <div class="min-w-0 text-left md:w-full md:text-center">
-      <h3
-        class="truncate text-[18px] font-black tracking-[0.18em] text-[var(--color-brand-darkgray)] md:text-[15px]"
-      >
-        {{ pet?.name || '未命名' }}
-      </h3>
-      <div
-        class="mt-2 grid max-w-full grid-cols-[2em_0.5rem_minmax(0,1fr)] gap-x-1 gap-y-1 text-[12px] font-medium text-[var(--color-brand-gray)] md:mt-1.5"
-      >
-        <span class="text-left">品種</span>
-        <span aria-hidden="true">|</span>
-        <span class="min-w-0 truncate text-left">{{ pet?.breed || '-' }}</span>
-        <span class="text-left">年齡</span>
-        <span aria-hidden="true">|</span>
-        <span class="min-w-0 truncate text-left">{{ ageText }}</span>
-      </div>
-    </div>
-  </article>
+    <span
+      class="max-w-[64px] truncate text-sm text-brand-gray md:max-w-[72px] lg:max-w-[84px]"
+    >
+      {{ pet?.name || '未命名' }}
+    </span>
+  </button>
 </template>
