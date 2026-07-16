@@ -27,10 +27,10 @@ const selectedPhotoFile = ref(null)
 const photoPreviewUrl = ref('')
 const localProfile = ref(createProfileForm(props.user))
 const editForm = ref(createProfileForm(props.user))
-const memberNameFieldClass =
-  'h-[76px] rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3'
-const editableMemberNameFieldClass =
-  `${memberNameFieldClass} transition duration-200 hover:border-brand-blue hover:bg-brand-blue/5 focus-within:border-brand-blue focus-within:bg-brand-blue/5`
+const memberNameFieldClass = 'h-[76px] rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3'
+const editableMemberNameFieldClass = `${memberNameFieldClass} transition duration-200 hover:border-brand-blue hover:bg-brand-blue/5 focus-within:border-brand-blue focus-within:bg-brand-blue/5`
+const memberEmailFieldClass = 'rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3'
+const readonlyMemberEmailFieldClass = 'rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3'
 
 const displayUser = computed(() => ({
   ...(props.user ?? {}),
@@ -225,7 +225,9 @@ watch(
             >
               姓名 / 使用者名稱
             </label>
-            <p v-else class="block h-5 text-sm font-bold leading-5 text-brand-navy">姓名 / 使用者名稱</p>
+            <p v-else class="block h-5 text-sm font-bold leading-5 text-brand-navy">
+              姓名 / 使用者名稱
+            </p>
             <input
               v-if="isEditingProfile"
               id="member-name"
@@ -234,25 +236,35 @@ watch(
               class="mt-1 h-6 w-full border-0 bg-transparent p-0 text-base font-semibold leading-6 text-brand-darkgray outline-none placeholder-brand-gray/40 focus:ring-0"
               placeholder="請輸入姓名"
             />
-            <p v-else class="mt-1 h-6 truncate text-base font-semibold leading-6 text-brand-darkgray">
+            <p
+              v-else
+              class="mt-1 h-6 truncate text-base font-semibold leading-6 text-brand-darkgray"
+            >
               {{ memberDisplayName }}
             </p>
           </div>
 
-          <div class="rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3">
-            <p class="text-sm font-bold text-brand-navy">Email</p>
-            <p class="mt-1 truncate text-base font-semibold text-brand-darkgray">
+          <div :class="isEditingProfile ? readonlyMemberEmailFieldClass : memberEmailFieldClass">
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-bold text-brand-navy">Email</p>
+              <span v-if="isEditingProfile" class="text-xs font-normal text-brand-gray/70">
+                （無法修改）
+              </span>
+            </div>
+            <p
+              class="mt-1 w-full truncate text-base font-semibold"
+              :class="
+                isEditingProfile ? 'cursor-not-allowed text-brand-gray' : 'text-brand-darkgray'
+              "
+              :title="isEditingProfile ? 'Email 無法修改' : undefined"
+            >
               {{ memberDisplayEmail }}
             </p>
           </div>
         </div>
       </div>
 
-      <p
-        v-if="updateError"
-        class="px-1 text-sm font-semibold text-red-500 md:px-0"
-        role="alert"
-      >
+      <p v-if="updateError" class="px-1 text-sm font-semibold text-red-500 md:px-0" role="alert">
         {{ updateError }}
       </p>
 
