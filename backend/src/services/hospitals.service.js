@@ -33,6 +33,10 @@ function map_hospital_row(row) {
     phone: row.phone,
     latitude: to_number(row.latitude),
     longitude: to_number(row.longitude),
+    rating_average: row.rating_average === null || row.rating_average === undefined
+      ? null
+      : Number(row.rating_average),
+    review_count: Number(row.review_count ?? 0),
     animal_types: normalize_animal_types(row.animal_types),
   }
 
@@ -109,6 +113,8 @@ const HOSPITAL_SELECT_COLUMNS = `
   h.longitude,
   h.is_24h,
   h.emergency_available,
+  review_stats.rating_average,
+  COALESCE(review_stats.review_count, 0) AS review_count,
   COALESCE(
     json_agg(
       json_build_object(
@@ -171,13 +177,20 @@ export async function findHospitals(filters = {}) {
     `
       SELECT ${HOSPITAL_SELECT_COLUMNS}${distance_select}
       FROM hospitals h
+      LEFT JOIN LATERAL (
+        SELECT
+          ROUND(AVG(rating)::numeric, 1) AS rating_average,
+          COUNT(*)::int AS review_count
+        FROM hospital_reviews
+        WHERE hospital_id = h.id
+      ) review_stats ON TRUE
       LEFT JOIN hospital_animal_types hat
         ON hat.hospital_id = h.id
         AND hat.verification_status <> 'rejected'
       LEFT JOIN animal_types at
         ON at.id = hat.animal_type_id
       ${where_clause}
-      GROUP BY h.id
+      GROUP BY h.id, review_stats.rating_average, review_stats.review_count
       ORDER BY ${order_clause}
       LIMIT $${list_values.length - 1}
       OFFSET $${list_values.length}
@@ -238,6 +251,8 @@ export async function findNearbyHospitals(filters = {}) {
         nearby.is_24h,
         nearby.emergency_available,
         nearby.distance_km,
+        review_stats.rating_average,
+        COALESCE(review_stats.review_count, 0) AS review_count,
         COALESCE(
           json_agg(
             json_build_object(
@@ -251,6 +266,13 @@ export async function findNearbyHospitals(filters = {}) {
           '[]'
         ) AS animal_types
       FROM nearby
+      LEFT JOIN LATERAL (
+        SELECT
+          ROUND(AVG(rating)::numeric, 1) AS rating_average,
+          COUNT(*)::int AS review_count
+        FROM hospital_reviews
+        WHERE hospital_id = nearby.id
+      ) review_stats ON TRUE
       LEFT JOIN hospital_animal_types hat
         ON hat.hospital_id = nearby.id
         AND hat.verification_status <> 'rejected'
@@ -258,7 +280,8 @@ export async function findNearbyHospitals(filters = {}) {
         ON at.id = hat.animal_type_id
       WHERE nearby.distance_km <= $${radius_index}
       GROUP BY nearby.id, nearby.name, nearby.city, nearby.district, nearby.address, nearby.phone,
-        nearby.latitude, nearby.longitude, nearby.is_24h, nearby.emergency_available, nearby.distance_km
+        nearby.latitude, nearby.longitude, nearby.is_24h, nearby.emergency_available, nearby.distance_km,
+        review_stats.rating_average, review_stats.review_count
       ORDER BY nearby.distance_km ASC
       LIMIT $${limit_index}
     `,
@@ -288,10 +311,17 @@ export async function findMapHospitals({ north, south, east, west }) {
   const result = await pool.query(`
     SELECT ${HOSPITAL_SELECT_COLUMNS}
     FROM hospitals h
+    LEFT JOIN LATERAL (
+      SELECT
+        ROUND(AVG(rating)::numeric, 1) AS rating_average,
+        COUNT(*)::int AS review_count
+      FROM hospital_reviews
+      WHERE hospital_id = h.id
+    ) review_stats ON TRUE
     LEFT JOIN hospital_animal_types hat ON hat.hospital_id = h.id AND hat.verification_status <> 'rejected'
     LEFT JOIN animal_types at ON at.id = hat.animal_type_id
     WHERE h.latitude BETWEEN $1 AND $2 AND h.longitude BETWEEN $3 AND $4
-    GROUP BY h.id
+    GROUP BY h.id, review_stats.rating_average, review_stats.review_count
     ORDER BY h.id ASC
     LIMIT 1000
   `, values)

@@ -15,6 +15,8 @@ test('findHospitals 應套用 keyword、地區、animal_type 與分頁條件', a
       phone: '02-1234-5678',
       latitude: '25.0330000',
       longitude: '121.5654000',
+      rating_average: '4.5',
+      review_count: 2,
       animal_types: [{ slug: 'cat', name: '貓', verification_status: 'verified', source: 'manual' }],
     },
   ]
@@ -32,6 +34,9 @@ test('findHospitals 應套用 keyword、地區、animal_type 與分頁條件', a
       return { rows: [{ total: 11 }] }
     }
 
+    assert.match(text, /LEFT JOIN LATERAL/)
+    assert.match(text, /AVG\(rating\)/)
+    assert.match(text, /COUNT\(\*\)::int AS review_count/)
     assert.match(text, /LEFT JOIN hospital_animal_types hat/)
     assert.match(text, /ORDER BY h\.id ASC/)
     assert.match(text, /LIMIT \$5/)
@@ -66,6 +71,8 @@ test('findHospitals 應套用 keyword、地區、animal_type 與分頁條件', a
       phone: '02-1234-5678',
       latitude: 25.033,
       longitude: 121.5654,
+      rating_average: 4.5,
+      review_count: 2,
       animal_types: [
         { slug: 'cat', name: '貓', verification_status: 'verified', source: 'manual' },
       ],
@@ -84,6 +91,8 @@ test('findHospitals keyword 應可搜尋 district 且不需要前端推論欄位
       phone: '02-3333-3333',
       latitude: null,
       longitude: null,
+      rating_average: null,
+      review_count: 0,
       animal_types: [],
     },
   ]
@@ -119,6 +128,8 @@ test('findHospitals keyword 應可搜尋 district 且不需要前端推論欄位
       phone: '02-3333-3333',
       latitude: null,
       longitude: null,
+      rating_average: null,
+      review_count: 0,
       animal_types: [],
     },
   ])
@@ -141,6 +152,8 @@ test('findHospitals keyword 應可搜尋 address 且保留分頁資訊', async (
       phone: '02-4444-4444',
       latitude: '25.0320000',
       longitude: '121.5430000',
+      rating_average: '5.0',
+      review_count: 1,
       animal_types: [],
     },
   ]
@@ -173,6 +186,8 @@ test('findHospitals keyword 應可搜尋 address 且保留分頁資訊', async (
       phone: '02-4444-4444',
       latitude: 25.032,
       longitude: 121.543,
+      rating_average: 5,
+      review_count: 1,
       animal_types: [],
     },
   ])
@@ -195,6 +210,8 @@ test('findHospitals keyword relevance 排序應使用正確 SQL 參數順序', a
       phone: '02-5555-5555',
       latitude: '25.1880000',
       longitude: '121.4440000',
+      rating_average: null,
+      review_count: 0,
       animal_types: [],
     },
   ]
@@ -229,6 +246,8 @@ test('findHospitals keyword relevance 排序應使用正確 SQL 參數順序', a
       phone: '02-5555-5555',
       latitude: 25.188,
       longitude: 121.444,
+      rating_average: null,
+      review_count: 0,
       animal_types: [],
     },
   ])
@@ -268,6 +287,8 @@ test('findNearbyHospitals 應使用座標、半徑、limit 與距離排序查詢
       latitude: '25.0330000',
       longitude: '121.5654000',
       distance_km: '1.234',
+      rating_average: '4.0',
+      review_count: 2,
       animal_types: [{ slug: 'dog', name: '狗', verification_status: 'verified', source: null }],
     },
     {
@@ -280,6 +301,8 @@ test('findNearbyHospitals 應使用座標、半徑、limit 與距離排序查詢
       latitude: '25.0400000',
       longitude: '121.5700000',
       distance_km: '3.4',
+      rating_average: null,
+      review_count: 0,
       animal_types: [],
     },
   ]
@@ -287,6 +310,8 @@ test('findNearbyHospitals 應使用座標、半徑、limit 與距離排序查詢
     assert.match(text, /h\.latitude IS NOT NULL/)
     assert.match(text, /h\.longitude IS NOT NULL/)
     assert.match(text, /RADIANS\(h\.latitude::double precision\)/)
+    assert.match(text, /LEFT JOIN LATERAL/)
+    assert.match(text, /AVG\(rating\)/)
     assert.match(text, /nearby\.distance_km <= \$3/)
     assert.match(text, /ORDER BY nearby\.distance_km ASC/)
     assert.match(text, /LIMIT \$4/)
@@ -311,6 +336,8 @@ test('findNearbyHospitals 應使用座標、半徑、limit 與距離排序查詢
       phone: '02-1111-1111',
       latitude: 25.033,
       longitude: 121.5654,
+      rating_average: 4,
+      review_count: 2,
       animal_types: [{ slug: 'dog', name: '狗', verification_status: 'verified', source: null }],
       distance_km: 1.23,
     },
@@ -323,6 +350,8 @@ test('findNearbyHospitals 應使用座標、半徑、limit 與距離排序查詢
       phone: '02-2222-2222',
       latitude: 25.04,
       longitude: 121.57,
+      rating_average: null,
+      review_count: 0,
       animal_types: [],
       distance_km: 3.4,
     },
@@ -357,14 +386,47 @@ test('findHospitalRegions 應回傳穩定地區 shape', async (t) => {
   assert.deepEqual(await findHospitalRegions(), [{ city: '台北市', districts: ['大安區', '信義區'] }])
 })
 
-test('findMapHospitals 應限制 bounds 結果並揭露截斷', async (t) => {
-  t.mock.method(pool, 'query', async (text, values) => {
+test('findMapHospitals 應限制 bounds 結果並回傳評分聚合', async (t) => {
+  const rows = [
+    {
+      id: 1,
+      name: 'A 動物醫院',
+      city: '台北市',
+      district: '大安區',
+      address: '台北市大安區',
+      phone: '02-1111-1111',
+      latitude: '25.0330000',
+      longitude: '121.5654000',
+      rating_average: '4.0',
+      review_count: 2,
+      animal_types: [],
+    },
+  ]
+  const query = t.mock.method(pool, 'query', async (text, values) => {
     assert.deepEqual(values, [24, 26, 120, 122])
-    if (pool.query.mock.callCount() === 0) return { rows: [{ total: 1001 }] }
+    if (query.mock.callCount() === 0) return { rows: [{ total: 1001 }] }
+    assert.match(text, /LEFT JOIN LATERAL/)
+    assert.match(text, /AVG\(rating\)/)
     assert.match(text, /LIMIT 1000/)
-    return { rows: [] }
+    return { rows }
   })
   assert.deepEqual(await findMapHospitals({ north: 26, south: 24, east: 122, west: 120 }), {
-    hospitals: [], total: 1001, truncated: true,
+    hospitals: [
+      {
+        id: 1,
+        name: 'A 動物醫院',
+        city: '台北市',
+        district: '大安區',
+        address: '台北市大安區',
+        phone: '02-1111-1111',
+        latitude: 25.033,
+        longitude: 121.5654,
+        rating_average: 4,
+        review_count: 2,
+        animal_types: [],
+      },
+    ],
+    total: 1001,
+    truncated: true,
   })
 })

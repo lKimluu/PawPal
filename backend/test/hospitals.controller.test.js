@@ -20,7 +20,7 @@ function createResponse() {
 
 test('listHospitals 成功時應回傳 hospitals 與 pagination', async () => {
   const payload = {
-    hospitals: [{ id: 1, name: '仁愛動物醫院' }],
+    hospitals: [{ id: 1, name: '仁愛動物醫院', rating_average: 4.5, review_count: 2 }],
     pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
   }
   const { listHospitals } = createHospitalsController({
@@ -44,7 +44,9 @@ test('listHospitals 成功時應回傳 hospitals 與 pagination', async () => {
 })
 
 test('listNearbyHospitals 成功時應回傳 hospitals', async () => {
-  const hospitals = [{ id: 1, name: '仁愛動物醫院', distance_km: 1.23 }]
+  const hospitals = [
+    { id: 1, name: '仁愛動物醫院', distance_km: 1.23, rating_average: 4.5, review_count: 2 },
+  ]
   const { listNearbyHospitals } = createHospitalsController({
     findNearbyHospitals: async (query) => {
       assert.deepEqual(query, { lat: 25, lng: 121, radius: 5, limit: 20 })
