@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { useToastStore } from '@/stores/toast'
-import { GoogleLogin } from 'vue3-google-login'
+import { googleTokenLogin } from 'vue3-google-login'
 import TermsModal from '@/components/auth/TermsModal.vue'
 
 const router = useRouter()
@@ -91,6 +91,10 @@ const handleGoogleLoginCallback = async (response) => {
     errorMessage.value = '伺服器連線失敗'
     toastStore.showToast(errorMessage.value, 'error')
   }
+}
+
+function handleGoogleAuthClick() {
+  googleTokenLogin().then(handleGoogleLoginCallback).catch(() => {})
 }
 
 const loginWithLine = () => {
@@ -192,21 +196,14 @@ const loginWithLine = () => {
       </div>
 
       <div class="w-full">
-        <GoogleLogin
-          :callback="handleGoogleLoginCallback"
-          popup-type="TOKEN"
-          v-slot="{ activate }"
-          class="w-full"
+        <button
+          class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer"
+          type="button"
+          @click="handleGoogleAuthClick"
         >
-          <button
-            class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer"
-            type="button"
-            @click="activate"
-          >
-            <img src="@/assets/icons/google.svg" alt="Google" class="w-5 h-5" />
-            使用 Google 帳戶註冊
-          </button>
-        </GoogleLogin>
+          <img src="@/assets/icons/google.svg" alt="Google" class="w-5 h-5" />
+          使用 Google 帳戶註冊
+        </button>
 
         <button
           class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer mt-3"
