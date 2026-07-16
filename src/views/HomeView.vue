@@ -115,7 +115,7 @@ onBeforeUnmount(() => {
         </h1>
         <p class="text-xs md:text-sm mt-4 leading-relaxed max-w-xl mx-auto px-2 text-brand-gray">
           PawPal 幫你立刻找到附近
-          <span class="text-brand-orange font-bold">離你 最近</span>
+          <span class="text-brand-orange font-bold">離你最近</span>
           的動物醫院
         </p>
       </div>
@@ -146,22 +146,19 @@ onBeforeUnmount(() => {
               v-for="hospital in homeHospitals"
               :key="hospital.id"
               type="button"
-              class="bg-white/30 backdrop-blur-md p-5 rounded-2xl border border-[#E2E8F0] text-left transition-all duration-300 shadow-[0_2px_10px_rgba(255,160,2,0.2)] lg:hover:-translate-y-1 lg:hover:shadow-[0_10px_30px_rgba(255,160,2,0.4)] cursor-pointer active:scale-[0.99] flex justify-between items-center gap-4"
+              class="bg-white/30 backdrop-blur-md p-5 rounded-2xl border border-[#E2E8F0] text-left transition-all duration-300 shadow-[0_2px_10px_rgba(255,160,2,0.2)] lg:hover:-translate-y-1 lg:hover:shadow-[0_10px_30px_rgba(255,160,2,0.4)] cursor-pointer active:scale-[0.99]"
               @click="openHospital(hospital.id)"
             >
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium tracking-wide text-brand-gray">最近醫院</p>
-                <p class="truncate text-base font-bold mt-0.5 text-brand-navy">
-                  {{ hospital.name }}
-                </p>
-                <p class="mt-1 truncate text-sm text-brand-gray">
+              <p class="text-sm font-medium tracking-wide text-brand-gray">最近醫院</p>
+
+              <p class="truncate text-base font-bold mt-0.5 text-brand-navy">
+                {{ hospital.name }}
+              </p>
+              <div class="flex items-center justify-between mt-1">
+                <p class="truncate text-sm text-brand-gray">
                   {{ hospital.district || hospital.city || '地區資訊未提供' }}
                 </p>
-              </div>
-              <div class="flex-shrink-0">
-                <span
-                  class="text-2xl font-semibold text-brand-orange whitespace-nowrap px-2.5 py-1"
-                >
+                <span class="ml-2 shrink-0 text-sm font-semibold text-brand-orange">
                   {{ formatDistance(hospital.distanceKm) }}
                 </span>
               </div>
@@ -239,7 +236,7 @@ onBeforeUnmount(() => {
                 </div>
               </div>
               <div class="text-right shrink-0">
-                <p class="text-xl font-semibold text-brand-orange">
+                <p class="text-base font-semibold text-brand-orange">
                   {{ formatDistance(hospital.distanceKm) }}
                 </p>
               </div>

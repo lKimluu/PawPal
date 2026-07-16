@@ -80,7 +80,7 @@ const members = [
   {
     id: 'm1',
     name: 'Kim Lu',
-    bio: '後端部署與雲端資料庫串接\n會員註冊與登入功能\n動物醫院地圖與查詢功能',
+    bio: '會員註冊與登入全端功能開發\n全台動物醫院資料建立\n醫院搜尋 API 與前後端整合\nGPS 定位與互動地圖\n雲端資料庫與後端部署',
     avatar: 'PawPal_mark_p.webp',
     email: 'lkimluu02@gmail.com',
     github: 'https://github.com/lKimluu',
@@ -88,7 +88,7 @@ const members = [
   {
     id: 'm2',
     name: 'HAO',
-    bio: '前端部署與網域設\n定寵物資料與後端API\n前端功能切版',
+    bio: '前端部署與網域設定\nJWT 會員身分驗證\n寵物資料 CRUD 與前後端整合\n會員個人資料與頭像更新功能\n醫院評論與星級評分系統\n',
     avatar: 'PawPal_mark_o.webp',
     email: 'yam60105@gmail.com',
     github: 'https://github.com/C-1-HAO',
@@ -96,7 +96,7 @@ const members = [
   {
     id: 'm3',
     name: 'Jie Lian',
-    bio: '首頁 Header 切版\n儀表板 Sidebar 切版\n行事曆全端功能實作',
+    bio: '行事曆全端功能開發\n後端 API 開發 & 前端串接\n資料庫設計與建置\n串接 Google 行事曆同步更新\n前端互動頁面切版',
     avatar: 'PawPal_mark_b.webp',
     email: 'lianjie0819@gmail.com',
     github: 'https://github.com/lianjieisme',
@@ -104,7 +104,7 @@ const members = [
   {
     id: 'm4',
     name: 'Yu Ling',
-    bio: '成長歷程全端功能\n前端功能切版',
+    bio: '前端頁面切版與整合\nUI/UX 介面優化\n資料庫設計與建置\n成長歷程全端功能開發\n寵物AI小助手全端功能開發',
     avatar: 'PawPal_mark_p.webp',
     email: 'zhou21935@gmail.com',
     github: 'https://github.com/zhou21935',
@@ -112,7 +112,7 @@ const members = [
   {
     id: 'm5',
     name: 'Wen Hsin',
-    bio: '醫療紀錄全端核心功能開發\nGoogle&LINE第三方登入串接\nVI 及 UI 系統化標準設計\n前端介面與互動性開發',
+    bio: '醫療紀錄全端功能\nGoogle/LINE 第三方登入\n響應式網站(RWD)前端開發\nUI 介面與互動效果\nVI 與 Design System ',
     avatar: 'PawPal_mark_o.webp',
     email: 'zwhsin17@gmail.com',
     github: 'https://github.com/wenx765',
