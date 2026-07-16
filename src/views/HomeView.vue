@@ -266,7 +266,9 @@ onBeforeUnmount(() => {
                 <h3 class="text-lg md:text-2xl font-bold text-white leading-snug">
                   毛孩突發狀況？別慌，PawPal 在這裡
                 </h3>
-                <p class="text-base opacity-90 mt-1">一鍵搜尋附近 24 小時急診醫院</p>
+                <p class="text-xs md:text-sm opacity-90 mt-1">
+                  讓我們幫你指引方向，一鍵搜尋身邊的醫療協助
+                </p>
               </div>
             </div>
             <div class="w-full md:w-auto flex flex-col md:flex-row items-center gap-3 shrink-0">
