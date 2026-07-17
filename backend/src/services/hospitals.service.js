@@ -49,9 +49,10 @@ function map_hospital_row(row) {
     hospital.distance_km = Number(Number(row.distance_km).toFixed(2))
   }
 
-  if (row.average_rating !== undefined) {
-    hospital.average_rating = Number(row.average_rating ?? 0)
-    hospital.rating = Number(row.average_rating ?? 0)
+  if (row.rating_average !== undefined) {
+    const rating = Number(row.rating_average ?? 0)
+    hospital.average_rating = rating
+    hospital.rating = rating
   }
 
   if (row.review_count !== undefined) {
