@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import AvatarCropModal from '@/components/common/AvatarCropModal.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -10,6 +11,16 @@ import {
   hasUserAvatar,
 } from '@/utils/userProfile.js'
 import defaultProfileIcon from '@/assets/icons/user.svg'
+
+const ALLOWED_AVATAR_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+])
+const IMAGE_FILE_ACCEPT = 'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif'
+const MAX_AVATAR_FILE_SIZE_BYTES = 10 * 1024 * 1024
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -23,8 +34,11 @@ const isEditingProfile = ref(false)
 const isSaving = ref(false)
 const updateError = ref('')
 const photoFileInputRef = ref(null)
+const originalPhotoFile = ref(null)
 const selectedPhotoFile = ref(null)
 const photoPreviewUrl = ref('')
+const cropPhotoPreviewUrl = ref('')
+const isAvatarCropModalOpen = ref(false)
 const localProfile = ref(createProfileForm(props.user))
 const editForm = ref(createProfileForm(props.user))
 const memberNameFieldClass = 'h-[76px] rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3'
@@ -49,6 +63,19 @@ function createProfileForm(user) {
   }
 }
 
+function revokeObjectUrl(url) {
+  if (url) {
+    URL.revokeObjectURL(url)
+  }
+}
+
+function clearCropSelection() {
+  revokeObjectUrl(cropPhotoPreviewUrl.value)
+  originalPhotoFile.value = null
+  cropPhotoPreviewUrl.value = ''
+  isAvatarCropModalOpen.value = false
+}
+
 function clearPhotoSelection() {
   if (photoPreviewUrl.value) {
     URL.revokeObjectURL(photoPreviewUrl.value)
@@ -56,6 +83,7 @@ function clearPhotoSelection() {
 
   selectedPhotoFile.value = null
   photoPreviewUrl.value = ''
+  clearCropSelection()
 
   if (photoFileInputRef.value) {
     photoFileInputRef.value.value = ''
@@ -130,13 +158,56 @@ function handlePhotoChange(event) {
   const file = event.target.files?.[0]
 
   if (!file) return
+  const validationError = getPhotoValidationError(file)
+  if (validationError) return rejectPhotoSelection(validationError)
 
-  if (photoPreviewUrl.value) {
-    URL.revokeObjectURL(photoPreviewUrl.value)
+  clearCropSelection()
+  originalPhotoFile.value = file
+  cropPhotoPreviewUrl.value = URL.createObjectURL(file)
+  isAvatarCropModalOpen.value = true
+  updateError.value = ''
+}
+
+function handleConfirmAvatarCrop(croppedFile) {
+  revokeObjectUrl(photoPreviewUrl.value)
+  selectedPhotoFile.value = croppedFile
+  photoPreviewUrl.value = URL.createObjectURL(croppedFile)
+  isAvatarCropModalOpen.value = false
+  clearCropSelection()
+  updateError.value = ''
+
+  if (photoFileInputRef.value) {
+    photoFileInputRef.value.value = ''
+  }
+}
+
+function handleCancelAvatarCrop() {
+  isAvatarCropModalOpen.value = false
+  clearCropSelection()
+
+  if (photoFileInputRef.value) {
+    photoFileInputRef.value.value = ''
+  }
+}
+
+function getPhotoValidationError(file) {
+  if (!ALLOWED_AVATAR_MIME_TYPES.has(file.type)) {
+    return '僅支援 JPG、PNG、WebP、HEIC 或 HEIF 圖片'
   }
 
-  selectedPhotoFile.value = file
-  photoPreviewUrl.value = URL.createObjectURL(file)
+  if (file.size > MAX_AVATAR_FILE_SIZE_BYTES) {
+    return '圖片檔案大小不可超過 10MB'
+  }
+
+  return ''
+}
+
+function rejectPhotoSelection(message) {
+  updateError.value = message
+
+  if (photoFileInputRef.value) {
+    photoFileInputRef.value.value = ''
+  }
 }
 
 watch(
@@ -167,7 +238,7 @@ watch(
         <input
           ref="photoFileInputRef"
           type="file"
-          accept="image/*"
+          :accept="IMAGE_FILE_ACCEPT"
           class="hidden"
           @change="handlePhotoChange"
         />
@@ -183,7 +254,7 @@ watch(
             v-if="hasEditAvatar"
             :src="editAvatarUrl"
             alt="會員頭像"
-            class="size-full object-cover"
+            class="size-full object-cover object-center"
           />
           <img
             v-else
@@ -206,7 +277,7 @@ watch(
             v-if="hasUploadedAvatar"
             :src="memberAvatarUrl"
             alt="會員頭像"
-            class="size-full object-cover"
+            class="size-full object-cover object-center"
           />
           <img
             v-else
@@ -283,4 +354,12 @@ watch(
       </div>
     </section>
   </BaseModal>
+
+  <AvatarCropModal
+    :is-open="isAvatarCropModalOpen"
+    :image-url="cropPhotoPreviewUrl"
+    :file-name="originalPhotoFile?.name || 'avatar.webp'"
+    @confirm="handleConfirmAvatarCrop"
+    @cancel="handleCancelAvatarCrop"
+  />
 </template>
