@@ -48,13 +48,21 @@ tests:
 ---
 ### Requirement: Home page represents hospital summary states without fake data
 
-The desktop and mobile home layouts SHALL use the same normalized nearby hospital results. Each summary SHALL display the hospital name, district, and one-decimal distance when the distance is finite. While the request is pending, the page SHALL display 3 skeleton cards. A successful empty response SHALL display `附近 5 公里內暫無醫院`. A failed request SHALL display the existing Traditional Chinese API error message. The page MUST NOT display the previous hard-coded hospital names in any state.
+The desktop and mobile home layouts SHALL use the same normalized nearby hospital results. Each summary SHALL display the hospital name, district, and one-decimal distance when the distance is finite. While the request is pending, the page SHALL display 3 instances of a shared pet-loading-animation component in place of the summary cards. A successful empty response SHALL display `附近 5 公里內暫無醫院`. A failed request SHALL display the existing Traditional Chinese API error message. The page MUST NOT display the previous hard-coded hospital names in any state.
 
 #### Scenario: nearby request is pending
 
 - **WHEN** the nearby hospital request has not settled
-- **THEN** both responsive layouts preserve the summary area with 3 skeleton cards
+- **THEN** both responsive layouts preserve the summary area with 3 pet-loading-animation instances
 - **AND** no fake hospital name is displayed
+- **AND** no skeleton placeholder is displayed
+
+##### Example: pet loading animation composition
+
+- **GIVEN** the shared `PetLoadingRunner` component renders a single-path cat SVG filled with `#ffa002` (the project's `--color-brand-orange` token)
+- **WHEN** the request is pending
+- **THEN** the cat plays an in-place bounce animation simulating a walking cadence, without horizontal translation
+- **AND** 3 small dots near the cat's hind legs animate in a staggered sequence to read as a loading ellipsis (`...`)
 
 #### Scenario: nearby request succeeds with no hospitals
 
@@ -70,18 +78,24 @@ The desktop and mobile home layouts SHALL use the same normalized nearby hospita
 
 
 <!-- @trace
-source: connect-home-nearby-hospitals
-updated: 2026-07-14
+source: add-pet-loading-animation
+updated: 2026-07-16
 code:
-  - src/components/hospital/MapStatusOverlay.vue
-  - src/components/hospital/MapView.vue
+  - .agents/skills/spectra-archive/SKILL.md
+  - src/assets/main.css
+  - .agents/skills/spectra-commit/SKILL.md
+  - src/components/common/PetLoadingRunner.vue
+  - .agents/skills/spectra-ask/SKILL.md
+  - .agents/skills/spectra-ingest/SKILL.md
+  - .agents/skills/spectra-apply/SKILL.md
+  - .agents/skills/spectra-discuss/SKILL.md
+  - .agents/skills/spectra-propose/SKILL.md
   - src/views/HomeView.vue
-  - src/utils/hospitalMapSelection.js
-  - src/views/HospitalView.vue
+  - .agents/skills/spectra-audit/SKILL.md
+  - .agents/skills/spectra-debug/SKILL.md
+  - .agents/skills/spectra-drift/SKILL.md
 tests:
-  - src/test/hospitalMapSelection.test.js
   - src/test/hospitalGpsView.test.js
-  - src/test/hospitalApiIntegration.test.js
 -->
 
 ---

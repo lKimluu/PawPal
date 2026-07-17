@@ -1,8 +1,19 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import BaseButton from '@/components/common/BaseButton.vue'
+import AvatarCropModal from '@/components/common/AvatarCropModal.vue'
 import petPhoto from '@/assets/images/dog.png'
 import { formatPetAge, formatPetBirthday, formatPetGender } from '@/utils/petDisplay.js'
+
+const ALLOWED_PET_PHOTO_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+])
+const IMAGE_FILE_ACCEPT = 'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif'
+const MAX_PET_PHOTO_FILE_SIZE_BYTES = 10 * 1024 * 1024
 
 const props = defineProps({
   isOpen: {
@@ -28,8 +39,12 @@ const emit = defineEmits(['close', 'update', 'delete'])
 const isEditingProfile = ref(false)
 const weightInputRef = ref(null)
 const photoFileInputRef = ref(null)
+const originalPhotoFile = ref(null)
 const selectedPhotoFile = ref(null)
 const photoPreviewUrl = ref('')
+const cropPhotoPreviewUrl = ref('')
+const isPetPhotoCropModalOpen = ref(false)
+const photoErrorMessage = ref('')
 const editForm = ref(createEditForm())
 
 const petImage = computed(
@@ -149,6 +164,19 @@ function createEditForm() {
   }
 }
 
+function revokeObjectUrl(url) {
+  if (url) {
+    URL.revokeObjectURL(url)
+  }
+}
+
+function clearCropSelection() {
+  revokeObjectUrl(cropPhotoPreviewUrl.value)
+  originalPhotoFile.value = null
+  cropPhotoPreviewUrl.value = ''
+  isPetPhotoCropModalOpen.value = false
+}
+
 function clearPhotoSelection() {
   if (photoPreviewUrl.value) {
     URL.revokeObjectURL(photoPreviewUrl.value)
@@ -156,6 +184,8 @@ function clearPhotoSelection() {
 
   selectedPhotoFile.value = null
   photoPreviewUrl.value = ''
+  photoErrorMessage.value = ''
+  clearCropSelection()
 
   if (photoFileInputRef.value) {
     photoFileInputRef.value.value = ''
@@ -220,14 +250,57 @@ function handlePhotoChange(event) {
   const file = event.target.files?.[0]
 
   if (!file) return
+  const validationError = getPhotoValidationError(file)
+  if (validationError) return rejectPhotoSelection(validationError)
 
-  if (photoPreviewUrl.value) {
-    URL.revokeObjectURL(photoPreviewUrl.value)
+  clearCropSelection()
+  originalPhotoFile.value = file
+  cropPhotoPreviewUrl.value = URL.createObjectURL(file)
+  isPetPhotoCropModalOpen.value = true
+  photoErrorMessage.value = ''
+}
+
+function handleConfirmPetPhotoCrop(croppedFile) {
+  revokeObjectUrl(photoPreviewUrl.value)
+  selectedPhotoFile.value = croppedFile
+  photoPreviewUrl.value = URL.createObjectURL(croppedFile)
+  editForm.value.photoFile = croppedFile
+  isPetPhotoCropModalOpen.value = false
+  clearCropSelection()
+  photoErrorMessage.value = ''
+
+  if (photoFileInputRef.value) {
+    photoFileInputRef.value.value = ''
+  }
+}
+
+function handleCancelPetPhotoCrop() {
+  isPetPhotoCropModalOpen.value = false
+  clearCropSelection()
+
+  if (photoFileInputRef.value) {
+    photoFileInputRef.value.value = ''
+  }
+}
+
+function getPhotoValidationError(file) {
+  if (!ALLOWED_PET_PHOTO_MIME_TYPES.has(file.type)) {
+    return '僅支援 JPG、PNG、WebP、HEIC 或 HEIF 圖片'
   }
 
-  selectedPhotoFile.value = file
-  photoPreviewUrl.value = URL.createObjectURL(file)
-  editForm.value.photoFile = file
+  if (file.size > MAX_PET_PHOTO_FILE_SIZE_BYTES) {
+    return '圖片檔案大小不可超過 10MB'
+  }
+
+  return ''
+}
+
+function rejectPhotoSelection(message) {
+  photoErrorMessage.value = message
+
+  if (photoFileInputRef.value) {
+    photoFileInputRef.value.value = ''
+  }
 }
 
 watch(
@@ -266,7 +339,7 @@ watch(
             <input
               ref="photoFileInputRef"
               type="file"
-              accept="image/*"
+              :accept="IMAGE_FILE_ACCEPT"
               class="hidden"
               @change="handlePhotoChange"
             />
@@ -468,8 +541,8 @@ watch(
               </div>
             </dl>
 
-            <p v-if="errorMessage" class="mt-3 text-sm font-semibold text-red-600">
-              {{ errorMessage }}
+            <p v-if="photoErrorMessage || errorMessage" class="mt-3 text-sm font-semibold text-red-600">
+              {{ photoErrorMessage || errorMessage }}
             </p>
           </div>
         </div>
@@ -503,6 +576,18 @@ watch(
       </section>
     </div>
   </Transition>
+
+  <Teleport to="body">
+    <AvatarCropModal
+      title="裁切寵物照片"
+      subtitle="拖曳圖片並調整縮放，確認寵物照片的圓形顯示範圍"
+      :is-open="isPetPhotoCropModalOpen"
+      :image-url="cropPhotoPreviewUrl"
+      :file-name="originalPhotoFile?.name || 'pet-photo.webp'"
+      @confirm="handleConfirmPetPhotoCrop"
+      @cancel="handleCancelPetPhotoCrop"
+    />
+  </Teleport>
 </template>
 
 <style scoped>
