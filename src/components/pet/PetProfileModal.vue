@@ -187,6 +187,8 @@ function handleCancelEdit() {
 }
 
 function handleSaveEdit() {
+  if (props.isSaving) return
+
   emit('update', {
     id: props.pet?.id,
     data: buildUpdatePayload(),

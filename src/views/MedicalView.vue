@@ -24,6 +24,8 @@ const selectedRecord = ref(null)
 const currentTab = ref('全部')
 const isDeleteOpen = ref(false)
 const recordToDelete = ref(null)
+const isDeleting = ref(false)
+const isSubmitting = ref(false)
 
 const currentPetId = ref(null)
 
@@ -82,8 +84,9 @@ const openDeleteConfirm = (record) => {
 }
 
 const handleConfirmDelete = async () => {
-  if (!recordToDelete.value) return
+  if (!recordToDelete.value || isDeleting.value) return
 
+  isDeleting.value = true
   try {
     const result = await medicalStore.deleteRecord(recordToDelete.value.id, currentPetId.value)
     if (result.success) {
@@ -95,6 +98,8 @@ const handleConfirmDelete = async () => {
     }
   } catch (err) {
     toastStore.showToast('刪除失敗，請稍後再試', 'error')
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -105,9 +110,12 @@ const handleAddFirstRecord = () => {
 }
 
 const onModalSubmit = async ({ mode, data }) => {
+  if (isSubmitting.value) return
+
   let result
   const activePetId = Number(currentPetId.value)
 
+  isSubmitting.value = true
   try {
     if (mode === 'create') {
       result = await medicalStore.addRecord(activePetId, data)
@@ -128,6 +136,8 @@ const onModalSubmit = async ({ mode, data }) => {
     }
   } catch (err) {
     toastStore.showToast('儲存失敗，請稍後再試', 'error')
+  } finally {
+    isSubmitting.value = false
   }
 }
 </script>
@@ -199,6 +209,7 @@ const onModalSubmit = async ({ mode, data }) => {
     <MedicalRecordModal
       :is-open="isModalOpen"
       :initial-data="selectedRecord"
+      :is-loading="isSubmitting"
       @close="isModalOpen = false"
       @submit="onModalSubmit"
     />
@@ -207,6 +218,7 @@ const onModalSubmit = async ({ mode, data }) => {
       :is-open="isDeleteOpen"
       title="確定刪除此醫療紀錄？"
       :item-name="recordToDelete ? recordToDelete.title : ''"
+      :is-loading="isDeleting"
       @close="isDeleteOpen = false"
       @confirm="handleConfirmDelete"
     />

@@ -29,6 +29,8 @@ const handleOpenModal = (type) => {
 }
 
 async function handleSubmit() {
+  if (isSubmitting.value) return
+
   errorMessage.value = ''
   successMessage.value = ''
 

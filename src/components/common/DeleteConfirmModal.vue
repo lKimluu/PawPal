@@ -1,5 +1,5 @@
 <script setup>
-defineProps({
+const props = defineProps({
   isOpen: {
     type: Boolean,
     default: false,
@@ -12,12 +12,22 @@ defineProps({
     type: String,
     default: '',
   },
+  isLoading: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['close', 'confirm'])
 
-const handleClose = () => emit('close')
-const handleConfirm = () => emit('confirm')
+const handleClose = () => {
+  if (props.isLoading) return
+  emit('close')
+}
+const handleConfirm = () => {
+  if (props.isLoading) return
+  emit('confirm')
+}
 </script>
 
 <template>
@@ -33,6 +43,7 @@ const handleConfirm = () => emit('confirm')
         <button
           type="button"
           @click="handleClose"
+          :disabled="isLoading"
           class="absolute right-4 top-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-lg text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95"
         >
           ⨉
@@ -54,13 +65,15 @@ const handleConfirm = () => emit('confirm')
           <button
             type="button"
             @click="handleConfirm"
+            :disabled="isLoading"
             class="flex-1 cursor-pointer rounded-xl bg-[#eb5656] py-2.5 text-sm font-semibold text-brand-white shadow-md shadow-red-500/20 transition duration-200 hover:bg-red-500 hover:shadow-lg active:scale-95"
           >
-            確定刪除
+            {{ isLoading ? '刪除中...' : '確定刪除' }}
           </button>
           <button
             type="button"
             @click="handleClose"
+            :disabled="isLoading"
             class="flex-1 cursor-pointer rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-brand-gray transition duration-200 hover:bg-brand-blue/10 hover:text-brand-navy active:scale-95"
           >
             取消

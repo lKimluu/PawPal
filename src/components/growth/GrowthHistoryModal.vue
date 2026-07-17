@@ -80,6 +80,8 @@ function cancelEdit() {
 }
 
 async function saveEdit(record) {
+  if (isSaving.value) return
+
   const num = Number(editingValue.value)
   if (isNaN(num) || num < 0) return
 

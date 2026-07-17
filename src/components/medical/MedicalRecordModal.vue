@@ -6,6 +6,7 @@ const RECORD_TYPES = ['看診', '疫苗', '手術', '用藥', '體檢', '其他'
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
   initialData: { type: Object, default: null },
+  isLoading: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -46,9 +47,14 @@ watch(
   },
 )
 
-const handleClose = () => emit('close')
+const handleClose = () => {
+  if (props.isLoading) return
+  emit('close')
+}
 
 const handleSubmit = async () => {
+  if (props.isLoading) return
+
   const remainingOldUrls = Array.isArray(form.value.imageUrl)
     ? form.value.imageUrl.filter((url) => typeof url === 'string' && url.startsWith('http'))
     : []
@@ -123,7 +129,8 @@ const removeImage = (index) => {
           <button
             type="button"
             @click="handleClose"
-            class="flex h-8 w-8 text-lg items-center justify-center cursor-pointer rounded-full bg-slate-100 text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95"
+            :disabled="isLoading"
+            class="flex h-8 w-8 text-lg items-center justify-center cursor-pointer rounded-full bg-slate-100 text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             ⨉
           </button>
@@ -311,15 +318,17 @@ const removeImage = (index) => {
             <button
               type="button"
               @click="handleClose"
-              class="cursor-pointer rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-500 transition duration-200 hover:bg-slate-100 hover:text-slate-700 active:scale-95"
+              :disabled="isLoading"
+              class="cursor-pointer rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-500 transition duration-200 hover:bg-slate-100 hover:text-slate-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
               取消
             </button>
             <button
               type="submit"
-              class="cursor-pointer rounded-xl bg-brand-blue px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-blue/20 transition duration-200 hover:bg-[#7F97EC] hover:shadow-lg active:scale-95"
+              :disabled="isLoading"
+              class="cursor-pointer rounded-xl bg-brand-blue px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-blue/20 transition duration-200 hover:bg-[#7F97EC] hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {{ isEditMode ? '儲存變更' : '新增紀錄' }}
+              {{ isLoading ? '送出中...' : isEditMode ? '儲存變更' : '新增紀錄' }}
             </button>
           </div>
         </form>
