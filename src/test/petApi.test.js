@@ -17,7 +17,7 @@ function readSource(path) {
   return existsSync(url) ? readFileSync(url, 'utf8') : ''
 }
 
-test('mapPetToApi maps pet form fields to API schema', () => {
+test('寵物表單欄位會透過 mapPetToApi 轉成 API schema', () => {
   const payload = mapPetToApi({
     name: ' Momo ',
     species: 'dog',
@@ -49,7 +49,7 @@ test('mapPetToApi maps pet form fields to API schema', () => {
   })
 })
 
-test('buildUpdatePetPayload skips empty fields and preserves false and zero', () => {
+test('更新寵物 payload 會略過空欄位並保留 false 與 0', () => {
   const payload = buildUpdatePetPayload({
     name: 'Momo',
     species: 'dog',
@@ -69,7 +69,7 @@ test('buildUpdatePetPayload skips empty fields and preserves false and zero', ()
   })
 })
 
-test('mapPetFromApi maps API pet fields back to frontend schema', () => {
+test('後端寵物 API 欄位會透過 mapPetFromApi 轉回前端格式', () => {
   const pet = mapPetFromApi({
     id: 7,
     name: 'Momo',
@@ -89,7 +89,7 @@ test('mapPetFromApi maps API pet fields back to frontend schema', () => {
   assert.equal(pet.image, 'https://example.com/momo.png')
 })
 
-test('normalizePetFromApi remains compatible with update pet call sites', () => {
+test('標準化寵物資料時 normalizePetFromApi 維持與更新呼叫端相容', () => {
   const pet = normalizePetFromApi({
     id: 1,
     name: 'Momo',
@@ -107,7 +107,7 @@ test('normalizePetFromApi remains compatible with update pet call sites', () => 
   assert.equal(pet.photoUrl, 'https://example.com/momo.png')
 })
 
-test('resolvePetUpdateErrorMessage returns update-specific messages', () => {
+test('更新寵物錯誤會回傳對應的提示訊息', () => {
   assert.equal(
     resolvePetUpdateErrorMessage({ response: { status: 400, data: {} } }),
     '寵物資料格式不正確，請檢查必填欄位與體重格式',
@@ -126,7 +126,7 @@ test('resolvePetUpdateErrorMessage returns update-specific messages', () => {
   )
 })
 
-test('createPetRequestData builds multipart FormData when avatarFile is present', async () => {
+test('新增寵物有 avatarFile 時會建立 multipart FormData', async () => {
   const avatarFile = new Blob(['avatar'], { type: 'image/png' })
   const request = createPetRequestData({
     name: 'Momo',
@@ -145,7 +145,7 @@ test('createPetRequestData builds multipart FormData when avatarFile is present'
   assert.equal(await request.data.get('avatar').text(), 'avatar')
 })
 
-test('createPetRequestData keeps JSON payload when avatarFile is absent', () => {
+test('新增寵物沒有 avatarFile 時會維持 JSON payload', () => {
   const request = createPetRequestData({
     name: 'Momo',
     species: 'dog',
@@ -160,7 +160,7 @@ test('createPetRequestData keeps JSON payload when avatarFile is absent', () => 
   })
 })
 
-test('updatePetRequestData builds multipart FormData when photoFile is present', async () => {
+test('更新寵物有 photoFile 時會建立 multipart FormData', async () => {
   const photoFile = new Blob(['avatar'], { type: 'image/png' })
   const request = updatePetRequestData(
     {
@@ -181,7 +181,7 @@ test('updatePetRequestData builds multipart FormData when photoFile is present',
   assert.equal(await request.data.get('avatar').text(), 'avatar')
 })
 
-test('Dashboard wires pet store, add pet modal, and update pet modal', () => {
+test('儀表板會串接寵物 store、新增寵物 Modal 與更新寵物 Modal', () => {
   const dashboardView = readSource('../views/DashboardView.vue')
   const addPetButton = readSource('../components/pet/AddPetButton.vue')
   const addPetModal = readSource('../components/pet/AddPetModal.vue')

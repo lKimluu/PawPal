@@ -8,9 +8,20 @@ import {
   revealHospitalClusterMarker,
 } from '../utils/hospitalMapSelection.js'
 
-function createMap({ atTarget = false, zoom = 13 } = {}) {
+function createMap({
+  atTarget = false,
+  zoom = 13,
+  onCall = () => {},
+  onMoveEnd = () => {},
+  stopEmitsMoveEnd = false,
+} = {}) {
   const listeners = new Map()
   const calls = []
+
+  function record(call) {
+    calls.push(call)
+    onCall(call)
+  }
 
   return {
     calls,
@@ -18,13 +29,17 @@ function createMap({ atTarget = false, zoom = 13 } = {}) {
       listeners.set(event, handler)
     },
     off(event, handler) {
-      if (listeners.get(event) === handler) listeners.delete(event)
+      if (listeners.get(event) === handler) {
+        listeners.delete(event)
+        record(['off', event])
+      }
     },
     stop() {
-      calls.push(['stop'])
+      record(['stop'])
+      if (stopEmitsMoveEnd) onMoveEnd()
     },
     flyTo(position, nextZoom) {
-      calls.push(['flyTo', position, nextZoom])
+      record(['flyTo', position, nextZoom])
     },
     getZoom() {
       return zoom
@@ -36,6 +51,7 @@ function createMap({ atTarget = false, zoom = 13 } = {}) {
       const handler = listeners.get(event)
       listeners.delete(event)
       handler?.()
+      if (event === 'moveend') onMoveEnd()
     },
     listener(event) {
       return listeners.get(event)
@@ -95,6 +111,116 @@ test('同一次 moveend 與 zoomend 只執行一個 debounced bounds request', (
 
   assert.equal(timers.size, 1)
   timers.values().next().value()
+  assert.equal(boundsRequestCount, 1)
+})
+
+test('醫院聚焦前取消 pending bounds，最終 moveend 仍可重新排程', () => {
+  const timers = new Map()
+  let nextTimerId = 0
+  let boundsRequestCount = 0
+  const scheduler = createMapBoundsScheduler({
+    onBounds: () => {
+      boundsRequestCount += 1
+    },
+    setTimer(callback) {
+      nextTimerId += 1
+      timers.set(nextTimerId, callback)
+      return nextTimerId
+    },
+    clearTimer(timerId) {
+      timers.delete(timerId)
+    },
+  })
+
+  scheduler.schedule()
+  const pendingTimerId = nextTimerId
+  scheduler.cancel()
+
+  assert.equal(timers.has(pendingTimerId), false)
+  timers.get(pendingTimerId)?.()
+  assert.equal(boundsRequestCount, 0)
+
+  scheduler.schedule()
+  timers.get(nextTimerId)?.()
+  assert.equal(boundsRequestCount, 1)
+})
+
+test('stop 觸發的 moveend 不留下 bounds timer，只有 flyTo 完成後重新排程', () => {
+  const timers = new Map()
+  let nextTimerId = 0
+  let boundsRequestCount = 0
+  const scheduler = createMapBoundsScheduler({
+    onBounds: () => {
+      boundsRequestCount += 1
+    },
+    setTimer(callback) {
+      nextTimerId += 1
+      timers.set(nextTimerId, callback)
+      return nextTimerId
+    },
+    clearTimer(timerId) {
+      timers.delete(timerId)
+    },
+  })
+  const map = createMap({
+    stopEmitsMoveEnd: true,
+    onMoveEnd: scheduler.schedule,
+  })
+  const coordinator = createHospitalMapSelectionCoordinator({
+    getMap: () => map,
+    isAtTarget: () => false,
+    syncClusters: () => {},
+    revealMarker: () => {},
+    beforeProgrammaticMove: scheduler.cancel,
+  })
+
+  scheduler.schedule()
+  coordinator.focus(hospitals.first)
+
+  assert.equal(timers.size, 0)
+  assert.deepEqual(map.calls.slice(-2), [
+    ['stop'],
+    ['flyTo', [25.033, 121.5654], 15],
+  ])
+
+  map.fire('moveend')
+  assert.equal(timers.size, 1)
+  timers.values().next().value()
+  assert.equal(boundsRequestCount, 1)
+})
+
+test('清除醫院選取時保留 pending bounds request', () => {
+  const timers = new Map()
+  let nextTimerId = 0
+  let boundsRequestCount = 0
+  const focusCalls = []
+  let selectedHospital = hospitals.first
+  const scheduler = createMapBoundsScheduler({
+    onBounds: () => {
+      boundsRequestCount += 1
+    },
+    setTimer(callback) {
+      nextTimerId += 1
+      timers.set(nextTimerId, callback)
+      return nextTimerId
+    },
+    clearTimer(timerId) {
+      timers.delete(timerId)
+    },
+  })
+  const focusSelectedHospital = () => {
+    if (selectedHospital) scheduler.cancel()
+    focusCalls.push(selectedHospital ?? null)
+  }
+
+  scheduler.schedule()
+  const pendingTimerId = nextTimerId
+  selectedHospital = null
+  focusSelectedHospital()
+
+  assert.equal(timers.has(pendingTimerId), true)
+  assert.deepEqual(focusCalls, [null])
+  timers.get(pendingTimerId)?.()
   assert.equal(boundsRequestCount, 1)
 })
 
@@ -297,24 +423,120 @@ test('選取醫院會等待 moveend，且 popup 開啟前延後 marker rebuild',
 
 test('新的醫院選取會取消舊 listener，只有最新 generation 能開 popup', () => {
   const map = createMap()
+  const syncCalls = []
   const revealCalls = []
   const coordinator = createHospitalMapSelectionCoordinator({
     getMap: () => map,
     isAtTarget: () => false,
-    syncClusters: () => {},
+    syncClusters: (options) => syncCalls.push(options),
     revealMarker: (hospitalId, onPopupOpen) => revealCalls.push({ hospitalId, onPopupOpen }),
   })
 
   coordinator.focus(hospitals.first)
   const staleMoveEnd = map.listener('moveend')
+  coordinator.requestClusterSync()
   coordinator.focus(hospitals.second)
 
   staleMoveEnd()
   assert.deepEqual(revealCalls, [])
+  assert.deepEqual(syncCalls, [
+    { restoreOpenPopup: false },
+    { restoreOpenPopup: false },
+  ])
 
   map.fire('moveend')
   assert.equal(revealCalls.length, 1)
   assert.equal(revealCalls[0].hospitalId, 2)
+})
+
+test('清除醫院選取會取消舊 focus callback，不再開啟 popup', () => {
+  const map = createMap()
+  const revealCalls = []
+  const coordinator = createHospitalMapSelectionCoordinator({
+    getMap: () => map,
+    isAtTarget: () => false,
+    syncClusters: () => {},
+    revealMarker: (hospitalId) => revealCalls.push(hospitalId),
+  })
+
+  coordinator.focus(hospitals.first)
+  const staleMoveEnd = map.listener('moveend')
+  coordinator.focus(null)
+
+  assert.equal(map.listener('moveend'), undefined)
+  staleMoveEnd()
+  assert.deepEqual(revealCalls, [])
+})
+
+test('清除醫院選取會完成 focus 期間排隊的 marker sync', () => {
+  const map = createMap()
+  const syncCalls = []
+  const revealCalls = []
+  const coordinator = createHospitalMapSelectionCoordinator({
+    getMap: () => map,
+    isAtTarget: () => false,
+    syncClusters: (options) => syncCalls.push(options),
+    revealMarker: (hospitalId) => revealCalls.push(hospitalId),
+  })
+
+  coordinator.focus(hospitals.first)
+  const staleMoveEnd = map.listener('moveend')
+  coordinator.requestClusterSync()
+  coordinator.focus(null)
+
+  assert.equal(map.listener('moveend'), undefined)
+  assert.deepEqual(syncCalls, [
+    { restoreOpenPopup: false },
+    { restoreOpenPopup: true },
+  ])
+  staleMoveEnd()
+  assert.deepEqual(revealCalls, [])
+  assert.equal(syncCalls.length, 2)
+})
+
+test('清除醫院選取會先移除 moveend listener，再停止未完成的 flyTo', () => {
+  const events = []
+  const map = createMap({ onCall: (call) => events.push(call) })
+  const revealCalls = []
+  const coordinator = createHospitalMapSelectionCoordinator({
+    getMap: () => map,
+    isAtTarget: () => false,
+    syncClusters: (options) => events.push(['sync', options]),
+    revealMarker: (hospitalId) => revealCalls.push(hospitalId),
+  })
+
+  coordinator.focus(hospitals.first)
+  const staleMoveEnd = map.listener('moveend')
+  coordinator.requestClusterSync()
+  coordinator.focus(null)
+
+  assert.deepEqual(events.slice(-3), [
+    ['off', 'moveend'],
+    ['stop'],
+    ['sync', { restoreOpenPopup: true }],
+  ])
+  staleMoveEnd()
+  assert.deepEqual(revealCalls, [])
+})
+
+test('醫院移動已完成時清除選取不會停止其他地圖操作', () => {
+  const map = createMap()
+  let cancelRevealCount = 0
+  const coordinator = createHospitalMapSelectionCoordinator({
+    getMap: () => map,
+    isAtTarget: () => false,
+    syncClusters: () => {},
+    revealMarker: () => () => {
+      cancelRevealCount += 1
+    },
+  })
+
+  coordinator.focus(hospitals.first)
+  map.fire('moveend')
+  coordinator.focus(null)
+
+  assert.equal(cancelRevealCount, 1)
+  assert.equal(map.calls.filter(([name]) => name === 'stop').length, 1)
 })
 
 test('已在目標位置會直接開 popup；無效座標不操作地圖', () => {

@@ -21,6 +21,11 @@ export class HospitalNotFoundError extends Error {
   }
 }
 
+function to_number(value, fallback = 0) {
+  const number_value = Number(value)
+  return Number.isFinite(number_value) ? number_value : fallback
+}
+
 function map_review_row(row) {
   const review = {
     id: row.id,
@@ -32,7 +37,7 @@ function map_review_row(row) {
     updated_at: row.updated_at,
   }
 
-  if (Object.hasOwn(row, 'user_name')) review.user_name = row.user_name
+  if (Object.hasOwn(row, 'user_name')) review.user_name = row.user_name ?? ''
   if (Object.hasOwn(row, 'user_avatar_url')) review.user_avatar_url = row.user_avatar_url
 
   return review
@@ -44,6 +49,25 @@ function is_duplicate_hospital_review(error) {
 
 function is_missing_hospital(error) {
   return error?.code === '23503' && error?.constraint === 'fk_hospital_reviews_hospital'
+}
+
+export async function findHospitalReviewSummary(hospitalId) {
+  const result = await pool.query(
+    `
+      SELECT
+        ROUND(AVG(rating)::numeric, 1) AS average_rating,
+        COUNT(*)::int AS review_count
+      FROM hospital_reviews
+      WHERE hospital_id = $1
+    `,
+    [hospitalId],
+  )
+  const row = result.rows[0] ?? {}
+
+  return {
+    average_rating: to_number(row.average_rating),
+    review_count: to_number(row.review_count),
+  }
 }
 
 export async function listHospitalReviews(hospitalId, { page = 1, limit = 50 } = {}) {

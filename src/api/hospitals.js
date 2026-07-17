@@ -19,6 +19,15 @@ function toNumberOrNull(value) {
   return Number.isFinite(numberValue) ? numberValue : null
 }
 
+function getAuthHeaders() {
+  const token = globalThis.localStorage?.getItem('pawpal_token')
+
+  return {
+    Authorization: token ? `Bearer ${token}` : '',
+    'Content-Type': 'application/json',
+  }
+}
+
 function normalizeAnimalTypes(animalTypes) {
   if (!Array.isArray(animalTypes)) {
     return []
@@ -87,6 +96,7 @@ export function normalizeHospital(hospital = {}) {
   const categories = hospital.categories ?? animalTypes.map((animalType) => animalType.name).filter(Boolean)
   const is24H = Boolean(hospital.is_24h ?? hospital.is24H ?? hospital.is24h)
   const businessHours = hospital.business_hours ?? hospital.businessHours ?? (is24H ? '24 小時營業' : '請洽醫院')
+  const rating = Number(hospital.rating_average ?? hospital.average_rating ?? hospital.rating ?? 0)
 
   return {
     ...hospital,
@@ -107,7 +117,7 @@ export function normalizeHospital(hospital = {}) {
     isOpen: Boolean(hospital.is_open ?? hospital.isOpen ?? is24H),
     is24H,
     businessHours,
-    rating: Number(hospital.rating ?? 0),
+    rating,
     reviewCount: Number(hospital.review_count ?? hospital.reviewCount ?? 0),
   }
 }
@@ -136,6 +146,13 @@ function normalizeHospitalResponse(data = {}, fallbackPagination = {}) {
 
 function getErrorMessage(error, fallbackMessage) {
   return error.response?.data?.message || error.message || fallbackMessage
+}
+
+function normalizeReviewSummary(summary = {}) {
+  return {
+    average_rating: Number(summary.average_rating ?? summary.averageRating ?? summary.rating ?? 0),
+    review_count: Number(summary.review_count ?? summary.reviewCount ?? 0),
+  }
 }
 
 export async function fetchHospitals(filters = {}) {
@@ -231,6 +248,100 @@ export async function fetchMapHospitals(bounds = {}, options = {}) {
       total: 0,
       truncated: false,
       message: getErrorMessage(error, '取得地圖醫院失敗，請稍後再試'),
+    }
+  }
+}
+
+export async function fetchHospitalReviews(hospitalId) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/${hospitalId}/reviews`)
+
+    return {
+      success: true,
+      summary: normalizeReviewSummary(response.data?.summary),
+      reviews: Array.isArray(response.data?.reviews) ? response.data.reviews : [],
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error, '讀取醫院評論失敗，請稍後再試'),
+      summary: normalizeReviewSummary(),
+      reviews: [],
+    }
+  }
+}
+
+export async function submitHospitalReview(hospitalId, payload = {}) {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}${API_PREFIX}/hospitals/${hospitalId}/reviews`,
+      {
+        rating: payload.rating,
+        comment: payload.comment,
+      },
+      { headers: getAuthHeaders() },
+    )
+
+    return {
+      success: true,
+      message: response.data?.message ?? '評論已送出',
+      review: response.data?.review ?? null,
+      summary: normalizeReviewSummary(response.data?.summary),
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error, '送出評論失敗，請稍後再試'),
+      review: null,
+      summary: normalizeReviewSummary(),
+    }
+  }
+}
+
+export async function updateHospitalReview(hospitalId, _reviewId, payload = {}) {
+  try {
+    const response = await axios.patch(
+      `${API_BASE_URL}${API_PREFIX}/hospitals/${hospitalId}/reviews/me`,
+      {
+        rating: payload.rating,
+        comment: payload.comment,
+      },
+      { headers: getAuthHeaders() },
+    )
+
+    return {
+      success: true,
+      message: response.data?.message ?? '評論已更新',
+      review: response.data?.review ?? null,
+      summary: normalizeReviewSummary(response.data?.summary),
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error, '更新評論失敗，請稍後再試'),
+      review: null,
+      summary: normalizeReviewSummary(),
+    }
+  }
+}
+
+export async function deleteHospitalReview(hospitalId, _reviewId) {
+  try {
+    const response = await axios.delete(
+      `${API_BASE_URL}${API_PREFIX}/hospitals/${hospitalId}/reviews/me`,
+      { headers: getAuthHeaders() },
+    )
+
+    return {
+      success: true,
+      message: response.data?.message ?? '評論已刪除',
+      summary: normalizeReviewSummary(response.data?.summary),
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error, '刪除評論失敗，請稍後再試'),
+      summary: normalizeReviewSummary(),
     }
   }
 }

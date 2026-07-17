@@ -7,7 +7,7 @@ import {
   listPets as listPetsApi,
   updatePet as updatePetApi,
 } from '@/api/pet.js'
-import defaultPetAvatar from '@/assets/images/pet_default.png'
+import defaultPetAvatar from '@/assets/images/pet_default.webp'
 
 export const usePetStore = defineStore('pet', () => {
   const pets = ref([])

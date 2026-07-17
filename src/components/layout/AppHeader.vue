@@ -83,7 +83,7 @@ onBeforeUnmount(() => {
     <div class="lg:hidden">
       <div class="mx-auto flex h-[55px] items-center justify-between px-4">
         <RouterLink to="/" class="items-center">
-          <img src="@/assets/images/PawPal_logo.PNG" alt="logo" class="h-10 w-auto md:h-8" />
+          <img src="@/assets/images/PawPal_logo.webp" alt="logo" class="h-10 w-auto md:h-8" />
         </RouterLink>
 
         <button
@@ -99,7 +99,7 @@ onBeforeUnmount(() => {
     <!-- 電腦版 -->
     <div class="mx-auto hidden h-17 items-center px-4 lg:flex lg:justify-between">
       <RouterLink to="/" class="flex items-center pl-4">
-        <img src="@/assets/images/PawPal_logo.PNG" alt="logo" class="h-12 w-auto" />
+        <img src="@/assets/images/PawPal_logo.webp" alt="logo" class="h-12 w-auto" />
       </RouterLink>
 
       <div class="flex items-center gap-3">
@@ -164,7 +164,7 @@ onBeforeUnmount(() => {
               v-if="hasUploadedAvatar"
               :src="memberAvatarUrl"
               alt="會員頭像"
-              class="size-9 rounded-full object-cover"
+              class="size-9 rounded-full object-cover object-center"
             />
             <img
               v-else
@@ -186,7 +186,7 @@ onBeforeUnmount(() => {
                   v-if="hasUploadedAvatar"
                   :src="memberAvatarUrl"
                   alt="會員頭像"
-                  class="size-full object-cover"
+                  class="size-full object-cover object-center"
                 />
                 <img
                   v-else
@@ -196,14 +196,10 @@ onBeforeUnmount(() => {
                 />
               </div>
               <div class="min-w-0">
-                <p
-                  class="truncate text-lg font-semibold text-brand-navy"
-                >
+                <p class="truncate text-lg font-semibold text-brand-navy">
                   {{ memberDisplayName }}
                 </p>
-                <p
-                  class="truncate text-base font-medium text-brand-gray"
-                >
+                <p class="truncate text-base font-medium text-brand-gray">
                   {{ memberDisplayEmail }}
                 </p>
               </div>
@@ -223,11 +219,7 @@ onBeforeUnmount(() => {
               class="group flex w-full items-center gap-2 border-t border-[#EEF1F5] px-4 py-3 text-sm font-medium text-brand-gray transition hover:bg-[#F8FAFC] hover:text-brand-orange"
               @click="handleOpenUserProfileModal"
             >
-              <img
-                :src="defaultProfileIcon"
-                alt=""
-                class="auth-action-icon size-4 shrink-0"
-              />
+              <img :src="defaultProfileIcon" alt="" class="auth-action-icon size-4 shrink-0" />
               個人資料
             </button>
 
@@ -236,11 +228,7 @@ onBeforeUnmount(() => {
               class="group flex w-full items-center gap-2 border-t border-[#EEF1F5] px-4 py-3 text-sm font-medium text-brand-gray transition hover:bg-[#F8FAFC] hover:text-brand-orange"
               @click="handleLogout"
             >
-              <img
-                :src="loginIcon"
-                alt=""
-                class="auth-action-icon size-4 shrink-0 -scale-x-100"
-              />
+              <img :src="loginIcon" alt="" class="auth-action-icon size-4 shrink-0 -scale-x-100" />
               登出
             </button>
           </div>

@@ -3,8 +3,12 @@ import { defineStore } from 'pinia'
 import {
   fetchHospitalRegions,
   fetchHospitals,
+  fetchHospitalReviews,
   fetchMapHospitals,
   fetchNearbyHospitals,
+  deleteHospitalReview as deleteHospitalReviewRequest,
+  submitHospitalReview as submitHospitalReviewRequest,
+  updateHospitalReview as updateHospitalReviewRequest,
   TAIPEI_CENTER,
 } from '../api/hospitals.js'
 
@@ -159,6 +163,44 @@ export const useHospitalStore = defineStore('hospital', () => {
   function selectHospital(id) { selectedHospitalId.value = id }
   function retryCurrentQuery() { return lastQuery.value.type === 'nearby' ? loadNearbyHospitals(lastQuery.value.query) : loadHospitals(lastQuery.value.query) }
   function retryMapQuery() { return lastMapQuery.value ? loadMapHospitals(lastMapQuery.value) : Promise.resolve() }
+  function updateHospitalReviewSummary(hospitalId, summary = {}) {
+    const rating = Number(summary.average_rating ?? summary.averageRating ?? summary.rating ?? 0)
+    const reviewCount = Number(summary.review_count ?? summary.reviewCount ?? 0)
+    const applySummary = (item) =>
+      item.id === hospitalId || String(item.id) === String(hospitalId)
+        ? { ...item, rating, reviewCount, average_rating: rating, review_count: reviewCount }
+        : item
+
+    hospitals.value = hospitals.value.map(applySummary)
+    mapHospitals.value = mapHospitals.value.map(applySummary)
+  }
+  function getHospitalById(hospitalId) {
+    return (
+      hospitals.value.find((item) => String(item.id) === String(hospitalId)) ??
+      mapHospitals.value.find((item) => String(item.id) === String(hospitalId)) ??
+      null
+    )
+  }
+  async function loadHospitalReviews(hospitalId) {
+    const result = await fetchHospitalReviews(hospitalId)
+    if (result.success) updateHospitalReviewSummary(hospitalId, result.summary)
+    return result
+  }
+  async function submitHospitalReview(hospitalId, payload) {
+    const result = await submitHospitalReviewRequest(hospitalId, payload)
+    if (result.success) updateHospitalReviewSummary(hospitalId, result.summary)
+    return result
+  }
+  async function updateHospitalReview(hospitalId, reviewId, payload) {
+    const result = await updateHospitalReviewRequest(hospitalId, reviewId, payload)
+    if (result.success) updateHospitalReviewSummary(hospitalId, result.summary)
+    return result
+  }
+  async function deleteHospitalReview(hospitalId, reviewId) {
+    const result = await deleteHospitalReviewRequest(hospitalId, reviewId)
+    if (result.success) updateHospitalReviewSummary(hospitalId, result.summary)
+    return result
+  }
 
   onScopeDispose(() => {
     mapRequestId += 1
@@ -172,6 +214,7 @@ export const useHospitalStore = defineStore('hospital', () => {
     regionsLoading, errorMessage, mapError, regionsError, mapTruncated, locationFallbackMessage,
     hasRealLocation, isEmpty, loadHospitals, loadNearbyHospitals, loadMapHospitals, loadRegions,
     setKeyword, setLocationFilter, setAnimalType, set24H, setSort, setPage, clearFilters,
-    selectHospital, retryCurrentQuery, retryMapQuery,
+    selectHospital, retryCurrentQuery, retryMapQuery, updateHospitalReviewSummary, getHospitalById,
+    loadHospitalReviews, submitHospitalReview, updateHospitalReview, deleteHospitalReview,
   }
 })

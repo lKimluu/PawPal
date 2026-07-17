@@ -622,6 +622,10 @@ test('Hospital store owns query result state and filter actions', () => {
   assert.match(store, /mapRequestId/)
   assert.match(store, /function set24H/)
   assert.match(store, /function retryCurrentQuery/)
+  assert.match(store, /updateHospitalReviewRequest/)
+  assert.match(store, /deleteHospitalReviewRequest/)
+  assert.match(store, /async function updateHospitalReview/)
+  assert.match(store, /async function deleteHospitalReview/)
 })
 
 test('Hospital store separates list mode, nearby mode, pagination and Taipei fallback', () => {
@@ -691,7 +695,7 @@ test('Map selection delegates move completion and popup lifecycle to the coordin
   assert.match(mapView, /function hasValidHospitalCoordinates\(hospital\)/)
   assert.match(mapView, /createHospitalMapSelectionCoordinator/)
   assert.match(mapView, /revealHospitalClusterMarker/)
-  assert.match(mapView, /selectionCoordinator\.focus\(selectedHospital\.value\)/)
+  assert.match(mapView, /selectionCoordinator\.focus\(hospital \?\? null\)/)
   assert.match(mapView, /nextTick\(selectionCoordinator\.requestClusterSync\)/)
   assert.match(
     mapView,
@@ -712,6 +716,14 @@ test('Map ready and bounds refresh do not issue duplicate viewport requests', ()
   const mapView = readSource('../components/hospital/MapView.vue')
 
   assert.match(mapView, /createMapBoundsScheduler/)
+  assert.match(
+    mapView,
+    /beforeProgrammaticMove:\s*boundsScheduler\.cancel/,
+  )
+  assert.match(
+    mapView,
+    /function focusSelectedHospital\(\) \{\s*const hospital = selectedHospital\.value\s*selectionCoordinator\.focus\(hospital \?\? null\)\s*\}/,
+  )
   assert.match(
     mapView,
     /if \(selectedHospital\.value\) \{\s*focusSelectedHospital\(\)\s*\} else \{\s*syncClusters\(\)\s*scheduleBounds\(\)/,

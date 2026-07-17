@@ -27,21 +27,14 @@ function createResponse() {
   }
 }
 
-test('listHospitalReviews 成功時應回傳公開評論列表', async () => {
-  const reviews = [
-    {
-      id: 2,
-      hospital_id: 15,
-      user_id: 7,
-      user_name: 'Alice',
-      user_avatar_url: null,
-      rating: 5,
-      comment: 'Careful doctor',
-      created_at: '2026-07-13T10:00:00.000Z',
-      updated_at: '2026-07-13T10:00:00.000Z',
-    },
-  ]
+test('listHospitalReviews 成功時應回傳評論統計與公開評論列表', async () => {
+  const summary = { average_rating: 4.5, review_count: 2 }
+  const reviews = [{ id: 2, hospital_id: 15, user_id: 7, rating: 5, comment: 'Careful doctor' }]
   const { listHospitalReviews } = createHospitalReviewsController({
+    findHospitalReviewSummary: async (hospitalId) => {
+      assert.equal(hospitalId, 15)
+      return summary
+    },
     listHospitalReviews: async (hospitalId, pagination) => {
       assert.equal(hospitalId, 15)
       assert.deepEqual(pagination, { page: 1, limit: 50 })
@@ -56,13 +49,13 @@ test('listHospitalReviews 成功時應回傳公開評論列表', async () => {
   }, res)
 
   assert.equal(res.statusCode, 200)
-  assert.deepEqual(res.body, { reviews })
+  assert.deepEqual(res.body, { summary, reviews })
 })
 
 test('listHospitalReviews 發生非預期錯誤時應回傳 500 message', async (t) => {
   t.mock.method(console, 'error', () => {})
   const { listHospitalReviews } = createHospitalReviewsController({
-    listHospitalReviews: async () => {
+    findHospitalReviewSummary: async () => {
       throw new Error('database down')
     },
   })
@@ -74,14 +67,19 @@ test('listHospitalReviews 發生非預期錯誤時應回傳 500 message', async 
   assert.deepEqual(res.body, { message: '取得醫院評論失敗，請稍後再試' })
 })
 
-test('createHospitalReview 成功時應以目前會員建立評論並回傳 201', async () => {
+test('createHospitalReview 成功時應建立評論並回傳最新統計', async () => {
   const review = { id: 3, hospital_id: 15, user_id: 7, rating: 5, comment: 'Careful doctor' }
+  const summary = { average_rating: 4.5, review_count: 3 }
   const { createHospitalReview } = createHospitalReviewsController({
     createHospitalReview: async (hospitalId, userId, body) => {
       assert.equal(hospitalId, 15)
       assert.equal(userId, 7)
       assert.deepEqual(body, { rating: 5, comment: 'Careful doctor' })
       return review
+    },
+    findHospitalReviewSummary: async (hospitalId) => {
+      assert.equal(hospitalId, 15)
+      return summary
     },
   })
   const res = createResponse()
@@ -93,7 +91,7 @@ test('createHospitalReview 成功時應以目前會員建立評論並回傳 201'
   }, res)
 
   assert.equal(res.statusCode, 201)
-  assert.deepEqual(res.body, { review })
+  assert.deepEqual(res.body, { message: '評論已送出', review, summary })
 })
 
 test('createHospitalReview 重複評論時應回傳 409', async () => {
@@ -132,14 +130,19 @@ test('createHospitalReview 醫院不存在時應回傳 404', async () => {
   assert.deepEqual(res.body, { message: '找不到醫院' })
 })
 
-test('updateMyHospitalReview 成功時應更新目前會員評論並回傳 200', async () => {
+test('updateMyHospitalReview 成功時應更新目前會員評論並回傳最新統計', async () => {
   const review = { id: 3, hospital_id: 15, user_id: 7, rating: 4, comment: 'Long wait' }
+  const summary = { average_rating: 4.1, review_count: 3 }
   const { updateMyHospitalReview } = createHospitalReviewsController({
     updateMyHospitalReview: async (hospitalId, userId, body) => {
       assert.equal(hospitalId, 15)
       assert.equal(userId, 7)
       assert.deepEqual(body, { rating: 4, comment: 'Long wait' })
       return review
+    },
+    findHospitalReviewSummary: async (hospitalId) => {
+      assert.equal(hospitalId, 15)
+      return summary
     },
   })
   const res = createResponse()
@@ -151,23 +154,7 @@ test('updateMyHospitalReview 成功時應更新目前會員評論並回傳 200',
   }, res)
 
   assert.equal(res.statusCode, 200)
-  assert.deepEqual(res.body, { review })
-})
-
-test('deleteMyHospitalReview 成功時應刪除目前會員評論並回傳 204', async () => {
-  const { deleteMyHospitalReview } = createHospitalReviewsController({
-    deleteMyHospitalReview: async (hospitalId, userId) => {
-      assert.equal(hospitalId, 15)
-      assert.equal(userId, 7)
-      return true
-    },
-  })
-  const res = createResponse()
-
-  await deleteMyHospitalReview({ params: { hospital_id: 15 }, userId: 7 }, res)
-
-  assert.equal(res.statusCode, 204)
-  assert.equal(res.body, null)
+  assert.deepEqual(res.body, { message: '評論已更新', review, summary })
 })
 
 test('updateMyHospitalReview 找不到自己的評論時應回傳 404', async () => {
@@ -186,6 +173,27 @@ test('updateMyHospitalReview 找不到自己的評論時應回傳 404', async ()
 
   assert.equal(res.statusCode, 404)
   assert.deepEqual(res.body, { message: '找不到你的醫院評論' })
+})
+
+test('deleteMyHospitalReview 成功時應刪除目前會員評論並回傳最新統計', async () => {
+  const summary = { average_rating: 3.5, review_count: 1 }
+  const { deleteMyHospitalReview } = createHospitalReviewsController({
+    deleteMyHospitalReview: async (hospitalId, userId) => {
+      assert.equal(hospitalId, 15)
+      assert.equal(userId, 7)
+      return true
+    },
+    findHospitalReviewSummary: async (hospitalId) => {
+      assert.equal(hospitalId, 15)
+      return summary
+    },
+  })
+  const res = createResponse()
+
+  await deleteMyHospitalReview({ params: { hospital_id: 15 }, userId: 7 }, res)
+
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(res.body, { message: '評論已刪除', summary })
 })
 
 test('deleteMyHospitalReview 找不到自己的評論時應回傳 404', async () => {
