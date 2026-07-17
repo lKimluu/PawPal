@@ -15,6 +15,32 @@
   --color-brand-gray: #717182;
   --color-brand-darkgray: #606060;
   --color-brand-white: #ffffff;
+
+  --animate-cat-bounce: cat-bounce 0.6s ease-in-out infinite;
+  --animate-loading-dot: loading-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes cat-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes loading-dot {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 body {

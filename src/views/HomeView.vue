@@ -8,6 +8,7 @@ import aboutImage from '@/assets/images/home-about.webp'
 import IconLocation from '@/assets/icons/location_o.svg'
 import Header from '@/components/layout/AppHeader.vue'
 import Footer from '@/components/layout/AppFooter.vue'
+import PetLoadingRunner from '@/components/common/PetLoadingRunner.vue'
 import { useHospitalStore } from '@/stores/hospital.js'
 import { useLocationStore } from '@/stores/location.js'
 
@@ -131,9 +132,10 @@ onBeforeUnmount(() => {
               v-if="isSummaryLoading"
               v-for="i in 3"
               :key="`desktop-skeleton-${i}`"
-              class="h-[126px] animate-pulse rounded-2xl border border-[#E2E8F0] bg-white/45 shadow-[0_2px_10px_rgba(255,160,2,0.12)]"
-              aria-hidden="true"
-            ></div>
+              class="flex h-[126px] items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white/45 shadow-[0_2px_10px_rgba(255,160,2,0.12)]"
+            >
+              <PetLoadingRunner />
+            </div>
             <div
               v-else-if="errorMessage"
               class="col-span-3 rounded-2xl border border-[#E2E8F0] bg-white/75 p-5 text-center text-sm font-bold text-brand-orange backdrop-blur"
@@ -205,9 +207,10 @@ onBeforeUnmount(() => {
               v-if="isSummaryLoading"
               v-for="i in 3"
               :key="`mobile-skeleton-${i}`"
-              class="h-[82px] animate-pulse rounded-2xl bg-white/70 shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
-              aria-hidden="true"
-            ></div>
+              class="flex h-[82px] items-center justify-center rounded-2xl bg-white/70 shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
+            >
+              <PetLoadingRunner />
+            </div>
             <div
               v-else-if="errorMessage"
               class="rounded-2xl bg-white p-4 text-center text-xs font-bold text-brand-orange shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
