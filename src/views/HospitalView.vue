@@ -6,13 +6,17 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import SearchBar from '@/components/hospital/SearchBar.vue'
 import MapView from '@/components/hospital/MapView.vue'
 import HospitalList from '@/components/hospital/HospitalList.vue'
+import HospitalReviewModal from '@/components/hospital/HospitalReviewModal.vue'
+import DeleteConfirmModal from '@/components/common/DeleteConfirmModal.vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { useHospitalStore } from '@/stores/hospital.js'
 import { useLocationStore } from '@/stores/location.js'
+import { useToastStore } from '@/stores/toast.js'
 
 const authStore = useAuthStore()
 const locationStore = useLocationStore()
 const hospitalStore = useHospitalStore()
+const toastStore = useToastStore()
 const { userLocation, isLocating, locationError, permissionState } = storeToRefs(locationStore)
 const {
   visibleHospitals,
@@ -28,7 +32,18 @@ const {
 } = storeToRefs(hospitalStore)
 const headerVariant = computed(() => (authStore.isLoggedIn ? 'member' : 'public'))
 const isLocationPermissionBlocked = computed(() => permissionState.value === 'denied')
+const isReviewModalOpen = ref(false)
+const reviewHospital = ref(null)
+const reviewMode = ref('list')
+const reviewList = ref([])
+const isReviewLoading = ref(false)
+const isReviewSubmitting = ref(false)
+const editingReview = ref(null)
+const reviewToDelete = ref(null)
+const isReviewDeleteOpen = ref(false)
+const currentUserId = computed(() => authStore.user?.id ?? authStore.user?.user_id ?? null)
 const selectionRequestId = ref(0)
+const reviewRequestToken = ref(0)
 
 async function requestCurrentLocation() {
   const locationSucceeded = await locationStore.requestCurrentLocation()
@@ -59,6 +74,141 @@ async function loadNearbyHospitals({ requestLocation = true } = {}) {
 function selectHospital(hospitalId) {
   hospitalStore.selectHospital(hospitalId)
   selectionRequestId.value += 1
+}
+
+function isCurrentReviewRequest(hospitalId, requestToken) {
+  return (
+    isReviewModalOpen.value &&
+    reviewRequestToken.value === requestToken &&
+    String(reviewHospital.value?.id) === String(hospitalId)
+  )
+}
+
+async function openHospitalReviewModal(hospital) {
+  const requestToken = ++reviewRequestToken.value
+  reviewHospital.value = hospital
+  reviewMode.value = 'list'
+  reviewList.value = []
+  isReviewModalOpen.value = true
+  await reloadHospitalReviews(hospital.id, requestToken)
+}
+
+async function reloadHospitalReviews(hospitalId, requestToken = reviewRequestToken.value) {
+  isReviewLoading.value = true
+  const result = await hospitalStore.loadHospitalReviews(hospitalId)
+
+  if (!isCurrentReviewRequest(hospitalId, requestToken)) return result
+
+  isReviewLoading.value = false
+  const latestHospital = hospitalStore.getHospitalById(hospitalId)
+  if (latestHospital) reviewHospital.value = latestHospital
+  if (result.success) reviewList.value = result.reviews
+  if (!result.success) toastStore.showToast(result.message, 'error')
+  return result
+}
+
+function closeHospitalReviewModal() {
+  reviewRequestToken.value += 1
+  isReviewModalOpen.value = false
+  reviewMode.value = 'list'
+  reviewHospital.value = null
+  reviewList.value = []
+  isReviewLoading.value = false
+  isReviewSubmitting.value = false
+  editingReview.value = null
+  reviewToDelete.value = null
+  isReviewDeleteOpen.value = false
+}
+
+function showReviewForm() {
+  editingReview.value = null
+  reviewMode.value = 'form'
+}
+
+function backToReviewList() {
+  editingReview.value = null
+  reviewMode.value = 'list'
+}
+
+function startEditReview(review) {
+  editingReview.value = review
+  reviewMode.value = 'form'
+}
+
+function openReviewDeleteConfirm(review) {
+  reviewToDelete.value = review
+  isReviewDeleteOpen.value = true
+}
+
+function closeReviewDeleteConfirm() {
+  isReviewDeleteOpen.value = false
+  reviewToDelete.value = null
+}
+
+async function submitHospitalReview(payload) {
+  if (!reviewHospital.value || isReviewSubmitting.value) return
+
+  if (!authStore.isLoggedIn) {
+    toastStore.showToast('請先登入後再送出評論', 'error')
+    return
+  }
+
+  const hospitalId = reviewHospital.value.id
+  const reviewId = editingReview.value?.id
+  const requestToken = reviewRequestToken.value
+  isReviewSubmitting.value = true
+  const result = reviewId
+    ? await editHospitalReview(hospitalId, reviewId, payload)
+    : await hospitalStore.submitHospitalReview(hospitalId, payload)
+
+  if (!isCurrentReviewRequest(hospitalId, requestToken)) return
+
+  isReviewSubmitting.value = false
+
+  if (!result.success) {
+    toastStore.showToast(result.message, 'error')
+    return
+  }
+
+  const latestHospital = hospitalStore.getHospitalById(hospitalId)
+  if (latestHospital) reviewHospital.value = latestHospital
+  editingReview.value = null
+  reviewMode.value = 'list'
+  await reloadHospitalReviews(hospitalId, requestToken)
+  if (!isCurrentReviewRequest(hospitalId, requestToken)) return
+  toastStore.showToast(result.message || '評論已送出')
+}
+
+function editHospitalReview(hospitalId, reviewId, payload) {
+  return hospitalStore.updateHospitalReview(hospitalId, reviewId, payload)
+}
+
+async function deleteHospitalReview() {
+  if (!reviewHospital.value || !reviewToDelete.value) return
+
+  if (!authStore.isLoggedIn) {
+    toastStore.showToast('請先登入後再刪除評論', 'error')
+    return
+  }
+
+  const hospitalId = reviewHospital.value.id
+  const reviewId = reviewToDelete.value.id
+  const requestToken = reviewRequestToken.value
+  const result = await hospitalStore.deleteHospitalReview(hospitalId, reviewId)
+
+  if (!isCurrentReviewRequest(hospitalId, requestToken)) return
+
+  if (!result.success) {
+    toastStore.showToast(result.message, 'error')
+    return
+  }
+
+  closeReviewDeleteConfirm()
+  const latestHospital = hospitalStore.getHospitalById(hospitalId)
+  if (latestHospital) reviewHospital.value = latestHospital
+  await reloadHospitalReviews(hospitalId, requestToken)
+  if (!isCurrentReviewRequest(hospitalId, requestToken)) return
+  toastStore.showToast(result.message || '評論已刪除')
 }
 
 onMounted(() => {
@@ -130,6 +280,7 @@ onMounted(() => {
               @bounds-change="hospitalStore.loadMapHospitals"
               @retry="hospitalStore.retryMapQuery"
               @select-hospital="selectHospital"
+              @review-hospital="openHospitalReviewModal"
             />
 
             <aside class="flex min-w-0 flex-col gap-5 xl:max-h-[760px]">
@@ -143,6 +294,7 @@ onMounted(() => {
                 :is-empty="hospitalStore.isEmpty"
                 :pagination="pagination"
                 @select-hospital="selectHospital"
+                @review-hospital="openHospitalReviewModal"
                 @retry="hospitalStore.retryCurrentQuery"
                 @page-change="hospitalStore.setPage"
               />
@@ -151,6 +303,29 @@ onMounted(() => {
         </section>
       </main>
     </div>
+    <HospitalReviewModal
+      :is-open="isReviewModalOpen"
+      :hospital="reviewHospital"
+      :mode="reviewMode"
+      :reviews="reviewList"
+      :is-loading="isReviewLoading"
+      :is-submitting="isReviewSubmitting"
+      :current-user-id="currentUserId"
+      :editing-review="editingReview"
+      @start-review="showReviewForm"
+      @cancel-form="backToReviewList"
+      @edit-review="startEditReview"
+      @delete-review="openReviewDeleteConfirm"
+      @close="closeHospitalReviewModal"
+      @submit="submitHospitalReview"
+    />
+    <DeleteConfirmModal
+      :is-open="isReviewDeleteOpen"
+      title="確定刪除此則評論？"
+      item-name="這則評論"
+      @close="closeReviewDeleteConfirm"
+      @confirm="deleteHospitalReview"
+    />
     <AppFooter class="lg:hidden" />
   </div>
 </template>

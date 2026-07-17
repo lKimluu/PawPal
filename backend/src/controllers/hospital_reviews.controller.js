@@ -6,14 +6,17 @@ import {
 } from '../services/hospital_reviews.service.js'
 
 export function createHospitalReviewsController(hospitalReviewService) {
+  async function getSummary(hospitalId) {
+    return hospitalReviewService.findHospitalReviewSummary(hospitalId)
+  }
+
   async function listHospitalReviews(req, res) {
     try {
-      const reviews = await hospitalReviewService.listHospitalReviews(
-        req.params.hospital_id,
-        req.validated_query,
-      )
+      const hospitalId = req.params.hospital_id
+      const summary = await getSummary(hospitalId)
+      const reviews = await hospitalReviewService.listHospitalReviews(hospitalId, req.validated_query)
 
-      return res.status(200).json({ reviews })
+      return res.status(200).json({ summary, reviews })
     } catch (error) {
       console.error(error)
 
@@ -23,13 +26,15 @@ export function createHospitalReviewsController(hospitalReviewService) {
 
   async function createHospitalReview(req, res) {
     try {
+      const hospitalId = req.params.hospital_id
       const review = await hospitalReviewService.createHospitalReview(
-        req.params.hospital_id,
+        hospitalId,
         req.userId,
         req.body,
       )
+      const summary = await getSummary(hospitalId)
 
-      return res.status(201).json({ review })
+      return res.status(201).json({ message: '評論已送出', review, summary })
     } catch (error) {
       if (error instanceof DuplicateHospitalReviewError) {
         return res.status(409).json({ message: '你已經評論過這間醫院' })
@@ -46,13 +51,15 @@ export function createHospitalReviewsController(hospitalReviewService) {
 
   async function updateMyHospitalReview(req, res) {
     try {
+      const hospitalId = req.params.hospital_id
       const review = await hospitalReviewService.updateMyHospitalReview(
-        req.params.hospital_id,
+        hospitalId,
         req.userId,
         req.body,
       )
+      const summary = await getSummary(hospitalId)
 
-      return res.status(200).json({ review })
+      return res.status(200).json({ message: '評論已更新', review, summary })
     } catch (error) {
       if (error instanceof HospitalReviewNotFoundError) {
         return res.status(404).json({ message: '找不到你的醫院評論' })
@@ -65,9 +72,11 @@ export function createHospitalReviewsController(hospitalReviewService) {
 
   async function deleteMyHospitalReview(req, res) {
     try {
-      await hospitalReviewService.deleteMyHospitalReview(req.params.hospital_id, req.userId)
+      const hospitalId = req.params.hospital_id
+      await hospitalReviewService.deleteMyHospitalReview(hospitalId, req.userId)
+      const summary = await getSummary(hospitalId)
 
-      return res.status(204).send()
+      return res.status(200).json({ message: '評論已刪除', summary })
     } catch (error) {
       if (error instanceof HospitalReviewNotFoundError) {
         return res.status(404).json({ message: '找不到你的醫院評論' })
