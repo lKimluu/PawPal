@@ -2,9 +2,9 @@
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import bgImage from '@/assets/images/home-bg.png'
-import visualImage from '@/assets/images/home-visual.png'
-import aboutImage from '@/assets/images/home-about.png'
+import bgImage from '@/assets/images/home-bg.webp'
+import visualImage from '@/assets/images/home-visual.webp'
+import aboutImage from '@/assets/images/home-about.webp'
 import IconLocation from '@/assets/icons/location_o.svg'
 import Header from '@/components/layout/AppHeader.vue'
 import Footer from '@/components/layout/AppFooter.vue'
@@ -49,8 +49,8 @@ const services = [
   },
   {
     icon: 'chat.svg',
-    title: '寵物知識+',
-    desc: '從飲食到行為，解決日常照護的大小疑問',
+    title: '毛孩知識+',
+    desc: '從飲食到行為，輕鬆探索毛孩日常小知識',
   },
 ]
 
@@ -93,9 +93,9 @@ onBeforeUnmount(() => {
   >
     <section class="hero-section text-center w-full">
       <span
-        class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs rounded-full bg-brand-lightblue text-brand-blue"
+        class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs md:text-sm rounded-full bg-brand-lightblue text-brand-blue"
       >
-        24 小時陪伴每一個緊急時刻
+        ✦ 24 小時陪伴每一個緊急時刻
       </span>
       <div class="w-full max-w-3xl mx-auto mt-7 px-4 text-center">
         <h1
@@ -113,9 +113,9 @@ onBeforeUnmount(() => {
           </span>
           <span class="inline-block whitespace-nowrap">就在身邊</span>
         </h1>
-        <p class="text-xs mt-4 leading-relaxed max-w-xl mx-auto px-2 text-brand-gray">
+        <p class="text-xs md:text-sm mt-4 leading-relaxed max-w-xl mx-auto px-2 text-brand-gray">
           PawPal 幫你立刻找到附近
-          <span class="text-brand-orange font-bold">正在營業中</span>
+          <span class="text-brand-orange font-bold">離你最近</span>
           的動物醫院
         </p>
       </div>
@@ -149,20 +149,17 @@ onBeforeUnmount(() => {
               class="bg-white/30 backdrop-blur-md p-5 rounded-2xl border border-[#E2E8F0] text-left transition-all duration-300 shadow-[0_2px_10px_rgba(255,160,2,0.2)] lg:hover:-translate-y-1 lg:hover:shadow-[0_10px_30px_rgba(255,160,2,0.4)] cursor-pointer active:scale-[0.99]"
               @click="openHospital(hospital.id)"
             >
-              <p class="text-[10px] font-medium tracking-wide text-brand-gray">最近醫院</p>
-              <p class="truncate text-base font-bold mt-0.5 text-brand-navy">{{ hospital.name }}</p>
-              <p class="mt-1 truncate text-xs text-brand-gray">
-                {{ hospital.district || hospital.city || '地區資訊未提供' }}
+              <p class="text-sm font-medium tracking-wide text-brand-gray">最近醫院</p>
+
+              <p class="truncate text-base font-bold mt-0.5 text-brand-navy">
+                {{ hospital.name }}
               </p>
-              <div class="flex justify-between items-center mt-4">
-                <span class="text-sm font-black text-brand-navy">
+              <div class="flex items-center justify-between mt-1">
+                <p class="truncate text-sm text-brand-gray">
+                  {{ hospital.district || hospital.city || '地區資訊未提供' }}
+                </p>
+                <span class="ml-2 shrink-0 text-sm font-semibold text-brand-orange">
                   {{ formatDistance(hospital.distanceKm) }}
-                </span>
-                <span class="text-xs font-black text-brand-orange flex items-center gap-1">
-                  <span
-                    class="w-1.5 h-1.5 rounded-full bg-brand-orange inline-block animate-pulse"
-                  ></span>
-                  營業中
                 </span>
               </div>
             </button>
@@ -182,7 +179,7 @@ onBeforeUnmount(() => {
               locationFallbackMessage ||
               userLocation
             "
-            class="relative z-2 mx-auto mt-4 inline-flex max-w-full items-center justify-center rounded-full bg-white/75 px-4 py-2 text-xs font-bold shadow-[0_6px_18px_rgba(61,74,122,0.12)] backdrop-blur text-brand-navy"
+            class="relative z-2 mx-auto mt-4 inline-flex max-w-full items-center justify-center rounded-full bg-white/60 ring-1 ring-inset ring-white/15 px-4 py-2 text-xs md:text-sm font-semibold shadow-[0_6px_18px_rgba(61,74,122,0.12)] backdrop-blur text-brand-navy"
             aria-live="polite"
           >
             <span v-if="isLocating">正在取得目前位置</span>
@@ -213,7 +210,7 @@ onBeforeUnmount(() => {
             ></div>
             <div
               v-else-if="errorMessage"
-              class="rounded-2xl bg-white p-4 text-center text-sm font-bold text-brand-orange shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
+              class="rounded-2xl bg-white p-4 text-center text-xs font-bold text-brand-orange shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
               role="status"
             >
               {{ errorMessage }}
@@ -231,24 +228,16 @@ onBeforeUnmount(() => {
                   <img :src="IconLocation" alt="Location" class="w-9 h-9 object-contain" />
                 </div>
                 <div>
-                  <p class="text-[10px] font-medium tracking-wide text-brand-gray">最近醫院</p>
+                  <p class="text-xs font-medium tracking-wide text-brand-gray">最近醫院</p>
                   <p class="text-sm font-bold mt-0.5 text-brand-navy">{{ hospital.name }}</p>
-                  <p class="mt-0.5 text-[11px] text-brand-gray">
+                  <p class="mt-0.5 text-xs text-brand-gray">
                     {{ hospital.district || hospital.city || '地區資訊未提供' }}
                   </p>
                 </div>
               </div>
               <div class="text-right shrink-0">
-                <p class="text-xs font-black text-brand-navy">
+                <p class="text-base font-semibold text-brand-orange">
                   {{ formatDistance(hospital.distanceKm) }}
-                </p>
-                <p
-                  class="text-[11px] font-bold text-brand-orange mt-1 flex items-center gap-1 justify-end"
-                >
-                  <span
-                    class="w-1.5 h-1.5 rounded-full bg-brand-orange inline-block animate-pulse"
-                  ></span>
-                  營業中
                 </p>
               </div>
             </button>
@@ -263,23 +252,29 @@ onBeforeUnmount(() => {
           <div
             class="w-full relative z-2 mt-4 md:mt-8 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between shadow-[0_12px_40px_rgba(235,140,0,0.25)] text-white gap-6 bg-gradient-to-r from-[#ffa002] to-[#ffb357]"
           >
-            <div class="flex items-center gap-4 text-left w-full md:w-auto">
+            <div
+              class="flex flex-col items-center text-center gap-4 w-full md:w-auto md:flex-row md:items-center md:text-left"
+            >
               <div
-                class="w-12 h-12 rounded-full bg-white/20 items-center justify-center text-2xl shrink-0 hidden md:flex"
+                class="w-12 h-12 md:w-15 md:h-15 rounded-full bg-white/20 flex items-center justify-center shrink-0 md:mr-3"
               >
-                ❤
+                <span class="text-[#ed4242] animate-pulse text-3xl md:text-4xl leading-none"
+                  >❤</span
+                >
               </div>
               <div>
-                <h3 class="text-lg md:text-xl font-bold text-white leading-snug">
+                <h3 class="text-lg md:text-2xl font-bold text-white leading-snug">
                   毛孩突發狀況？別慌，PawPal 在這裡
                 </h3>
-                <p class="text-xs opacity-90 mt-1">一鍵搜尋附近 24 小時急診醫院</p>
+                <p class="text-xs md:text-sm opacity-90 mt-1">
+                  讓我們幫你指引方向，一鍵搜尋身邊的醫療協助
+                </p>
               </div>
             </div>
             <div class="w-full md:w-auto flex flex-col md:flex-row items-center gap-3 shrink-0">
               <RouterLink
                 to="/hospital"
-                class="w-full tracking-wider md:w-auto bg-white font-bold py-3 px-8 rounded-full shadow-md text-sm transition-all lg:hover:scale-105 active:scale-[0.99] block text-center text-brand-orange"
+                class="w-full tracking-wider md:w-auto bg-white font-bold py-3 px-8 rounded-full shadow-md text-base transition-all lg:hover:scale-105 active:scale-[0.99] block text-center text-brand-orange"
               >
                 立即搜尋醫院
               </RouterLink>
@@ -292,7 +287,7 @@ onBeforeUnmount(() => {
       <h2 class="services-title text-2xl md:text-4xl font-extrabold text-brand-navy">
         一站式毛孩照護
       </h2>
-      <p class="text-xs md:text-sm mt-2 font-sm text-brand-gray">
+      <p class="text-sm md:text-sm mt-2 font-sm text-brand-gray">
         從緊急救助到日常陪伴，PawPal都在
       </p>
       <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -310,7 +305,7 @@ onBeforeUnmount(() => {
             <h3 class="text-base md:text-lg font-bold text-brand-navy">
               {{ card.title }}
             </h3>
-            <p class="text-xs md:text-sm mt-1 leading-relaxed text-brand-gray">
+            <p class="text-sm md:text-sm mt-1 leading-relaxed text-brand-gray">
               {{ card.desc }}
             </p>
           </div>
@@ -330,11 +325,11 @@ onBeforeUnmount(() => {
         />
       </div>
       <div class="w-full md:w-1/2 px-2">
-        <p class="text-xs font-bold tracking-widest uppercase text-brand-orange">ABOUT PAWPAL</p>
+        <p class="text-sm font-bold tracking-widest uppercase text-brand-orange">ABOUT PAWPAL</p>
         <h2 class="text-2xl md:text-3xl font-black mt-3 text-[#3d4a7a]">
           為毛孩家庭設計的溫慢科技
         </h2>
-        <p class="text-xs md:text-sm md:my-4 mt-4 leading-relaxed text-brand-gray">
+        <p class="text-sm md:text-sm md:my-4 mt-4 leading-relaxed text-brand-gray">
           我們深知每一個毛孩家庭都希望給寶貝最好的照護。
           <br class="md:hidden" />
           PawPal將即時資訊、專業知識與溫慢陪伴整合在一起，讓你不論身處何地、何時，都能安心。

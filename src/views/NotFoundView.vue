@@ -8,17 +8,17 @@ import Footer from '@/components/layout/AppFooter.vue'
     <main class="flex-grow flex flex-col items-center justify-center">
       <div class="w-full">
         <img
-          src="@/assets/images/notfound_mobile.png"
+          src="@/assets/images/notfound_mobile.webp"
           class="block md:hidden w-full h-auto object-cover mt-3"
           alt="Page Not Found - Mobile"
         />
         <img
-          src="@/assets/images/notfound_tablet.png"
+          src="@/assets/images/notfound_tablet.webp"
           class="hidden md:block lg:hidden w-full h-auto object-cover mt-28"
           alt="Page Not Found - Tablet"
         />
         <img
-          src="@/assets/images/notfound_desktop.png"
+          src="@/assets/images/notfound_desktop.webp"
           class="hidden lg:block w-full h-auto object-cover mt-16"
           alt="Page Not Found - Desktop"
         />
