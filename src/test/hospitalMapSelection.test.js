@@ -8,7 +8,13 @@ import {
   revealHospitalClusterMarker,
 } from '../utils/hospitalMapSelection.js'
 
-function createMap({ atTarget = false, zoom = 13, onCall = () => {} } = {}) {
+function createMap({
+  atTarget = false,
+  zoom = 13,
+  onCall = () => {},
+  onMoveEnd = () => {},
+  stopEmitsMoveEnd = false,
+} = {}) {
   const listeners = new Map()
   const calls = []
 
@@ -30,6 +36,7 @@ function createMap({ atTarget = false, zoom = 13, onCall = () => {} } = {}) {
     },
     stop() {
       record(['stop'])
+      if (stopEmitsMoveEnd) onMoveEnd()
     },
     flyTo(position, nextZoom) {
       record(['flyTo', position, nextZoom])
@@ -44,6 +51,7 @@ function createMap({ atTarget = false, zoom = 13, onCall = () => {} } = {}) {
       const handler = listeners.get(event)
       listeners.delete(event)
       handler?.()
+      if (event === 'moveend') onMoveEnd()
     },
     listener(event) {
       return listeners.get(event)
@@ -134,6 +142,50 @@ test('醫院聚焦前取消 pending bounds，最終 moveend 仍可重新排程',
 
   scheduler.schedule()
   timers.get(nextTimerId)?.()
+  assert.equal(boundsRequestCount, 1)
+})
+
+test('stop 觸發的 moveend 不留下 bounds timer，只有 flyTo 完成後重新排程', () => {
+  const timers = new Map()
+  let nextTimerId = 0
+  let boundsRequestCount = 0
+  const scheduler = createMapBoundsScheduler({
+    onBounds: () => {
+      boundsRequestCount += 1
+    },
+    setTimer(callback) {
+      nextTimerId += 1
+      timers.set(nextTimerId, callback)
+      return nextTimerId
+    },
+    clearTimer(timerId) {
+      timers.delete(timerId)
+    },
+  })
+  const map = createMap({
+    stopEmitsMoveEnd: true,
+    onMoveEnd: scheduler.schedule,
+  })
+  const coordinator = createHospitalMapSelectionCoordinator({
+    getMap: () => map,
+    isAtTarget: () => false,
+    syncClusters: () => {},
+    revealMarker: () => {},
+    beforeProgrammaticMove: scheduler.cancel,
+  })
+
+  scheduler.schedule()
+  coordinator.focus(hospitals.first)
+
+  assert.equal(timers.size, 0)
+  assert.deepEqual(map.calls.slice(-2), [
+    ['stop'],
+    ['flyTo', [25.033, 121.5654], 15],
+  ])
+
+  map.fire('moveend')
+  assert.equal(timers.size, 1)
+  timers.values().next().value()
   assert.equal(boundsRequestCount, 1)
 })
 

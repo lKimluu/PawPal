@@ -142,6 +142,7 @@ export function createHospitalMapSelectionCoordinator({
   isAtTarget,
   syncClusters,
   revealMarker,
+  beforeProgrammaticMove = () => {},
 }) {
   let generation = 0
   let isFocusing = false
@@ -193,6 +194,7 @@ export function createHospitalMapSelectionCoordinator({
     }
 
     map.stop?.()
+    beforeProgrammaticMove()
     syncClusters({ restoreOpenPopup: false })
     isFocusing = true
 

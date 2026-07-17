@@ -489,7 +489,11 @@ test('Map ready and bounds refresh do not issue duplicate viewport requests', ()
   assert.match(mapView, /createMapBoundsScheduler/)
   assert.match(
     mapView,
-    /function focusSelectedHospital\(\) \{\s*const hospital = selectedHospital\.value\s*if \(hospital\) boundsScheduler\.cancel\(\)\s*selectionCoordinator\.focus\(hospital \?\? null\)\s*\}/,
+    /beforeProgrammaticMove:\s*boundsScheduler\.cancel/,
+  )
+  assert.match(
+    mapView,
+    /function focusSelectedHospital\(\) \{\s*const hospital = selectedHospital\.value\s*selectionCoordinator\.focus\(hospital \?\? null\)\s*\}/,
   )
   assert.match(
     mapView,

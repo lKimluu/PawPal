@@ -162,11 +162,11 @@ const selectionCoordinator = createHospitalMapSelectionCoordinator({
   isAtTarget: isMapAtHospital,
   syncClusters,
   revealMarker: revealHospitalMarker,
+  beforeProgrammaticMove: boundsScheduler.cancel,
 })
 
 function focusSelectedHospital() {
   const hospital = selectedHospital.value
-  if (hospital) boundsScheduler.cancel()
   selectionCoordinator.focus(hospital ?? null)
 }
 function panToPendingLocation() {
