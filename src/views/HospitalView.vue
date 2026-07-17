@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
@@ -29,6 +29,8 @@ const {
 const headerVariant = computed(() => (authStore.isLoggedIn ? 'member' : 'public'))
 const isLocationPermissionBlocked = computed(() => permissionState.value === 'denied')
 const selectionRequestId = ref(0)
+const mapSectionRef = ref(null)
+const mobileHospitalMapQuery = '(max-width: 767px)'
 
 async function requestCurrentLocation() {
   const locationSucceeded = await locationStore.requestCurrentLocation()
@@ -59,6 +61,27 @@ async function loadNearbyHospitals({ requestLocation = true } = {}) {
 function selectHospital(hospitalId) {
   hospitalStore.selectHospital(hospitalId)
   selectionRequestId.value += 1
+}
+
+function isMobileHospitalMapLayout() {
+  if (typeof window === 'undefined') return false
+  if (typeof window.matchMedia === 'function') {
+    return window.matchMedia(mobileHospitalMapQuery).matches
+  }
+  return window.innerWidth <= 767
+}
+
+function scrollMapIntoViewOnMobile() {
+  if (!isMobileHospitalMapLayout()) return
+
+  nextTick(() => {
+    mapSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
+}
+
+function selectHospitalFromList(hospitalId) {
+  selectHospital(hospitalId)
+  scrollMapIntoViewOnMobile()
 }
 
 onMounted(() => {
@@ -117,20 +140,22 @@ onMounted(() => {
             </div>
           </div>
           <div class="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-            <MapView
-              class="min-w-0"
-              :hospitals="mapHospitals"
-              :selected-hospital-id="selectedHospitalId"
-              :selected-hospital="selectedHospital"
-              :selection-request-id="selectionRequestId"
-              :user-location="userLocation"
-              :is-loading="mapLoading"
-              :error-message="mapError"
-              :is-truncated="mapTruncated"
-              @bounds-change="hospitalStore.loadMapHospitals"
-              @retry="hospitalStore.retryMapQuery"
-              @select-hospital="selectHospital"
-            />
+            <div ref="mapSectionRef" class="min-w-0 scroll-mt-20">
+              <MapView
+                class="min-w-0"
+                :hospitals="mapHospitals"
+                :selected-hospital-id="selectedHospitalId"
+                :selected-hospital="selectedHospital"
+                :selection-request-id="selectionRequestId"
+                :user-location="userLocation"
+                :is-loading="mapLoading"
+                :error-message="mapError"
+                :is-truncated="mapTruncated"
+                @bounds-change="hospitalStore.loadMapHospitals"
+                @retry="hospitalStore.retryMapQuery"
+                @select-hospital="selectHospital"
+              />
+            </div>
 
             <aside class="flex min-w-0 flex-col gap-5 xl:max-h-[760px]">
               <SearchBar />
@@ -142,7 +167,7 @@ onMounted(() => {
                 :error-message="errorMessage"
                 :is-empty="hospitalStore.isEmpty"
                 :pagination="pagination"
-                @select-hospital="selectHospital"
+                @select-hospital="selectHospitalFromList"
                 @retry="hospitalStore.retryCurrentQuery"
                 @page-change="hospitalStore.setPage"
               />
