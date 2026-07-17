@@ -32,3 +32,7 @@
 - [x] 7.4 實作規格需求「Pet profile update applies an internal submit guard」：在 `src/components/pet/PetProfileModal.vue` 的 `handleSaveEdit` 開頭加上 `if (props.isSaving) return`。驗證：編輯寵物資料時快速連續點擊「儲存修改」數次，Network 面板只出現一次對應的 PATCH 請求。
 - [x] 7.5 實作規格需求「Login form applies an internal submit guard」：在 `src/components/auth/LoginForm.vue` 的 `handleSubmit` 開頭加上 `if (isSubmitting.value) return`。驗證：快速連續點擊「登入」鈕數次，Network 面板只出現一次對應的登入請求。
 - [x] 7.6 實作規格需求「Register form applies an internal submit guard」：在 `src/components/auth/RegisterForm.vue` 的 `handleSubmit` 開頭加上 `if (isSubmitting.value) return`。驗證：快速連續點擊「註冊」鈕數次，Network 面板只出現一次對應的註冊請求；執行 `npm run build` 確認整體建置成功。
+
+## 8. 醫院評論刪除補上防護（醫院評論前端已於 2026-07-17 merge 進 dev，範圍追加）
+
+- [x] 8.1 實作規格需求「Hospital review deletion applies the duplicate-submit guard」：先將 `origin/dev` merge 進 `fix/prevent-duplicate-submit` 分支取得 `HospitalReviewModal.vue`／`HospitalView.vue`；確認 `submitHospitalReview`（新增/編輯評論）與 `HospitalReviewModal.handleSubmit` 已有內建防護、不需修改；在 `src/views/HospitalView.vue` 新增本地 `isReviewDeleting` ref，`deleteHospitalReview` 開頭擋二次觸發並在請求完成後重置，`closeHospitalReviewModal` 一併重置，傳給 `DeleteConfirmModal` 的 `isLoading` prop。驗證：開啟醫院評論刪除確認視窗、快速連點確認鈕兩次，Network 面板只出現一次對應的 `DELETE /hospitals/:id/reviews/me` 請求；執行 `npm run build` 確認建置成功。

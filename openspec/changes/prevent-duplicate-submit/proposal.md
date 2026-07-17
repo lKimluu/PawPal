@@ -16,6 +16,8 @@
   - `src/components/pet/PetProfileModal.vue`（寵物編輯）
   - `src/components/auth/LoginForm.vue`（登入）
   - `src/components/auth/RegisterForm.vue`（註冊）
+- **範圍追加（醫院評論 PR 已合併）**：`feat/hospital-review-modal` 已於 2026-07-17 merge 進 `dev`，將 `dev` merge 進本分支後補上：
+  - `src/views/HospitalView.vue`：`deleteHospitalReview`（刪除評論）新增本地 `isReviewDeleting` ref，傳給 `DeleteConfirmModal` 的 `isLoading` prop。新增/編輯評論（`submitHospitalReview`、`HospitalReviewModal.handleSubmit`）已內建防護，不需修改。
 
 ## Non-Goals (optional)
 
@@ -47,5 +49,6 @@
     - src/components/pet/PetProfileModal.vue
     - src/components/auth/LoginForm.vue
     - src/components/auth/RegisterForm.vue
+    - src/views/HospitalView.vue
   - New: (none)
   - Removed: (none)

@@ -138,3 +138,17 @@ The shared `DeleteConfirmModal` component SHALL accept an `isLoading` boolean pr
 
 - **WHEN** a user clicks the register button multiple times in rapid succession
 - **THEN** only one register request is sent to the authentication API
+
+### Requirement: Hospital review deletion applies the duplicate-submit guard
+
+`HospitalView`'s review deletion flow SHALL maintain a local deletion-in-progress state and pass it to `DeleteConfirmModal`'s `isLoading` prop.
+
+#### Scenario: Rapid double-click on review delete confirmation sends only one DELETE request
+
+- **WHEN** a user opens the delete confirmation modal for a hospital review and clicks confirm twice in rapid succession
+- **THEN** only one `DELETE` request for that review is sent
+
+#### Scenario: Failed review deletion restores the confirm button
+
+- **WHEN** the hospital review deletion request fails
+- **THEN** the local deletion-in-progress state is reset to `false` and the confirm button becomes clickable again

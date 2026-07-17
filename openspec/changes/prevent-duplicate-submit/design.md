@@ -7,7 +7,7 @@
 - 根因：`src/components/common/DeleteConfirmModal.vue` 是寵物刪除、醫療紀錄刪除、成長紀錄刪除共用的確認視窗，但沒有 `isLoading` prop，確認鈕永遠可點。
 - 呼叫端缺口：`src/views/DashboardView.vue`（寵物刪除）已有 `isDeletingPet` 卻因元件不支援而沒接上；`src/views/MedicalView.vue`、`src/views/GrowthView.vue` 的刪除流程完全沒有本地 loading 狀態；`src/components/medical/MedicalRecordModal.vue` 的新增/編輯 submit 按鈕完全沒有防護（`medicalStore.isLoading` 已存在但未被使用）。
 - 後端沒有 idempotency key 機制；僅寵物資源靠晶片號碼唯一鍵（DB error code `23505`）避免重複新增，其餘資源沒有唯一鍵保護。刪除端點本身是冪等的（重複 DELETE 只會多一次 404，不會產生錯誤資料）。
-- 醫院評論與評分（hospital reviews）前端功能尚在另一個 PR 審核中，尚未合併進 `dev`，本次不涵蓋。
+- 醫院評論與評分（hospital reviews）前端功能（`feat/hospital-review-modal`）已於 2026-07-17 merge 進 `dev`；將 `dev` merge 進本分支後稽核發現：`HospitalReviewModal.handleSubmit`（送出評論）與 `HospitalView.submitHospitalReview`（新增/編輯評論）已內建 `if (isSubmitting) return` 防護，但 `HospitalView.deleteHospitalReview`（刪除評論）完全沒有防護、呼叫 `DeleteConfirmModal` 時也沒有傳 `isLoading` prop，是與寵物/醫療/成長紀錄刪除相同的缺陷模式，已納入本次範圍修正。
 
 ## Goals / Non-Goals
 
@@ -23,7 +23,6 @@
 
 - 不新建共用 composable（如 `useAsyncAction`）。全站已有兩套成熟範本（刪除模式、新增編輯模式）可直接複製沿用，符合 CLAUDE.md「延續現有架構、不隨意擴大修改範圍」原則。
 - 不修改後端，不新增 idempotency key 機制。前端補齊 disabled/loading 防護即可涵蓋「使用者快速連點」情境；刪除端點本身冪等，不需要後端配合。
-- 不處理醫院評論與評分（hospital reviews）。該功能前端尚未合併進 `dev`（另一個 PR 審核中），等合併後再另外套用本次確立的防護模式。
 - 不處理會員資料修改（`UserProfileModal.vue`）、行事曆模組——這些元件的送出/確認函式**開頭就有** `if (isSaving/isLoading) return` 內部防護，實測確認安全，不在本次修改範圍內。
 - 不處理平板/手機裝置的專項測試——本次僅在桌機瀏覽器（含 DevTools 網速節流模擬）驗證，未在實體平板/手機或對應的瀏覽器裝置模式下操作過。
 
@@ -79,8 +78,8 @@
 - 執行 `npm run build`（前端）確認無型別/建置錯誤（本專案為 JS，無 TypeScript 型別檢查，但需確認 Vite build 成功）。
 
 **Scope boundaries**：
-- In scope：`common/DeleteConfirmModal.vue`、`DashboardView.vue`（寵物刪除呼叫端）、`MedicalView.vue`（醫療紀錄刪除呼叫端）、`MedicalRecordModal.vue`（醫療紀錄新增/編輯）、`GrowthView.vue`（成長紀錄刪除呼叫端）、`GrowthRecordModal.vue`（成長紀錄新增）、`GrowthHistoryModal.vue`（成長紀錄編輯）、`AddPetModal.vue`（寵物新增）、`PetProfileModal.vue`（寵物編輯）、`LoginForm.vue`（登入）、`RegisterForm.vue`（註冊）。
-- Out of scope：`UserProfileModal.vue`（會員資料修改，已確認安全）、行事曆模組全部（已確認安全）、醫院評論與評分（前端未合併）、任何後端程式碼、平板/手機裝置專項測試。
+- In scope：`common/DeleteConfirmModal.vue`、`DashboardView.vue`（寵物刪除呼叫端）、`MedicalView.vue`（醫療紀錄刪除呼叫端）、`MedicalRecordModal.vue`（醫療紀錄新增/編輯）、`GrowthView.vue`（成長紀錄刪除呼叫端）、`GrowthRecordModal.vue`（成長紀錄新增）、`GrowthHistoryModal.vue`（成長紀錄編輯）、`AddPetModal.vue`（寵物新增）、`PetProfileModal.vue`（寵物編輯）、`LoginForm.vue`（登入）、`RegisterForm.vue`（註冊）、`HospitalView.vue`（醫院評論刪除呼叫端）。
+- Out of scope：`UserProfileModal.vue`（會員資料修改，已確認安全）、行事曆模組全部（已確認安全）、`HospitalReviewModal.vue`／`HospitalView.submitHospitalReview`（醫院評論新增/編輯，已確認安全不需修改）、任何後端程式碼、平板/手機裝置專項測試。
 
 ## Risks / Trade-offs
 
