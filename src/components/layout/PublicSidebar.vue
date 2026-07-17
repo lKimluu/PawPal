@@ -6,17 +6,19 @@ const sidebarStore = useSidebarStore()
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50">
+  <div v-if="sidebarStore.isOpen" class="fixed inset-0 z-50">
     <!-- 遮罩 -->
     <div
-      class="absolute inset-0 bg-white/10 backdrop-opacity-60"
+      class="absolute inset-0 bg-black/50"
       @click="sidebarStore.closeSidebar()"
     />
+  </div>
 
-    <!-- 選單本體 -->
-
+  <!-- 選單本體 -->
+  <transition name="slide">
     <aside
-      class="absolute right-0 top-0 flex h-full w-80 flex-col overflow-y-auto overflow-x-hidden bg-brand-white"
+      v-if="sidebarStore.isOpen"
+      class="fixed right-0 top-0 z-50 flex h-full w-80 flex-col overflow-y-auto overflow-x-hidden bg-brand-white"
     >
       <div class="flex items-center justify-end px-5 pt-5">
         <button
@@ -122,5 +124,17 @@ const sidebarStore = useSidebarStore()
         </RouterLink>
       </div>
     </aside>
-  </div>
+  </transition>
 </template>
+
+<style scoped>
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(100%);
+}
+</style>

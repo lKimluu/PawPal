@@ -58,8 +58,12 @@ const navItems = [
   <div v-if="sidebarStore.isOpen" class="fixed inset-0 z-50 lg:hidden">
     <!-- 遮罩 -->
     <div class="absolute inset-0 bg-black/50" @click="sidebarStore.closeSidebar()" />
+  </div>
+
+  <transition name="slide">
     <aside
-      class="absolute right-0 top-0 flex h-full w-80 flex-col overflow-y-auto overflow-x-hidden bg-brand-white"
+      v-if="sidebarStore.isOpen"
+      class="fixed right-0 top-0 z-50 flex h-full w-80 flex-col overflow-y-auto overflow-x-hidden bg-brand-white lg:hidden"
     >
       <div class="flex items-center justify-end px-5 pt-5">
         <button
@@ -198,7 +202,7 @@ const navItems = [
         </RouterLink>
       </div>
     </aside>
-  </div>
+  </transition>
 
   <!-- 電腦 -->
   <aside
@@ -233,3 +237,15 @@ const navItems = [
     </nav>
   </aside>
 </template>
+
+<style scoped>
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(100%);
+}
+</style>
