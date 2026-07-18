@@ -9,6 +9,7 @@ import {
   buildHospitalListQuery,
   buildNearbyHospitalQuery,
   fetchHospitals,
+  fetchMapHospitals,
   fetchNearbyHospitals,
   normalizeHospital,
   TAIPEI_CENTER,
@@ -28,6 +29,16 @@ function createDeferred() {
   })
 
   return { promise, resolve, reject }
+}
+
+function createAbortableAxiosDeferred(config = {}) {
+  const deferred = createDeferred()
+  const rejectAsCanceled = () => deferred.reject(new axios.CanceledError('canceled'))
+
+  if (config.signal?.aborted) rejectAsCanceled()
+  else config.signal?.addEventListener('abort', rejectAsCanceled, { once: true })
+
+  return deferred
 }
 
 test('Hospital list query supports filters and pagination', () => {
@@ -200,6 +211,220 @@ test('Nearby API fallback result can feed list and map marker data', async () =>
     assert.equal(Number.isFinite(result.hospitals[0].latitude), true)
     assert.equal(Number.isFinite(result.hospitals[0].longitude), true)
   } finally {
+    axios.get = originalGet
+  }
+})
+
+test('Map API passes AbortSignal and distinguishes cancellation from failures', async () => {
+  const originalGet = axios.get
+  const calls = []
+
+  axios.get = (url, config) => {
+    const deferred = createAbortableAxiosDeferred(config)
+    calls.push({ url, config, deferred })
+    return deferred.promise
+  }
+
+  try {
+    const bounds = { north: 25.1, south: 25, east: 121.6, west: 121.5 }
+    const controller = new AbortController()
+    const canceledRequest = fetchMapHospitals(bounds, { signal: controller.signal })
+
+    assert.equal(calls[0].url.endsWith('/api/v1/hospitals/map'), true)
+    assert.equal(calls[0].config.signal, controller.signal)
+    assert.deepEqual(calls[0].config.params, bounds)
+
+    controller.abort()
+    assert.deepEqual(await canceledRequest, {
+      success: false,
+      canceled: true,
+      hospitals: [],
+      total: 0,
+      truncated: false,
+    })
+
+    const failedRequest = fetchMapHospitals(bounds)
+    calls[1].deferred.reject(new Error('地圖服務暫時無法載入'))
+
+    assert.deepEqual(await failedRequest, {
+      success: false,
+      canceled: false,
+      hospitals: [],
+      total: 0,
+      truncated: false,
+      message: '地圖服務暫時無法載入',
+    })
+  } finally {
+    axios.get = originalGet
+  }
+})
+
+test('New hospital map request aborts the stale request without stale state commits', async () => {
+  const originalGet = axios.get
+  const requests = []
+
+  axios.get = (url, config) => {
+    const deferred = createAbortableAxiosDeferred(config)
+    requests.push({ url, config, deferred })
+    return deferred.promise
+  }
+
+  setActivePinia(createPinia())
+  const store = useHospitalStore()
+
+  try {
+    store.mapHospitals = [{ id: 'current-marker', name: '目前顯示的醫院' }]
+    store.mapTruncated = true
+    const firstBounds = { north: 25.1, south: 25, east: 121.6, west: 121.5 }
+    const secondBounds = { north: 25.2, south: 25.1, east: 121.7, west: 121.6 }
+    const firstRequest = store.loadMapHospitals(firstBounds)
+    const firstSignal = requests[0].config.signal
+    const secondRequest = store.loadMapHospitals(secondBounds)
+
+    assert.equal(firstSignal.aborted, true)
+    assert.notEqual(requests[1].config.signal, firstSignal)
+    assert.equal(requests[1].config.signal.aborted, false)
+
+    assert.equal((await firstRequest).canceled, true)
+    assert.deepEqual(store.mapHospitals.map(({ id }) => id), ['current-marker'])
+    assert.equal(store.mapTruncated, true)
+    assert.equal(store.mapError, '')
+    assert.equal(store.mapLoading, true)
+
+    requests[1].deferred.resolve({
+      data: {
+        hospitals: [{ id: 'latest-marker', name: '最新範圍醫院' }],
+        total: 1,
+        truncated: false,
+      },
+    })
+    await secondRequest
+
+    assert.deepEqual(store.mapHospitals.map(({ id }) => id), ['latest-marker'])
+    assert.equal(store.mapTruncated, false)
+    assert.equal(store.mapError, '')
+    assert.equal(store.mapLoading, false)
+  } finally {
+    store.$dispose()
+    axios.get = originalGet
+  }
+})
+
+test('Map request sequencing rejects stale commits when cancellation is too late', async () => {
+  const originalGet = axios.get
+  const requests = []
+
+  axios.get = (url, config) => {
+    const deferred = createDeferred()
+    requests.push({ url, config, deferred })
+    return deferred.promise
+  }
+
+  setActivePinia(createPinia())
+  const store = useHospitalStore()
+
+  try {
+    const staleRequest = store.loadMapHospitals({ north: 25.1, south: 25, east: 121.6, west: 121.5 })
+    const currentRequest = store.loadMapHospitals({ north: 25.2, south: 25.1, east: 121.7, west: 121.6 })
+
+    assert.equal(requests[0].config.signal.aborted, true)
+    requests[1].deferred.resolve({
+      data: { hospitals: [{ id: 'current-marker' }], total: 1, truncated: false },
+    })
+    await currentRequest
+
+    requests[0].deferred.resolve({
+      data: { hospitals: [{ id: 'stale-marker' }], total: 1, truncated: true },
+    })
+    await staleRequest
+
+    assert.deepEqual(store.mapHospitals.map(({ id }) => id), ['current-marker'])
+    assert.equal(store.mapTruncated, false)
+    assert.equal(store.mapError, '')
+    assert.equal(store.mapLoading, false)
+  } finally {
+    store.$dispose()
+    axios.get = originalGet
+  }
+})
+
+test('Hospital store disposal aborts the active map request without committing state', async () => {
+  const originalGet = axios.get
+  const requests = []
+
+  axios.get = (url, config) => {
+    const deferred = createAbortableAxiosDeferred(config)
+    requests.push({ url, config, deferred })
+    return deferred.promise
+  }
+
+  setActivePinia(createPinia())
+  const store = useHospitalStore()
+
+  try {
+    store.mapHospitals = [{ id: 'preserved-marker', name: '保留的醫院' }]
+    store.mapTruncated = true
+    const request = store.loadMapHospitals({ north: 25.1, south: 25, east: 121.6, west: 121.5 })
+    const signal = requests[0].config.signal
+    const stateBeforeDispose = {
+      ids: store.mapHospitals.map(({ id }) => id),
+      truncated: store.mapTruncated,
+      error: store.mapError,
+      loading: store.mapLoading,
+    }
+
+    store.$dispose()
+
+    assert.equal(signal.aborted, true)
+    assert.equal((await request).canceled, true)
+    assert.deepEqual(
+      {
+        ids: store.mapHospitals.map(({ id }) => id),
+        truncated: store.mapTruncated,
+        error: store.mapError,
+        loading: store.mapLoading,
+      },
+      stateBeforeDispose,
+    )
+  } finally {
+    axios.get = originalGet
+  }
+})
+
+test('Current map failures remain visible and retry the last bounds', async () => {
+  const originalGet = axios.get
+  const calls = []
+
+  axios.get = async (url, config) => {
+    calls.push({ url, config })
+    if (calls.length === 1) throw new Error('地圖服務暫時無法載入')
+    return {
+      data: {
+        hospitals: [{ id: 'retried-marker', name: '重試後醫院' }],
+        total: 1,
+        truncated: false,
+      },
+    }
+  }
+
+  setActivePinia(createPinia())
+  const store = useHospitalStore()
+
+  try {
+    const bounds = { north: 25.1, south: 25, east: 121.6, west: 121.5 }
+    await store.loadMapHospitals(bounds)
+
+    assert.equal(store.mapError, '地圖服務暫時無法載入')
+    assert.equal(store.mapLoading, false)
+
+    await store.retryMapQuery()
+
+    assert.deepEqual(calls.map(({ config }) => config.params), [bounds, bounds])
+    assert.deepEqual(store.mapHospitals.map(({ id }) => id), ['retried-marker'])
+    assert.equal(store.mapError, '')
+    assert.equal(store.mapLoading, false)
+  } finally {
+    store.$dispose()
     axios.get = originalGet
   }
 })

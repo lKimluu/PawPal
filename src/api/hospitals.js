@@ -222,12 +222,13 @@ export async function fetchHospitalRegions() {
   }
 }
 
-export async function fetchMapHospitals(bounds = {}) {
+export async function fetchMapHospitals(bounds = {}, options = {}) {
   const params = buildHospitalMapQuery(bounds)
   try {
     const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/map`, {
       params,
       headers: getClientIdHeaders(),
+      signal: options.signal,
     })
     return {
       success: true,
@@ -236,8 +237,13 @@ export async function fetchMapHospitals(bounds = {}) {
       truncated: Boolean(response.data?.truncated),
     }
   } catch (error) {
+    if (axios.isCancel(error)) {
+      return { success: false, canceled: true, hospitals: [], total: 0, truncated: false }
+    }
+
     return {
       success: false,
+      canceled: false,
       hospitals: [],
       total: 0,
       truncated: false,
