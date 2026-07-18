@@ -164,7 +164,7 @@ onBeforeUnmount(() => {
               v-if="hasUploadedAvatar"
               :src="memberAvatarUrl"
               alt="會員頭像"
-              class="size-9 rounded-full object-cover"
+              class="size-9 rounded-full object-cover object-center"
             />
             <img
               v-else
@@ -186,7 +186,7 @@ onBeforeUnmount(() => {
                   v-if="hasUploadedAvatar"
                   :src="memberAvatarUrl"
                   alt="會員頭像"
-                  class="size-full object-cover"
+                  class="size-full object-cover object-center"
                 />
                 <img
                   v-else

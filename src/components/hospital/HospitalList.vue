@@ -26,7 +26,7 @@ defineProps({
   pagination: { type: Object, default: () => ({ page: 1, totalPages: 0 }) },
 })
 
-const emit = defineEmits(['selectHospital', 'retry', 'pageChange'])
+const emit = defineEmits(['selectHospital', 'retry', 'pageChange', 'reviewHospital'])
 </script>
 
 <template>
@@ -50,6 +50,7 @@ const emit = defineEmits(['selectHospital', 'retry', 'pageChange'])
         :hospital="item"
         :is-selected="item.id === selectedHospitalId"
         @click="emit('selectHospital', item.id)"
+        @review-hospital="emit('reviewHospital', item)"
       />
     </div>
     <nav

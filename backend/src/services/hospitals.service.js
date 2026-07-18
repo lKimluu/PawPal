@@ -49,6 +49,16 @@ function map_hospital_row(row) {
     hospital.distance_km = Number(Number(row.distance_km).toFixed(2))
   }
 
+  if (row.rating_average !== undefined) {
+    const rating = Number(row.rating_average ?? 0)
+    hospital.average_rating = rating
+    hospital.rating = rating
+  }
+
+  if (row.review_count !== undefined) {
+    hospital.review_count = Number(row.review_count ?? 0)
+  }
+
   return hospital
 }
 
@@ -129,6 +139,16 @@ const HOSPITAL_SELECT_COLUMNS = `
   ) AS animal_types
 `
 
+const HOSPITAL_REVIEW_SUMMARY_JOIN = `
+  LEFT JOIN LATERAL (
+    SELECT
+      ROUND(AVG(rating)::numeric, 1) AS rating_average,
+      COUNT(*)::int AS review_count
+    FROM hospital_reviews
+    WHERE hospital_id = h.id
+  ) review_stats ON TRUE
+`
+
 export async function findHospitals(filters = {}) {
   const uses_distance = filters.sort === 'distance'
   const values = uses_distance ? [filters.lat, filters.lng] : []
@@ -177,13 +197,7 @@ export async function findHospitals(filters = {}) {
     `
       SELECT ${HOSPITAL_SELECT_COLUMNS}${distance_select}
       FROM hospitals h
-      LEFT JOIN LATERAL (
-        SELECT
-          ROUND(AVG(rating)::numeric, 1) AS rating_average,
-          COUNT(*)::int AS review_count
-        FROM hospital_reviews
-        WHERE hospital_id = h.id
-      ) review_stats ON TRUE
+      ${HOSPITAL_REVIEW_SUMMARY_JOIN}
       LEFT JOIN hospital_animal_types hat
         ON hat.hospital_id = h.id
         AND hat.verification_status <> 'rejected'
@@ -311,13 +325,7 @@ export async function findMapHospitals({ north, south, east, west }) {
   const result = await pool.query(`
     SELECT ${HOSPITAL_SELECT_COLUMNS}
     FROM hospitals h
-    LEFT JOIN LATERAL (
-      SELECT
-        ROUND(AVG(rating)::numeric, 1) AS rating_average,
-        COUNT(*)::int AS review_count
-      FROM hospital_reviews
-      WHERE hospital_id = h.id
-    ) review_stats ON TRUE
+    ${HOSPITAL_REVIEW_SUMMARY_JOIN}
     LEFT JOIN hospital_animal_types hat ON hat.hospital_id = h.id AND hat.verification_status <> 'rejected'
     LEFT JOIN animal_types at ON at.id = hat.animal_type_id
     WHERE h.latitude BETWEEN $1 AND $2 AND h.longitude BETWEEN $3 AND $4
