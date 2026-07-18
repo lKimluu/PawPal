@@ -44,7 +44,7 @@ const isReviewDeleteOpen = ref(false)
 const currentUserId = computed(() => authStore.user?.id ?? authStore.user?.user_id ?? null)
 const selectionRequestId = ref(0)
 const mapSectionRef = ref(null)
-const mobileHospitalMapQuery = '(max-width: 767px)'
+const stackedHospitalMapQuery = '(max-width: 1279px)'
 const reviewRequestToken = ref(0)
 
 async function requestCurrentLocation() {
@@ -78,16 +78,16 @@ function selectHospital(hospitalId) {
   selectionRequestId.value += 1
 }
 
-function isMobileHospitalMapLayout() {
+function isStackedHospitalMapLayout() {
   if (typeof window === 'undefined') return false
   if (typeof window.matchMedia === 'function') {
-    return window.matchMedia(mobileHospitalMapQuery).matches
+    return window.matchMedia(stackedHospitalMapQuery).matches
   }
-  return window.innerWidth <= 767
+  return window.innerWidth <= 1279
 }
 
-function scrollMapIntoViewOnMobile() {
-  if (!isMobileHospitalMapLayout()) return
+function scrollMapIntoViewOnStackedLayout() {
+  if (!isStackedHospitalMapLayout()) return
 
   nextTick(() => {
     mapSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -96,7 +96,7 @@ function scrollMapIntoViewOnMobile() {
 
 function selectHospitalFromList(hospitalId) {
   selectHospital(hospitalId)
-  scrollMapIntoViewOnMobile()
+  scrollMapIntoViewOnStackedLayout()
 }
 
 function isCurrentReviewRequest(hospitalId, requestToken) {

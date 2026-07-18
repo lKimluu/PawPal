@@ -691,15 +691,18 @@ test('手機版點選醫院列表卡片後會平滑捲動回地圖', () => {
   const hospitalView = readSource('../views/HospitalView.vue')
 
   assert.match(hospitalView, /const mapSectionRef = ref\(null\)/)
-  assert.match(hospitalView, /const mobileHospitalMapQuery = '\(max-width: 767px\)'/)
-  assert.match(hospitalView, /function isMobileHospitalMapLayout\(\) \{[\s\S]*?window\.matchMedia\(mobileHospitalMapQuery\)\.matches/)
+  assert.match(hospitalView, /const stackedHospitalMapQuery = '\(max-width: 1279px\)'/)
   assert.match(
     hospitalView,
-    /function scrollMapIntoViewOnMobile\(\) \{[\s\S]*?nextTick\(\(\) => \{[\s\S]*?mapSectionRef\.value\?\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/,
+    /function isStackedHospitalMapLayout\(\) \{[\s\S]*?window\.matchMedia\(stackedHospitalMapQuery\)\.matches[\s\S]*?window\.innerWidth <= 1279/,
   )
   assert.match(
     hospitalView,
-    /function selectHospitalFromList\(hospitalId\) \{\s*selectHospital\(hospitalId\)\s*scrollMapIntoViewOnMobile\(\)\s*\}/,
+    /function scrollMapIntoViewOnStackedLayout\(\) \{[\s\S]*?nextTick\(\(\) => \{[\s\S]*?mapSectionRef\.value\?\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/,
+  )
+  assert.match(
+    hospitalView,
+    /function selectHospitalFromList\(hospitalId\) \{\s*selectHospital\(hospitalId\)\s*scrollMapIntoViewOnStackedLayout\(\)\s*\}/,
   )
   assert.match(hospitalView, /<div\s+ref="mapSectionRef"[\s\S]*?<MapView/)
   assert.match(hospitalView, /@select-hospital="selectHospitalFromList"/)
