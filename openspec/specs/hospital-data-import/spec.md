@@ -8,47 +8,91 @@ TBD - created by archiving change 'import-moa-veterinary-hospitals'. Update Purp
 
 ### Requirement: Hospital table stores official clinic records
 
-The system SHALL provide a hospitals table for official veterinary clinic records imported from the MOA UnitId=078 dataset. The table SHALL store license_number, name, city, district, address, phone, latitude, longitude, license_status, is_24h, emergency_available, created_at, and updated_at. The license_number field MUST be required and unique.
+The system SHALL provide a hospitals table for official veterinary clinic records imported from the MOA UnitId=078 dataset. The table SHALL store license_number, name, city, district, address, phone, latitude, longitude, license_status, is_24h, emergency_available, google_place_id, is_24h_source, is_24h_checked_at, created_at, and updated_at. The license_number field MUST be required and unique. A non-NULL google_place_id MUST be unique across hospitals.
 
 #### Scenario: Table supports source identity
 
 - **WHEN** a hospital record is inserted with license_number "九三府農畜字第21935號"
 - **THEN** the database enforces that no second row uses the same license_number
 
+#### Scenario: Google Place identity is unique when present
+
+- **GIVEN** one hospital stores google_place_id "ChIJleIT6DqpQjQRGJ4YBxYeVmw"
+- **WHEN** another hospital attempts to store the same non-NULL google_place_id
+- **THEN** the database rejects the duplicate link
+
 #### Scenario: Unknown enrichment fields remain nullable
 
-- **WHEN** a MOA clinic record does not include coordinates, 24-hour status, or emergency availability
-- **THEN** latitude, longitude, is_24h, and emergency_available are stored as NULL
+- **WHEN** a MOA clinic record does not include coordinates, 24-hour status, emergency availability, or Google enrichment metadata
+- **THEN** latitude, longitude, is_24h, emergency_available, google_place_id, is_24h_source, and is_24h_checked_at are stored as NULL
 
 
 <!-- @trace
-source: import-moa-veterinary-hospitals
-updated: 2026-07-05
+source: enrich-hospital-24h-from-google-places
+updated: 2026-07-19
 code:
-  - backend/database/schema/calendar_events.sql
-  - backend/scripts/setup-db.js
-  - .agents/skills/spectra-ingest/SKILL.md
-  - backend/database/seeds/medical_records.sql
-  - .agents/skills/spectra-audit/SKILL.md
-  - backend/database/schema/hospitals.sql
-  - .agents/skills/spectra-archive/SKILL.md
+  - backend/src/controllers/hospital_reviews.controller.js
+  - src/components/hospital/HospitalReviewModal.vue
+  - src/components/hospital/MapView.vue
+  - backend/src/services/hospital_reviews.service.js
+  - src/utils/hospitalMapSelection.js
+  - src/components/pet/PetProfileModal.vue
+  - backend/src/middlewares/upload_image.js
+  - package.json
+  - backend/src/services/ai_assistant.service.js
+  - src/components/auth/LoginForm.vue
+  - src/components/common/AvatarCropModal.vue
+  - src/components/common/PetLoadingRunner.vue
+  - backend/database/schema/hospital_reviews.sql
   - backend/package.json
-  - backend/scripts/clear-seed.js
-  - AGENTS.md
-  - backend/database/seeds/calendar_events.sql
-  - .agents/skills/spectra-ask/SKILL.md
-  - .agents/skills/spectra-debug/SKILL.md
-  - .spectra.yaml
-  - .agents/skills/spectra-commit/SKILL.md
-  - .agents/skills/spectra-drift/SKILL.md
-  - backend/database/schema/growth_records.sql
-  - .agents/skills/spectra-discuss/SKILL.md
+  - src/components/growth/GrowthHistoryModal.vue
+  - src/main.js
+  - src/stores/hospital.js
+  - src/views/MedicalView.vue
+  - src/assets/main.css
+  - src/components/hospital/HospitalList.vue
+  - src/components/layout/AppHeader.vue
+  - CLAUDE.md
+  - backend/src/services/hospitals.service.js
+  - backend/database/schema/hospitals.sql
+  - src/utils/hospitalPopup.js
+  - src/views/HospitalView.vue
+  - src/components/pet/AddPetModal.vue
+  - backend/database/scripts/enrich_hospital_24h.js
+  - backend/src/routes/hospitals.route.js
+  - src/api/hospitals.js
+  - src/components/member/UserProfileModal.vue
+  - src/views/HomeView.vue
+  - backend/.env.example
+  - src/components/auth/RegisterForm.vue
+  - src/components/hospital/HospitalCard.vue
+  - src/assets/hospital-map.css
+  - src/assets/icons/pet-loading.svg
+  - backend/scripts/setup-db.js
+  - src/views/GrowthView.vue
+  - backend/src/schemas/hospital_reviews.schema.js
   - backend/database/scripts/import_hospitals.js
-  - .agents/skills/spectra-propose/SKILL.md
-  - .agents/skills/spectra-apply/SKILL.md
-  - backend/database/seeds/growth_records.sql
 tests:
+  - backend/test/hospital_reviews.route.test.js
+  - src/test/registerAutoLogin.test.js
+  - backend/test/hospital_reviews.controller.test.js
+  - backend/test/hospital_reviews.schema.test.js
+  - src/test/hospitalGpsView.test.js
+  - src/test/hospitalApiIntegration.test.js
+  - src/test/hospitalReviews.test.js
+  - backend/test/hospitals.route.test.js
+  - backend/test/enrich_hospital_24h.test.js
+  - src/test/hospitalCardDistance.test.js
+  - src/test/hospitalMapSelection.test.js
+  - backend/test/hospitals.controller.test.js
+  - src/test/userProfileModal.test.js
+  - backend/test/hospital_reviews.service.test.js
   - backend/test/import_hospitals.test.js
+  - backend/test/upload_image.middleware.test.js
+  - src/test/AddPetModal.test.js
+  - src/test/petApi.test.js
+  - src/test/petProfilePhotoUpload.test.js
+  - backend/test/hospitals.service.test.js
 -->
 
 ---
@@ -206,7 +250,7 @@ tests:
 ---
 ### Requirement: Import is idempotent
 
-The import script SHALL upsert records by license_number. Re-running the import with the same source data MUST NOT create duplicate hospitals rows, and changed official basic fields MUST update the existing row. Re-running the import MUST NOT replace existing latitude or longitude values with NULL values from the official basic-data import.
+The import script SHALL upsert records by license_number. Re-running the import with the same source data MUST NOT create duplicate hospitals rows, and changed official basic fields MUST update the existing row. Re-running the import MUST NOT replace existing latitude, longitude, is_24h, emergency_available, google_place_id, is_24h_source, or is_24h_checked_at values with NULL values from the official basic-data import.
 
 #### Scenario: Repeated import does not duplicate records
 
@@ -220,23 +264,79 @@ The import script SHALL upsert records by license_number. Re-running the import 
 - **THEN** the existing row keeps latitude 25.033964
 - **AND** the existing row keeps longitude 121.564468
 
+#### Scenario: Repeated import preserves external enrichment
+
+- **GIVEN** a hospital has is_24h true, emergency_available true, google_place_id "ChIJleIT6DqpQjQRGJ4YBxYeVmw", is_24h_source "google_places", and a non-NULL is_24h_checked_at
+- **WHEN** the MOA import upserts the same license_number with NULL enrichment values
+- **THEN** every existing enrichment value remains unchanged
+
 
 <!-- @trace
-source: geocode-hospital-addresses
-updated: 2026-07-05
+source: enrich-hospital-24h-from-google-places
+updated: 2026-07-19
 code:
-  - backend/.env.example
-  - backend/scripts/clear-seed.js
-  - backend/src/config/db.js
-  - backend/database/scripts/geocode_hospitals.js
-  - backend/database/scripts/import_hospitals.js
-  - backend/scripts/setup-db.js
+  - backend/src/controllers/hospital_reviews.controller.js
+  - src/components/hospital/HospitalReviewModal.vue
+  - src/components/hospital/MapView.vue
+  - backend/src/services/hospital_reviews.service.js
+  - src/utils/hospitalMapSelection.js
+  - src/components/pet/PetProfileModal.vue
+  - backend/src/middlewares/upload_image.js
+  - package.json
+  - backend/src/services/ai_assistant.service.js
+  - src/components/auth/LoginForm.vue
+  - src/components/common/AvatarCropModal.vue
+  - src/components/common/PetLoadingRunner.vue
+  - backend/database/schema/hospital_reviews.sql
   - backend/package.json
-  - backend/src/config/create_pool.js
+  - src/components/growth/GrowthHistoryModal.vue
+  - src/main.js
+  - src/stores/hospital.js
+  - src/views/MedicalView.vue
+  - src/assets/main.css
+  - src/components/hospital/HospitalList.vue
+  - src/components/layout/AppHeader.vue
+  - CLAUDE.md
+  - backend/src/services/hospitals.service.js
+  - backend/database/schema/hospitals.sql
+  - src/utils/hospitalPopup.js
+  - src/views/HospitalView.vue
+  - src/components/pet/AddPetModal.vue
+  - backend/database/scripts/enrich_hospital_24h.js
+  - backend/src/routes/hospitals.route.js
+  - src/api/hospitals.js
+  - src/components/member/UserProfileModal.vue
+  - src/views/HomeView.vue
+  - backend/.env.example
+  - src/components/auth/RegisterForm.vue
+  - src/components/hospital/HospitalCard.vue
+  - src/assets/hospital-map.css
+  - src/assets/icons/pet-loading.svg
+  - backend/scripts/setup-db.js
+  - src/views/GrowthView.vue
+  - backend/src/schemas/hospital_reviews.schema.js
+  - backend/database/scripts/import_hospitals.js
 tests:
-  - backend/test/geocode_hospitals.test.js
-  - backend/test/db_pool_config.test.js
+  - backend/test/hospital_reviews.route.test.js
+  - src/test/registerAutoLogin.test.js
+  - backend/test/hospital_reviews.controller.test.js
+  - backend/test/hospital_reviews.schema.test.js
+  - src/test/hospitalGpsView.test.js
+  - src/test/hospitalApiIntegration.test.js
+  - src/test/hospitalReviews.test.js
+  - backend/test/hospitals.route.test.js
+  - backend/test/enrich_hospital_24h.test.js
+  - src/test/hospitalCardDistance.test.js
+  - src/test/hospitalMapSelection.test.js
+  - backend/test/hospitals.controller.test.js
+  - src/test/userProfileModal.test.js
+  - backend/test/hospital_reviews.service.test.js
   - backend/test/import_hospitals.test.js
+  - backend/test/upload_image.middleware.test.js
+  - src/test/AddPetModal.test.js
+  - src/test/petApi.test.js
+  - src/test/petProfilePhotoUpload.test.js
+  - backend/test/hospitals.service.test.js
 -->
 
 ---
@@ -284,7 +384,7 @@ tests:
 ---
 ### Requirement: Database setup preserves existing data
 
-The backend db:setup command SHALL be safe to run against an existing Supabase PostgreSQL database. It MUST execute schema SQL files in the configured order to create missing database structures, and it MUST NOT drop tables, truncate tables, delete existing rows, clear imported hospitals, or automatically run the hospitals import script. Schema table definitions used by db:setup MUST use CREATE TABLE IF NOT EXISTS.
+The backend db:setup command SHALL be safe to run against an existing Supabase PostgreSQL database. It MUST execute schema SQL files in the configured order to create missing database structures, including missing nullable Google enrichment columns and the partial unique Google Place ID index. It MUST NOT drop tables, truncate tables, delete existing rows, clear imported hospitals, or automatically run the hospitals import or Google enrichment command. Schema table definitions used by db:setup MUST use CREATE TABLE IF NOT EXISTS, and additions to existing tables MUST be idempotent.
 
 #### Scenario: Existing data remains after setup
 
@@ -292,44 +392,82 @@ The backend db:setup command SHALL be safe to run against an existing Supabase P
 - **WHEN** db:setup runs
 - **THEN** existing tables are not dropped
 - **AND** existing rows are not deleted or overwritten by the setup flow
-- **AND** missing schema tables can still be created
+- **AND** missing schema tables, Google enrichment columns, and the Google Place ID index are created
 
 #### Scenario: Setup can be run repeatedly
 
-- **GIVEN** every configured schema table already exists
+- **GIVEN** every configured schema table, Google enrichment column, and index already exists
 - **WHEN** db:setup runs again
-- **THEN** the command does not fail because a table already exists
-- **AND** db:setup does not call the hospitals import script
+- **THEN** the command does not fail because a table, column, or index already exists
+- **AND** db:setup does not call the hospitals import or Google enrichment command
 
 
 <!-- @trace
-source: import-moa-veterinary-hospitals
-updated: 2026-07-05
+source: enrich-hospital-24h-from-google-places
+updated: 2026-07-19
 code:
-  - backend/database/schema/calendar_events.sql
-  - backend/scripts/setup-db.js
-  - .agents/skills/spectra-ingest/SKILL.md
-  - backend/database/seeds/medical_records.sql
-  - .agents/skills/spectra-audit/SKILL.md
-  - backend/database/schema/hospitals.sql
-  - .agents/skills/spectra-archive/SKILL.md
+  - backend/src/controllers/hospital_reviews.controller.js
+  - src/components/hospital/HospitalReviewModal.vue
+  - src/components/hospital/MapView.vue
+  - backend/src/services/hospital_reviews.service.js
+  - src/utils/hospitalMapSelection.js
+  - src/components/pet/PetProfileModal.vue
+  - backend/src/middlewares/upload_image.js
+  - package.json
+  - backend/src/services/ai_assistant.service.js
+  - src/components/auth/LoginForm.vue
+  - src/components/common/AvatarCropModal.vue
+  - src/components/common/PetLoadingRunner.vue
+  - backend/database/schema/hospital_reviews.sql
   - backend/package.json
-  - backend/scripts/clear-seed.js
-  - AGENTS.md
-  - backend/database/seeds/calendar_events.sql
-  - .agents/skills/spectra-ask/SKILL.md
-  - .agents/skills/spectra-debug/SKILL.md
-  - .spectra.yaml
-  - .agents/skills/spectra-commit/SKILL.md
-  - .agents/skills/spectra-drift/SKILL.md
-  - backend/database/schema/growth_records.sql
-  - .agents/skills/spectra-discuss/SKILL.md
+  - src/components/growth/GrowthHistoryModal.vue
+  - src/main.js
+  - src/stores/hospital.js
+  - src/views/MedicalView.vue
+  - src/assets/main.css
+  - src/components/hospital/HospitalList.vue
+  - src/components/layout/AppHeader.vue
+  - CLAUDE.md
+  - backend/src/services/hospitals.service.js
+  - backend/database/schema/hospitals.sql
+  - src/utils/hospitalPopup.js
+  - src/views/HospitalView.vue
+  - src/components/pet/AddPetModal.vue
+  - backend/database/scripts/enrich_hospital_24h.js
+  - backend/src/routes/hospitals.route.js
+  - src/api/hospitals.js
+  - src/components/member/UserProfileModal.vue
+  - src/views/HomeView.vue
+  - backend/.env.example
+  - src/components/auth/RegisterForm.vue
+  - src/components/hospital/HospitalCard.vue
+  - src/assets/hospital-map.css
+  - src/assets/icons/pet-loading.svg
+  - backend/scripts/setup-db.js
+  - src/views/GrowthView.vue
+  - backend/src/schemas/hospital_reviews.schema.js
   - backend/database/scripts/import_hospitals.js
-  - .agents/skills/spectra-propose/SKILL.md
-  - .agents/skills/spectra-apply/SKILL.md
-  - backend/database/seeds/growth_records.sql
 tests:
+  - backend/test/hospital_reviews.route.test.js
+  - src/test/registerAutoLogin.test.js
+  - backend/test/hospital_reviews.controller.test.js
+  - backend/test/hospital_reviews.schema.test.js
+  - src/test/hospitalGpsView.test.js
+  - src/test/hospitalApiIntegration.test.js
+  - src/test/hospitalReviews.test.js
+  - backend/test/hospitals.route.test.js
+  - backend/test/enrich_hospital_24h.test.js
+  - src/test/hospitalCardDistance.test.js
+  - src/test/hospitalMapSelection.test.js
+  - backend/test/hospitals.controller.test.js
+  - src/test/userProfileModal.test.js
+  - backend/test/hospital_reviews.service.test.js
   - backend/test/import_hospitals.test.js
+  - backend/test/upload_image.middleware.test.js
+  - src/test/AddPetModal.test.js
+  - src/test/petApi.test.js
+  - src/test/petProfilePhotoUpload.test.js
+  - backend/test/hospitals.service.test.js
 -->
 
 ---
