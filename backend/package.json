@@ -11,6 +11,7 @@
     "db:setup:seed": "SEED_DB=true node scripts/setup-db.js",
     "db:import:hospitals": "node database/scripts/import_hospitals.js",
     "db:geocode:hospitals": "node database/scripts/geocode_hospitals.js",
+    "db:enrich:hospitals:24h": "node database/scripts/enrich_hospital_24h.js",
     "db:seed:clear": "node scripts/clear-seed.js"
   },
   "keywords": [],
