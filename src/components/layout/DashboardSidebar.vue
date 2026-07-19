@@ -98,16 +98,14 @@ const navItems = [
             </li>
 
             <li>
-              <span class="text-base font-bold tracking-wider text-brand-navy">
-                寵物知識<span class="relative -top-0.5">+</span>
-              </span>
+              <span class="text-base font-bold tracking-wider text-brand-navy"> 寵物知識 </span>
             </li>
 
             <li>
               <a
-                href="#"
+                href="/pet-trivia"
                 class="cursor-pointer px-3 text-sm font-medium text-brand-gray active:text-brand-orange"
-                >小知識</a
+                >毛孩知識 +</a
               >
             </li>
             <li>

@@ -119,8 +119,8 @@ onBeforeUnmount(() => {
           </RouterLink>
 
           <a
-            href="#"
-            aria-label="小知識"
+            href="/pet-trivia"
+            aria-label="毛孩知識+"
             class="group relative grid size-11 place-items-center rounded-full bg-white shadow-[0_4px_14px_rgba(146,168,245,0.16)] transition duration-200 hover:-translate-y-0.5 hover:bg-brand-orange/10 hover:shadow-[0_7px_18px_rgba(255,160,2,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
           >
             <img :src="knowledgeIcon" alt="" class="size-5 object-contain" />
@@ -128,7 +128,7 @@ onBeforeUnmount(() => {
               role="tooltip"
               class="pointer-events-none invisible absolute left-1/2 top-full z-50 mt-2.5 -translate-x-1/2 translate-y-1 whitespace-nowrap rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-semibold text-white opacity-0 shadow-[0_8px_20px_rgba(53,76,130,0.22)] transition duration-150 before:absolute before:-top-1 before:left-1/2 before:size-2 before:-translate-x-1/2 before:rotate-45 before:bg-brand-navy group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:visible group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
             >
-              小知識
+              毛孩知識+
             </span>
           </a>
         </nav>
