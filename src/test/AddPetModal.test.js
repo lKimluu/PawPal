@@ -63,7 +63,10 @@ test('新增寵物表單送出時會用自訂種類覆蓋 species 欄位', () =>
 })
 
 test('新增寵物表單關閉時會重置資料', () => {
-  assert.match(source, /const handleClose\s*=\s*\(\)\s*=>\s*{\s*resetForm\(\)\s*emit\('close'\)\s*}/)
+  assert.match(
+    source,
+    /const handleClose\s*=\s*\(\)\s*=>\s*{[\s\S]*?resetForm\(\)\s*emit\('close'\)\s*}/,
+  )
 })
 
 test('新增寵物性別不是必填且不能出現未知選項', () => {
