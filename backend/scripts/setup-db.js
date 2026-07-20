@@ -22,6 +22,7 @@ export const TABLES_IN_ORDER = [
   'animal_types',
   'hospital_animal_types',
   'hospital_reviews',
+  'hospital_favorites',
 ]
 
 export const SEED_FILES_IN_ORDER = [

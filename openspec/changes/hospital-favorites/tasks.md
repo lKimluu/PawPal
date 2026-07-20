@@ -5,8 +5,8 @@
 
 ## 2. 建置資料庫
 
-- [ ] 2.1 新增 `backend/database/schema/hospital_favorites.sql`，比照 design.md 決策「hospital_favorites 資料表結構比照 hospital_reviews.sql」，欄位含 id/hospital_id/user_id/created_at、雙邊 FOREIGN KEY ON DELETE CASCADE、UNIQUE (user_id, hospital_id) 唯一限制與 hospital_id/user_id 兩個索引，驗證：執行建表流程後以資料庫工具確認資料表與限制條件存在，插入重複 (user_id, hospital_id) 會被拒絕
-- [ ] 2.2 將 `hospital_favorites` 註冊進 `backend/scripts/setup-db.js` 的 `TABLES_IN_ORDER` 陣列尾端，驗證：執行專案既有建表指令成功建立 `hospital_favorites` 資料表且無錯誤
+- [x] 2.1 新增 `backend/database/schema/hospital_favorites.sql`，比照 design.md 決策「hospital_favorites 資料表結構比照 hospital_reviews.sql」，欄位含 id/hospital_id/user_id/created_at、雙邊 FOREIGN KEY ON DELETE CASCADE、UNIQUE (user_id, hospital_id) 唯一限制與 hospital_id/user_id 兩個索引，驗證：執行建表流程後以資料庫工具確認資料表與限制條件存在，插入重複 (user_id, hospital_id) 會被拒絕
+- [x] 2.2 將 `hospital_favorites` 註冊進 `backend/scripts/setup-db.js` 的 `TABLES_IN_ORDER` 陣列尾端，驗證：執行專案既有建表指令成功建立 `hospital_favorites` 資料表且無錯誤
 
 ## 3. 製作後端 API
 
