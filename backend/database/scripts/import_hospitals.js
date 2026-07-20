@@ -66,6 +66,9 @@ export function normalizeHospitalRow(row) {
     license_status: licenseStatus,
     is_24h: null,
     emergency_available: null,
+    google_place_id: null,
+    is_24h_source: null,
+    is_24h_checked_at: null,
   }
 }
 
@@ -115,9 +118,12 @@ export const UPSERT_HOSPITAL_SQL = `
     longitude,
     license_status,
     is_24h,
-    emergency_available
+    emergency_available,
+    google_place_id,
+    is_24h_source,
+    is_24h_checked_at
   )
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
   ON CONFLICT (license_number) DO UPDATE SET
     name = EXCLUDED.name,
     city = EXCLUDED.city,
@@ -125,8 +131,6 @@ export const UPSERT_HOSPITAL_SQL = `
     address = EXCLUDED.address,
     phone = EXCLUDED.phone,
     license_status = EXCLUDED.license_status,
-    is_24h = EXCLUDED.is_24h,
-    emergency_available = EXCLUDED.emergency_available,
     updated_at = CURRENT_TIMESTAMP
 `
 
@@ -143,6 +147,9 @@ export function hospitalValues(hospital) {
     hospital.license_status,
     hospital.is_24h,
     hospital.emergency_available,
+    hospital.google_place_id,
+    hospital.is_24h_source,
+    hospital.is_24h_checked_at,
   ]
 }
 

@@ -11,9 +11,21 @@ CREATE TABLE IF NOT EXISTS hospitals (
   license_status VARCHAR(50) NOT NULL CHECK (char_length(trim(license_status)) > 0),
   is_24h BOOLEAN,
   emergency_available BOOLEAN,
+  google_place_id VARCHAR(255),
+  is_24h_source VARCHAR(50),
+  is_24h_checked_at TIMESTAMPTZ,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE hospitals
+  ADD COLUMN IF NOT EXISTS google_place_id VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS is_24h_source VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS is_24h_checked_at TIMESTAMPTZ;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_hospitals_google_place_id
+ON hospitals (google_place_id)
+WHERE google_place_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_hospitals_city_district
 ON hospitals (city, district);
