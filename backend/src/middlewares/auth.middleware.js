@@ -31,3 +31,25 @@ export function authenticateToken(req, res, next) {
     return res.status(401).json({ message: '未授權，請重新登入' })
   }
 }
+
+export function attachUserIfPresent(req, _res, next) {
+  const token = getBearerToken(req.headers.authorization)
+  const jwtSecret = process.env.JWT_SECRET
+
+  if (!token || !jwtSecret) {
+    return next()
+  }
+
+  try {
+    const payload = jwt.verify(token, jwtSecret)
+    const userId = Number(payload.sub)
+
+    if (Number.isSafeInteger(userId) && userId > 0) {
+      req.userId = userId
+    }
+  } catch {
+    // Invalid or expired token: treat the caller as anonymous instead of rejecting the request.
+  }
+
+  return next()
+}

@@ -59,6 +59,10 @@ function map_hospital_row(row) {
     hospital.review_count = Number(row.review_count ?? 0)
   }
 
+  if (row.is_favorite !== undefined) {
+    hospital.is_favorite = Boolean(row.is_favorite)
+  }
+
   return hospital
 }
 
@@ -149,12 +153,27 @@ const HOSPITAL_REVIEW_SUMMARY_JOIN = `
   ) review_stats ON TRUE
 `
 
-export async function findHospitals(filters = {}) {
+export async function findHospitals(filters = {}, { userId } = {}) {
   const uses_distance = filters.sort === 'distance'
   const values = uses_distance ? [filters.lat, filters.lng] : []
   const conditions = []
   if (uses_distance) conditions.push('$1::double precision IS NOT NULL', '$2::double precision IS NOT NULL')
   add_hospital_filters(filters, values, conditions)
+
+  let favorite_param_index = null
+  if (filters.favorites_only) {
+    values.push(userId)
+    favorite_param_index = values.length
+    conditions.push(`
+      EXISTS (
+        SELECT 1
+        FROM hospital_favorites hf_filter
+        WHERE hf_filter.hospital_id = h.id
+          AND hf_filter.user_id = $${favorite_param_index}
+      )
+    `)
+  }
+
   const where_clause = build_where_clause(conditions)
 
   const count_result = await pool.query(
@@ -170,6 +189,19 @@ export async function findHospitals(filters = {}) {
   const page = filters.page
   const limit = filters.limit
   const offset = (page - 1) * limit
+
+  if (userId && favorite_param_index === null) {
+    values.push(userId)
+    favorite_param_index = values.length
+  }
+  const favorite_select = favorite_param_index
+    ? `, EXISTS (
+        SELECT 1
+        FROM hospital_favorites hf
+        WHERE hf.hospital_id = h.id
+          AND hf.user_id = $${favorite_param_index}
+      ) AS is_favorite`
+    : ''
 
   const distance_expression = `(${EARTH_RADIUS_KM} * 2 * ASIN(SQRT(
     POWER(SIN((RADIANS(h.latitude::double precision) - RADIANS($1::double precision)) / 2), 2)
@@ -195,7 +227,7 @@ export async function findHospitals(filters = {}) {
   const list_values = [...values, limit, offset]
   const hospitals_result = await pool.query(
     `
-      SELECT ${HOSPITAL_SELECT_COLUMNS}${distance_select}
+      SELECT ${HOSPITAL_SELECT_COLUMNS}${distance_select}${favorite_select}
       FROM hospitals h
       ${HOSPITAL_REVIEW_SUMMARY_JOIN}
       LEFT JOIN hospital_animal_types hat

@@ -285,6 +285,124 @@ test('findHospitals 無符合資料時應回傳空陣列與分頁資訊', async 
   })
 })
 
+test('findHospitals 已登入時應在每筆醫院附上 is_favorite', async (t) => {
+  const rows = [
+    {
+      id: 1,
+      name: '仁愛動物醫院',
+      city: '台北市',
+      district: '大安區',
+      address: '台北市大安區仁愛路',
+      phone: '02-1234-5678',
+      latitude: '25.0330000',
+      longitude: '121.5654000',
+      rating_average: '4.5',
+      review_count: 2,
+      animal_types: [],
+      is_favorite: true,
+    },
+  ]
+  const query = t.mock.method(pool, 'query', async (text, values) => {
+    if (query.mock.callCount() === 0) {
+      assert.deepEqual(values, [])
+      return { rows: [{ total: 1 }] }
+    }
+
+    assert.match(text, /EXISTS \(\s*SELECT 1\s*FROM hospital_favorites hf\s*WHERE hf\.hospital_id = h\.id\s*AND hf\.user_id = \$1\s*\) AS is_favorite/)
+    assert.deepEqual(values, [7, 20, 0])
+    return { rows }
+  })
+
+  const result = await findHospitals({ page: 1, limit: 20 }, { userId: 7 })
+
+  assert.equal(query.mock.callCount(), 2)
+  assert.equal(result.hospitals[0].is_favorite, true)
+})
+
+test('findHospitals favorites_only 應只回傳目前使用者已收藏的醫院', async (t) => {
+  const rows = [
+    {
+      id: 1,
+      name: '仁愛動物醫院',
+      city: '台北市',
+      district: '大安區',
+      address: '台北市大安區仁愛路',
+      phone: '02-1234-5678',
+      latitude: '25.0330000',
+      longitude: '121.5654000',
+      rating_average: '4.5',
+      review_count: 2,
+      animal_types: [],
+      is_favorite: true,
+    },
+  ]
+  const query = t.mock.method(pool, 'query', async (text, values) => {
+    if (query.mock.callCount() === 0) {
+      assert.match(text, /EXISTS \(\s*SELECT 1\s*FROM hospital_favorites hf_filter\s*WHERE hf_filter\.hospital_id = h\.id\s*AND hf_filter\.user_id = \$1\s*\)/)
+      assert.deepEqual(values, [7])
+      return { rows: [{ total: 1 }] }
+    }
+
+    assert.deepEqual(values, [7, 20, 0])
+    return { rows }
+  })
+
+  const result = await findHospitals({ favorites_only: true, page: 1, limit: 20 }, { userId: 7 })
+
+  assert.equal(query.mock.callCount(), 2)
+  assert.deepEqual(result.hospitals.map((hospital) => hospital.id), [1])
+  assert.equal(result.hospitals[0].is_favorite, true)
+})
+
+test('findHospitals favorites_only 可與 is_24h 等既有篩選共同套用', async (t) => {
+  const query = t.mock.method(pool, 'query', async (text, values) => {
+    if (query.mock.callCount() === 0) {
+      assert.match(text, /h\.is_24h = \$1/)
+      assert.match(text, /hf_filter\.user_id = \$2/)
+      assert.deepEqual(values, [true, 7])
+      return { rows: [{ total: 0 }] }
+    }
+
+    assert.deepEqual(values, [true, 7, 20, 0])
+    return { rows: [] }
+  })
+
+  const result = await findHospitals(
+    { favorites_only: true, is_24h: true, page: 1, limit: 20 },
+    { userId: 7 },
+  )
+
+  assert.equal(query.mock.callCount(), 2)
+  assert.deepEqual(result.hospitals, [])
+})
+
+test('findHospitals 未登入時不應回傳 is_favorite 欄位', async (t) => {
+  const rows = [
+    {
+      id: 1,
+      name: '仁愛動物醫院',
+      city: '台北市',
+      district: '大安區',
+      address: '台北市大安區仁愛路',
+      phone: '02-1234-5678',
+      latitude: '25.0330000',
+      longitude: '121.5654000',
+      rating_average: '4.5',
+      review_count: 2,
+      animal_types: [],
+    },
+  ]
+  t.mock.method(pool, 'query', async (text) => {
+    assert.doesNotMatch(text, /is_favorite/)
+    if (pool.query.mock.callCount() === 0) return { rows: [{ total: 1 }] }
+    return { rows }
+  })
+
+  const result = await findHospitals({ page: 1, limit: 20 })
+
+  assert.equal(result.hospitals[0].is_favorite, undefined)
+})
+
 test('findNearbyHospitals 應使用座標、半徑、limit 與距離排序查詢', async (t) => {
   const rows = [
     {
