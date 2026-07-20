@@ -48,9 +48,14 @@ watch(
   },
 )
 
-const handleClose = () => emit('close')
+const handleClose = () => {
+  if (props.isSubmitting) return
+  emit('close')
+}
 
 const handleSubmit = () => {
+  if (props.isSubmitting) return
+
   let formattedDate = ''
   if (form.value.recordDate instanceof Date) {
     const y = form.value.recordDate.getFullYear()
@@ -91,7 +96,8 @@ const handleSubmit = () => {
           <button
             type="button"
             @click="handleClose"
-            class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-lg text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95"
+            :disabled="isSubmitting"
+            class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-lg text-brand-gray transition duration-200 hover:bg-brand-blue/20 hover:text-brand-navy active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             ⨉
           </button>
@@ -265,7 +271,8 @@ const handleSubmit = () => {
               <button
                 type="button"
                 @click="handleClose"
-                class="cursor-pointer rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-500 transition duration-200 hover:bg-slate-100 hover:text-slate-700 active:scale-95"
+                :disabled="isSubmitting"
+                class="cursor-pointer rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-500 transition duration-200 hover:bg-slate-100 hover:text-slate-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 取消
               </button>

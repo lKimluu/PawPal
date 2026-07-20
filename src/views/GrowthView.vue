@@ -30,6 +30,7 @@ const isModalOpen = ref(false)
 const isHistoryOpen = ref(false)
 const isDeleteOpen = ref(false)
 const pendingDeleteRecord = ref(null)
+const isDeleting = ref(false)
 
 onMounted(async () => {
   await petStore.fetchPets()
@@ -79,8 +80,9 @@ const handleDeleteRecord = (record) => {
 }
 
 const handleConfirmDelete = async () => {
-  if (!pendingDeleteRecord.value) return
+  if (!pendingDeleteRecord.value || isDeleting.value) return
 
+  isDeleting.value = true
   try {
     const result = await growthStore.deleteRecord(pendingDeleteRecord.value.id, authStore.token)
 
@@ -96,6 +98,8 @@ const handleConfirmDelete = async () => {
     isDeleteOpen.value = false
     pendingDeleteRecord.value = null
     toastStore.showToast('刪除失敗，請稍後再試', 'error')
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -164,6 +168,7 @@ const deleteItemName = computed(() => {
       :is-open="isDeleteOpen"
       title="確定刪除此筆紀錄？"
       :item-name="deleteItemName"
+      :is-loading="isDeleting"
       @close="isDeleteOpen = false"
       @confirm="handleConfirmDelete"
     />

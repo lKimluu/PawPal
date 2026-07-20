@@ -41,6 +41,7 @@ const isReviewSubmitting = ref(false)
 const editingReview = ref(null)
 const reviewToDelete = ref(null)
 const isReviewDeleteOpen = ref(false)
+const isReviewDeleting = ref(false)
 const currentUserId = computed(() => authStore.user?.id ?? authStore.user?.user_id ?? null)
 const selectionRequestId = ref(0)
 const mapSectionRef = ref(null)
@@ -141,6 +142,7 @@ function closeHospitalReviewModal() {
   editingReview.value = null
   reviewToDelete.value = null
   isReviewDeleteOpen.value = false
+  isReviewDeleting.value = false
 }
 
 function showReviewForm() {
@@ -207,7 +209,7 @@ function editHospitalReview(hospitalId, reviewId, payload) {
 }
 
 async function deleteHospitalReview() {
-  if (!reviewHospital.value || !reviewToDelete.value) return
+  if (!reviewHospital.value || !reviewToDelete.value || isReviewDeleting.value) return
 
   if (!authStore.isLoggedIn) {
     toastStore.showToast('請先登入後再刪除評論', 'error')
@@ -217,9 +219,12 @@ async function deleteHospitalReview() {
   const hospitalId = reviewHospital.value.id
   const reviewId = reviewToDelete.value.id
   const requestToken = reviewRequestToken.value
+  isReviewDeleting.value = true
   const result = await hospitalStore.deleteHospitalReview(hospitalId, reviewId)
 
   if (!isCurrentReviewRequest(hospitalId, requestToken)) return
+
+  isReviewDeleting.value = false
 
   if (!result.success) {
     toastStore.showToast(result.message, 'error')
@@ -348,6 +353,7 @@ onMounted(() => {
       :is-open="isReviewDeleteOpen"
       title="確定刪除此則評論？"
       item-name="這則評論"
+      :is-loading="isReviewDeleting"
       @close="closeReviewDeleteConfirm"
       @confirm="deleteHospitalReview"
     />

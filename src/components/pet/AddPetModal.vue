@@ -85,11 +85,15 @@ const normalizeOptionalValue = (value) => {
 }
 
 const handleClose = () => {
+  if (props.isLoading) return
+
   resetForm()
   emit('close')
 }
 
 const handleSubmit = () => {
+  if (props.isLoading) return
+
   validationError.value = ''
 
   const submittedSpecies =
