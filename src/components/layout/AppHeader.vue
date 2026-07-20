@@ -245,47 +245,19 @@ onBeforeUnmount(() => {
     @open-user-profile="handleOpenUserProfileModal"
   />
 
+  <PublicSidebar v-if="!isMemberVariant && !shouldUseMemberSidebarOnMobile" />
+
   <UserProfileModal
     v-if="authStore.isLoggedIn"
     :is-open="isUserProfileModalOpen"
     :user="authStore.user"
     @close="isUserProfileModalOpen = false"
   />
-
-  <!-- Sidebar Overlay -->
-  <div
-    v-if="sidebarStore.isOpen && !isMemberVariant && !shouldUseMemberSidebarOnMobile"
-    class="fixed inset-0 z-[60] bg-black/50 lg:hidden"
-    @click="sidebarStore.closeSidebar()"
-  />
-
-  <!-- Sidebar -->
-  <transition name="slide">
-    <div
-      v-if="sidebarStore.isOpen && !isMemberVariant && !shouldUseMemberSidebarOnMobile"
-      class="fixed inset-y-0 right-0 z-[70] overflow-y-auto bg-white lg:hidden"
-    >
-      <PublicSidebar />
-    </div>
-  </transition>
 </template>
 
 <style scoped>
 .group:hover .auth-action-icon {
   filter: brightness(0) saturate(100%) invert(67%) sepia(99%) saturate(1924%) hue-rotate(359deg)
     brightness(101%) contrast(104%);
-}
-
-.slide-enter-active,
-.slide-leave-active {
-  transition: transform 0.3s ease;
-}
-
-.slide-enter-from {
-  transform: translateX(100%);
-}
-
-.slide-leave-to {
-  transform: translateX(100%);
 }
 </style>
