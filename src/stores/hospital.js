@@ -1,11 +1,13 @@
 import { computed, onScopeDispose, ref } from 'vue'
 import { defineStore } from 'pinia'
 import {
+  addFavoriteHospital as addFavoriteHospitalRequest,
   fetchHospitalRegions,
   fetchHospitals,
   fetchHospitalReviews,
   fetchMapHospitals,
   fetchNearbyHospitals,
+  removeFavoriteHospital as removeFavoriteHospitalRequest,
   deleteHospitalReview as deleteHospitalReviewRequest,
   submitHospitalReview as submitHospitalReviewRequest,
   updateHospitalReview as updateHospitalReviewRequest,
@@ -13,7 +15,15 @@ import {
 } from '../api/hospitals.js'
 
 const DEFAULT_PAGINATION = { page: 1, limit: 20, total: 0, totalPages: 0 }
-const DEFAULT_FILTERS = { keyword: '', city: '', district: '', animalType: '', is24H: false, sort: 'name' }
+const DEFAULT_FILTERS = {
+  keyword: '',
+  city: '',
+  district: '',
+  animalType: '',
+  is24H: false,
+  favoritesOnly: false,
+  sort: 'name',
+}
 
 export const useHospitalStore = defineStore('hospital', () => {
   const hospitals = ref([])
@@ -55,6 +65,7 @@ export const useHospitalStore = defineStore('hospital', () => {
       district: filters.value.district,
       animalType: filters.value.animalType,
       is24H: filters.value.is24H || undefined,
+      favoritesOnly: filters.value.favoritesOnly || undefined,
       sort: filters.value.sort,
       lat: filters.value.sort === 'distance' ? coordinates?.lat : undefined,
       lng: filters.value.sort === 'distance' ? coordinates?.lng : undefined,
@@ -157,6 +168,7 @@ export const useHospitalStore = defineStore('hospital', () => {
   }
   async function setAnimalType(value) { filters.value.animalType = value; pagination.value.page = 1; return loadHospitals({ page: 1 }) }
   async function set24H(value) { filters.value.is24H = Boolean(value); pagination.value.page = 1; return loadHospitals({ page: 1 }) }
+  async function setFavoritesOnly(value) { filters.value.favoritesOnly = Boolean(value); pagination.value.page = 1; return loadHospitals({ page: 1 }) }
   async function setSort(value) { if (value === 'distance' && !hasRealLocation.value) return; explicitSortSelection.value = value; filters.value.sort = value; pagination.value.page = 1; return loadHospitals({ page: 1 }) }
   async function setPage(page) { pagination.value.page = Number(page); return loadHospitals({ page: pagination.value.page }) }
   async function clearFilters() { explicitSortSelection.value = null; filters.value = { ...DEFAULT_FILTERS, sort: hasRealLocation.value ? 'distance' : 'name' }; pagination.value.page = 1; return loadHospitals({ page: 1 }) }
@@ -173,6 +185,22 @@ export const useHospitalStore = defineStore('hospital', () => {
 
     hospitals.value = hospitals.value.map(applySummary)
     mapHospitals.value = mapHospitals.value.map(applySummary)
+  }
+  function applyFavoriteState(hospitalId, isFavorite) {
+    const applyFavorite = (item) =>
+      item.id === hospitalId || String(item.id) === String(hospitalId)
+        ? { ...item, isFavorite }
+        : item
+
+    hospitals.value = hospitals.value.map(applyFavorite)
+    mapHospitals.value = mapHospitals.value.map(applyFavorite)
+  }
+  async function toggleFavoriteHospital(hospitalId, currentIsFavorite) {
+    const result = currentIsFavorite
+      ? await removeFavoriteHospitalRequest(hospitalId)
+      : await addFavoriteHospitalRequest(hospitalId)
+    if (result.success) applyFavoriteState(hospitalId, !currentIsFavorite)
+    return result
   }
   function getHospitalById(hospitalId) {
     return (
@@ -213,8 +241,9 @@ export const useHospitalStore = defineStore('hospital', () => {
     pagination, filters, mode, selectedHospitalId, selectedHospital, isLoading, mapLoading,
     regionsLoading, errorMessage, mapError, regionsError, mapTruncated, locationFallbackMessage,
     hasRealLocation, isEmpty, loadHospitals, loadNearbyHospitals, loadMapHospitals, loadRegions,
-    setKeyword, setLocationFilter, setAnimalType, set24H, setSort, setPage, clearFilters,
+    setKeyword, setLocationFilter, setAnimalType, set24H, setFavoritesOnly, setSort, setPage, clearFilters,
     selectHospital, retryCurrentQuery, retryMapQuery, updateHospitalReviewSummary, getHospitalById,
     loadHospitalReviews, submitHospitalReview, updateHospitalReview, deleteHospitalReview,
+    toggleFavoriteHospital,
   }
 })

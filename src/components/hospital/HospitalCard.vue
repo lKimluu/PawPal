@@ -2,6 +2,9 @@
 import { computed, ref } from 'vue'
 import heartFilled from '@/assets/icons/heart-filled.svg'
 import heartEmpty from '@/assets/icons/heart-empty.svg'
+import { useAuthStore } from '@/stores/auth.js'
+import { useHospitalStore } from '@/stores/hospital.js'
+import { useToastStore } from '@/stores/toast.js'
 
 const props = defineProps({
   hospital: {
@@ -16,15 +19,32 @@ const props = defineProps({
 
 const emit = defineEmits(['reviewHospital'])
 
-const isFav = ref(false)
+const authStore = useAuthStore()
+const hospitalStore = useHospitalStore()
+const toastStore = useToastStore()
+const isFav = computed(() => Boolean(props.hospital.isFavorite))
+const isFavoriteToggling = ref(false)
 const displayDistance = computed(() =>
   props.hospital.distance === '—' || props.hospital.distance === undefined
     ? '距離未知'
     : `${props.hospital.distance} km`,
 )
 
-const toggleFavorite = () => {
-  isFav.value = !isFav.value
+const toggleFavorite = async () => {
+  if (isFavoriteToggling.value) return
+
+  if (!authStore.isLoggedIn) {
+    toastStore.showToast('請先登入後再收藏醫院', 'error')
+    return
+  }
+
+  isFavoriteToggling.value = true
+  try {
+    const result = await hospitalStore.toggleFavoriteHospital(props.hospital.id, isFav.value)
+    if (!result.success) toastStore.showToast(result.message, 'error')
+  } finally {
+    isFavoriteToggling.value = false
+  }
 }
 </script>
 
@@ -99,7 +119,8 @@ const toggleFavorite = () => {
     <div class="ml-4 flex-shrink-0">
       <button
         type="button"
-        class="cursor-pointer rounded-full bg-transparent p-2 transition duration-200 hover:bg-red-50"
+        class="cursor-pointer rounded-full bg-transparent p-2 transition duration-200 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="isFavoriteToggling"
         @click.stop="toggleFavorite"
       >
         <img :src="isFav ? heartFilled : heartEmpty" alt="收藏醫院" class="h-6 w-6 object-contain" />
