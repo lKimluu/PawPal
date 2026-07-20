@@ -14,6 +14,22 @@ test('醫院清單 schema 應支援 24H 與排序並要求距離座標', () => {
   assert.equal(hospitalsQuerySchema.safeParse({ sort: 'distance' }).success, false)
 })
 
+test('醫院清單 schema 應接受 relevance/name 完整座標並拒絕 partial pair', () => {
+  for (const sort of ['relevance', 'name']) {
+    const result = hospitalsQuerySchema.safeParse({ sort, lat: '25.0478', lng: '121.5319' })
+    assert.equal(result.success, true)
+    assert.equal(result.data.lat, 25.0478)
+    assert.equal(result.data.lng, 121.5319)
+  }
+
+  const missingLng = hospitalsQuerySchema.safeParse({ sort: 'relevance', lat: '25.0478' })
+  const missingLat = hospitalsQuerySchema.safeParse({ sort: 'name', lng: '121.5319' })
+  assert.equal(missingLng.success, false)
+  assert.equal(missingLng.error.issues.some(({ message }) => message === '緯度與經度必須一起提供'), true)
+  assert.equal(missingLat.success, false)
+  assert.equal(missingLat.error.issues.some(({ message }) => message === '緯度與經度必須一起提供'), true)
+})
+
 test('地圖 bounds schema 應驗證方向與數值', () => {
   assert.equal(hospitalMapQuerySchema.safeParse({ north: 26, south: 24, east: 122, west: 120 }).success, true)
   const invalid = hospitalMapQuerySchema.safeParse({ north: 24, south: 26, east: 122, west: 120 })

@@ -48,7 +48,11 @@ export const useHospitalStore = defineStore('hospital', () => {
   const availableDistricts = computed(() => regions.value.find((item) => item.city === filters.value.city)?.districts ?? [])
 
   function listQuery(overrides = {}) {
-    const coordinates = hasRealLocation.value ? userCoordinates.value : null
+    const coordinates = hasRealLocation.value
+      && Number.isFinite(userCoordinates.value?.lat)
+      && Number.isFinite(userCoordinates.value?.lng)
+      ? userCoordinates.value
+      : null
     return {
       keyword: filters.value.keyword,
       city: filters.value.city,
@@ -56,8 +60,8 @@ export const useHospitalStore = defineStore('hospital', () => {
       animalType: filters.value.animalType,
       is24H: filters.value.is24H || undefined,
       sort: filters.value.sort,
-      lat: filters.value.sort === 'distance' ? coordinates?.lat : undefined,
-      lng: filters.value.sort === 'distance' ? coordinates?.lng : undefined,
+      lat: coordinates?.lat,
+      lng: coordinates?.lng,
       page: pagination.value.page,
       limit: pagination.value.limit,
       ...overrides,
