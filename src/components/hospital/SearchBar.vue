@@ -18,6 +18,7 @@ const {
   hasRealLocation,
 } = storeToRefs(hospitalStore)
 const keyword = ref(filters.value.keyword)
+const favoritesOnly = ref(false)
 
 watch(
   () => filters.value.keyword,
@@ -92,6 +93,21 @@ function changeSort(event) {
         <span
           class="absolute top-0.5 h-4 w-4 rounded-full bg-white transition"
           :class="filters.is24H ? 'left-[22px]' : 'left-0.5'"
+        ></span>
+      </button>
+    </div>
+
+    <div class="mt-5 flex items-center justify-between text-sm">
+      <span>收藏清單</span>
+      <button
+        type="button"
+        class="relative h-5 w-10 cursor-pointer rounded-full transition active:scale-95"
+        :class="favoritesOnly ? 'bg-brand-blue' : 'bg-brand-gray/30'"
+        @click="favoritesOnly = !favoritesOnly"
+      >
+        <span
+          class="absolute top-0.5 h-4 w-4 rounded-full bg-white transition"
+          :class="favoritesOnly ? 'left-[22px]' : 'left-0.5'"
         ></span>
       </button>
     </div>

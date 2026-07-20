@@ -1,8 +1,7 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import heartFilled from '@/assets/icons/heart-filled.svg'
 import heartEmpty from '@/assets/icons/heart-empty.svg'
-import { useFavoriteHospitalStore } from '@/stores/favoriteHospital'
 
 const props = defineProps({
   hospital: {
@@ -17,8 +16,7 @@ const props = defineProps({
 
 const emit = defineEmits(['reviewHospital'])
 
-const favoriteHospitalStore = useFavoriteHospitalStore()
-const isFav = computed(() => favoriteHospitalStore.isFavorite(props.hospital.id))
+const isFav = ref(false)
 const displayDistance = computed(() =>
   props.hospital.distance === '—' || props.hospital.distance === undefined
     ? '距離未知'
@@ -26,7 +24,7 @@ const displayDistance = computed(() =>
 )
 
 const toggleFavorite = () => {
-  favoriteHospitalStore.toggleFavorite(props.hospital.id)
+  isFav.value = !isFav.value
 }
 </script>
 
