@@ -687,6 +687,27 @@ test('Hospital list selection issues repeatable map focus requests', () => {
   assert.match(hospitalView, /:selection-request-id="selectionRequestId"/)
 })
 
+test('手機版點選醫院列表卡片後會平滑捲動回地圖', () => {
+  const hospitalView = readSource('../views/HospitalView.vue')
+
+  assert.match(hospitalView, /const mapSectionRef = ref\(null\)/)
+  assert.match(hospitalView, /const stackedHospitalMapQuery = '\(max-width: 1279px\)'/)
+  assert.match(
+    hospitalView,
+    /function isStackedHospitalMapLayout\(\) \{[\s\S]*?window\.matchMedia\(stackedHospitalMapQuery\)\.matches[\s\S]*?window\.innerWidth <= 1279/,
+  )
+  assert.match(
+    hospitalView,
+    /function scrollMapIntoViewOnStackedLayout\(\) \{[\s\S]*?nextTick\(\(\) => \{[\s\S]*?mapSectionRef\.value\?\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/,
+  )
+  assert.match(
+    hospitalView,
+    /function selectHospitalFromList\(hospitalId\) \{\s*selectHospital\(hospitalId\)\s*scrollMapIntoViewOnStackedLayout\(\)\s*\}/,
+  )
+  assert.match(hospitalView, /<div\s+ref="mapSectionRef"[\s\S]*?<MapView/)
+  assert.match(hospitalView, /@select-hospital="selectHospitalFromList"/)
+})
+
 test('Map selection delegates move completion and popup lifecycle to the coordinator', () => {
   const mapView = readSource('../components/hospital/MapView.vue')
   const coordinator = readSource('../utils/hospitalMapSelection.js')
