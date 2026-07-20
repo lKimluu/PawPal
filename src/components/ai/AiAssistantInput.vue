@@ -122,7 +122,7 @@ onMounted(async () => {
           placeholder="請輸入您想詢問的問題..."
           :disabled="isLoading"
           maxlength="150"
-          class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-brand-darkgray placeholder-brand-gray/40 outline-none transition duration-200 hover:border-brand-blue hover:bg-brand-blue/5 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-blue/10 disabled:cursor-not-allowed disabled:opacity-60"
+          class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-base text-brand-darkgray placeholder-brand-gray/40 outline-none transition duration-200 hover:border-brand-blue hover:bg-brand-blue/5 focus:border-brand-blue focus:bg-white focus:ring-4 focus:ring-brand-blue/10 disabled:cursor-not-allowed disabled:opacity-60 md:text-sm"
           @input="handleInputChange"
         />
       </div>
