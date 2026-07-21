@@ -23,10 +23,14 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  requiresLogin: {
+    type: Boolean,
+    default: false,
+  },
   pagination: { type: Object, default: () => ({ page: 1, totalPages: 0 }) },
 })
 
-const emit = defineEmits(['selectHospital', 'retry', 'pageChange', 'reviewHospital'])
+const emit = defineEmits(['selectHospital', 'retry', 'pageChange', 'reviewHospital', 'loginRequired'])
 </script>
 
 <template>
@@ -37,8 +41,8 @@ const emit = defineEmits(['selectHospital', 'retry', 'pageChange', 'reviewHospit
       v-else-if="errorMessage"
       type="error"
       :message="errorMessage"
-      action-label="重新查詢"
-      @action="emit('retry')"
+      :action-label="requiresLogin ? '前往登入' : '重新查詢'"
+      @action="requiresLogin ? emit('loginRequired') : emit('retry')"
     />
 
     <HospitalListState v-else-if="isEmpty" type="empty" message="目前沒有符合條件的醫院。" />

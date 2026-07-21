@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import SearchBar from '@/components/hospital/SearchBar.vue'
@@ -13,6 +14,7 @@ import { useHospitalStore } from '@/stores/hospital.js'
 import { useLocationStore } from '@/stores/location.js'
 import { useToastStore } from '@/stores/toast.js'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const locationStore = useLocationStore()
 const hospitalStore = useHospitalStore()
@@ -31,6 +33,10 @@ const {
   errorMessage,
 } = storeToRefs(hospitalStore)
 const headerVariant = computed(() => (authStore.isLoggedIn ? 'member' : 'public'))
+const requiresLoginForFavorites = computed(() => errorMessage.value === '請先登入後查看收藏清單')
+function goToLogin() {
+  router.push('/login')
+}
 const isLocationPermissionBlocked = computed(() => permissionState.value === 'denied')
 const isReviewModalOpen = ref(false)
 const reviewHospital = ref(null)
@@ -322,10 +328,12 @@ onMounted(() => {
                 :is-loading="isLoading"
                 :error-message="errorMessage"
                 :is-empty="hospitalStore.isEmpty"
+                :requires-login="requiresLoginForFavorites"
                 :pagination="pagination"
                 @select-hospital="selectHospitalFromList"
                 @review-hospital="openHospitalReviewModal"
                 @retry="hospitalStore.retryCurrentQuery"
+                @login-required="goToLogin"
                 @page-change="hospitalStore.setPage"
               />
             </aside>
