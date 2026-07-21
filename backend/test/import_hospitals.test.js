@@ -99,6 +99,14 @@ test('hospitals schema：應建立官方醫院資料欄位與唯一執照字號'
   assert.match(schema, /longitude NUMERIC\(10,7\)/)
   assert.match(schema, /is_24h BOOLEAN/)
   assert.match(schema, /emergency_available BOOLEAN/)
+  assert.match(schema, /google_place_id VARCHAR\(255\)/)
+  assert.match(schema, /is_24h_source VARCHAR\(50\)/)
+  assert.match(schema, /is_24h_checked_at TIMESTAMPTZ/)
+  assert.match(schema, /ALTER TABLE hospitals\s+ADD COLUMN IF NOT EXISTS google_place_id/i)
+  assert.match(schema, /ADD COLUMN IF NOT EXISTS is_24h_source/i)
+  assert.match(schema, /ADD COLUMN IF NOT EXISTS is_24h_checked_at/i)
+  assert.match(schema, /CREATE UNIQUE INDEX IF NOT EXISTS idx_hospitals_google_place_id/i)
+  assert.match(schema, /WHERE google_place_id IS NOT NULL/i)
   assert.match(schema, /trigger_hospitals_updated_at/)
   assert.match(schema, /idx_hospitals_city_district/)
   assert.match(schema, /idx_hospitals_name/)
@@ -132,6 +140,7 @@ test('setup-db：應只執行 schema 且不得刪除既有資料表', () => {
   ])
   assert.ok(!SEED_FILES_IN_ORDER.includes('hospitals'))
   assert.ok(!SEED_FILES_IN_ORDER.includes('hospital_reviews'))
+  assert.doesNotMatch(setupScript, /import_hospitals|enrich_hospital_24h/)
 })
 
 test('animal_types schema：應建立固定動物種類 reference data 結構', () => {
@@ -433,6 +442,9 @@ test('normalizeHospitalRow：應轉換並清理農業部中文欄位', () => {
     license_status: '開業',
     is_24h: null,
     emergency_available: null,
+    google_place_id: null,
+    is_24h_source: null,
+    is_24h_checked_at: null,
   })
 })
 
@@ -451,13 +463,19 @@ test('normalizeHospitalRow：應支援官方 sample shape 並忽略未入庫來�
     license_status: '開業',
     is_24h: null,
     emergency_available: null,
+    google_place_id: null,
+    is_24h_source: null,
+    is_24h_checked_at: null,
   })
   assert.deepEqual(Object.keys(result).sort(), [
     'address',
     'city',
     'district',
     'emergency_available',
+    'google_place_id',
     'is_24h',
+    'is_24h_checked_at',
+    'is_24h_source',
     'latitude',
     'license_number',
     'license_status',
@@ -519,6 +537,9 @@ test('normalizeHospitalRow：未知座標、24H 與急診欄位應固定為 null
   assert.equal(result.longitude, null)
   assert.equal(result.is_24h, null)
   assert.equal(result.emergency_available, null)
+  assert.equal(result.google_place_id, null)
+  assert.equal(result.is_24h_source, null)
+  assert.equal(result.is_24h_checked_at, null)
 })
 
 test('import_hospitals：不應新增 geocoding 設定或推測字串', () => {
@@ -555,12 +576,29 @@ test('upsert SQL：應以 license_number 做 ON CONFLICT 去重更新', () => {
     hospital.license_status,
     hospital.is_24h,
     hospital.emergency_available,
+    hospital.google_place_id,
+    hospital.is_24h_source,
+    hospital.is_24h_checked_at,
   ])
 })
 
-test('upsert SQL：重複匯入時應保留既有座標', () => {
-  assert.doesNotMatch(UPSERT_HOSPITAL_SQL, /latitude = EXCLUDED\.latitude/)
-  assert.doesNotMatch(UPSERT_HOSPITAL_SQL, /longitude = EXCLUDED\.longitude/)
+test('upsert SQL：重複匯入時應保留既有座標與外部補強', () => {
+  for (const field of [
+    'latitude',
+    'longitude',
+    'is_24h',
+    'emergency_available',
+    'google_place_id',
+    'is_24h_source',
+    'is_24h_checked_at',
+  ]) {
+    assert.doesNotMatch(UPSERT_HOSPITAL_SQL, new RegExp(`${field}\\s*=\\s*EXCLUDED\\.${field}`))
+  }
+
+  for (const field of ['name', 'city', 'district', 'address', 'phone', 'license_status']) {
+    assert.match(UPSERT_HOSPITAL_SQL, new RegExp(`${field}\\s*=\\s*EXCLUDED\\.${field}`))
+  }
+
   assert.match(UPSERT_HOSPITAL_SQL, /updated_at = CURRENT_TIMESTAMP/)
 })
 

@@ -579,8 +579,71 @@ test('Hospital store reconciles contextual sorting when real location becomes av
     assert.equal(explicitStore.filters.sort, 'name')
     await explicitStore.set24H(true)
     assert.equal(calls.at(-1).params.sort, 'name')
-    assert.equal(calls.at(-1).params.lat, undefined)
-    assert.equal(calls.at(-1).params.lng, undefined)
+    assert.equal(calls.at(-1).params.lat, location.lat)
+    assert.equal(calls.at(-1).params.lng, location.lng)
+  } finally {
+    axios.get = originalGet
+  }
+})
+
+test('Hospital store list search sends only real coordinates across relevance, page, and retry', async () => {
+  const originalGet = axios.get
+  const calls = []
+  const location = { lat: 25.0478, lng: 121.5319 }
+
+  axios.get = async (url, config) => {
+    calls.push({ url, params: config.params })
+    return {
+      data: {
+        hospitals: [],
+        pagination: {
+          page: config.params.page ?? 1,
+          limit: config.params.limit ?? 20,
+          total: 0,
+          total_pages: 0,
+        },
+      },
+    }
+  }
+
+  try {
+    setActivePinia(createPinia())
+    const locatedStore = useHospitalStore()
+    await locatedStore.loadNearbyHospitals({ location })
+    await locatedStore.setKeyword('仁愛')
+    await locatedStore.setPage(2)
+    await locatedStore.retryCurrentQuery()
+
+    const locatedListCalls = calls.filter(({ url }) => url.endsWith('/api/v1/hospitals'))
+    assert.equal(locatedListCalls.length, 3)
+    assert.deepEqual(locatedListCalls.map(({ params }) => ({
+      keyword: params.keyword,
+      sort: params.sort,
+      lat: params.lat,
+      lng: params.lng,
+      page: params.page,
+    })), [
+      { keyword: '仁愛', sort: 'relevance', ...location, page: 1 },
+      { keyword: '仁愛', sort: 'relevance', ...location, page: 2 },
+      { keyword: '仁愛', sort: 'relevance', ...location, page: 2 },
+    ])
+
+    setActivePinia(createPinia())
+    const fallbackStore = useHospitalStore()
+    await fallbackStore.loadNearbyHospitals({ locationError: '定位權限遭拒' })
+    await fallbackStore.setKeyword('仁愛')
+    await fallbackStore.retryCurrentQuery()
+
+    const fallbackListCalls = calls
+      .filter(({ url }) => url.endsWith('/api/v1/hospitals'))
+      .slice(locatedListCalls.length)
+    assert.equal(fallbackListCalls.length, 2)
+    for (const { params } of fallbackListCalls) {
+      assert.equal(params.keyword, '仁愛')
+      assert.equal(params.sort, 'relevance')
+      assert.equal(params.lat, undefined)
+      assert.equal(params.lng, undefined)
+    }
   } finally {
     axios.get = originalGet
   }
