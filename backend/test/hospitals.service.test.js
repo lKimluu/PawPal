@@ -218,6 +218,7 @@ test('findHospitals keyword relevance 排序應使用正確 SQL 參數順序', a
       phone: '02-5555-5555',
       latitude: '25.1880000',
       longitude: '121.4440000',
+      distance_km: '3.2',
       rating_average: null,
       review_count: 0,
       animal_types: [],
@@ -225,20 +226,28 @@ test('findHospitals keyword relevance 排序應使用正確 SQL 參數順序', a
   ]
   const query = t.mock.method(pool, 'query', async (text, values) => {
     if (query.mock.callCount() === 0) {
-      assert.deepEqual(values, ['%小尾巴%'])
+      assert.match(text, /\$1::double precision IS NOT NULL/)
+      assert.match(text, /\$2::double precision IS NOT NULL/)
+      assert.match(text, /h\.name ILIKE \$3/)
+      assert.deepEqual(values, [25.0478, 121.5319, '%小尾巴%'])
       return { rows: [{ total: 1 }] }
     }
 
-    assert.match(text, /WHEN h\.name ILIKE '%' \|\| \$2 \|\| '%' THEN 0/)
-    assert.match(text, /LIMIT \$3/)
-    assert.match(text, /OFFSET \$4/)
-    assert.deepEqual(values, ['%小尾巴%', '小尾巴', 20, 0])
+    assert.match(text, /RADIANS\(h\.latitude::double precision\)/)
+    assert.match(text, /AS distance_km/)
+    assert.match(text, /WHEN h\.name ILIKE '%' \|\| \$4 \|\| '%' THEN 0/)
+    assert.doesNotMatch(text, /ORDER BY \(6371 .* ASIN/s)
+    assert.match(text, /LIMIT \$5/)
+    assert.match(text, /OFFSET \$6/)
+    assert.deepEqual(values, [25.0478, 121.5319, '%小尾巴%', '小尾巴', 20, 0])
     return { rows }
   })
 
   const result = await findHospitals({
     keyword: '小尾巴',
     sort: 'relevance',
+    lat: 25.0478,
+    lng: 121.5319,
     page: 1,
     limit: 20,
   })
@@ -254,6 +263,7 @@ test('findHospitals keyword relevance 排序應使用正確 SQL 參數順序', a
       phone: '02-5555-5555',
       latitude: 25.188,
       longitude: 121.444,
+      distance_km: 3.2,
       rating_average: null,
       average_rating: 0,
       rating: 0,
@@ -261,6 +271,88 @@ test('findHospitals keyword relevance 排序應使用正確 SQL 參數順序', a
       animal_types: [],
     },
   ])
+})
+
+test('findHospitals name 排序搭配座標時投影距離但維持名稱排序', async (t) => {
+  const query = t.mock.method(pool, 'query', async (text, values) => {
+    if (query.mock.callCount() === 0) {
+      assert.deepEqual(values, [25.0478, 121.5319])
+      return { rows: [{ total: 1 }] }
+    }
+
+    assert.match(text, /AS distance_km/)
+    assert.match(text, /ORDER BY h\.city ASC, h\.district ASC NULLS LAST, h\.name ASC, h\.id ASC/)
+    assert.match(text, /LIMIT \$3/)
+    assert.match(text, /OFFSET \$4/)
+    assert.deepEqual(values, [25.0478, 121.5319, 20, 0])
+    return { rows: [{
+      id: 4,
+      name: '安心動物醫院',
+      city: '台北市',
+      district: '大安區',
+      address: '和平東路',
+      phone: null,
+      latitude: '25.03',
+      longitude: '121.53',
+      distance_km: '2.345',
+      rating_average: null,
+      review_count: 0,
+      animal_types: [],
+    }] }
+  })
+
+  const result = await findHospitals({
+    sort: 'name',
+    lat: 25.0478,
+    lng: 121.5319,
+    page: 1,
+    limit: 20,
+  })
+
+  assert.equal(result.hospitals[0].distance_km, 2.35)
+})
+
+test('findHospitals 沒有座標時不投影 distance_km', async (t) => {
+  const query = t.mock.method(pool, 'query', async (text, values) => {
+    if (query.mock.callCount() === 0) return { rows: [{ total: 0 }] }
+
+    assert.doesNotMatch(text, /AS distance_km/)
+    assert.match(text, /ORDER BY h\.city ASC, h\.district ASC NULLS LAST, h\.name ASC, h\.id ASC/)
+    assert.deepEqual(values, [20, 0])
+    return { rows: [] }
+  })
+
+  await findHospitals({ sort: 'name', page: 1, limit: 20 })
+})
+
+test('findHospitals 醫院座標為 NULL 時不把 distance_km 映射為 0', async (t) => {
+  t.mock.method(pool, 'query', async () => {
+    if (pool.query.mock.callCount() === 0) return { rows: [{ total: 1 }] }
+    return { rows: [{
+      id: 5,
+      name: '座標未知醫院',
+      city: '台北市',
+      district: null,
+      address: null,
+      phone: null,
+      latitude: null,
+      longitude: null,
+      distance_km: null,
+      rating_average: null,
+      review_count: 0,
+      animal_types: [],
+    }] }
+  })
+
+  const result = await findHospitals({
+    sort: 'name',
+    lat: 25.0478,
+    lng: 121.5319,
+    page: 1,
+    limit: 20,
+  })
+
+  assert.equal('distance_km' in result.hospitals[0], false)
 })
 
 test('findHospitals 無符合資料時應回傳空陣列與分頁資訊', async (t) => {

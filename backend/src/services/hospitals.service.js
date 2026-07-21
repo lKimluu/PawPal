@@ -45,7 +45,7 @@ function map_hospital_row(row) {
     hospital.emergency_available = Boolean(row.emergency_available)
   }
 
-  if (row.distance_km !== undefined) {
+  if (row.distance_km !== undefined && row.distance_km !== null) {
     hospital.distance_km = Number(Number(row.distance_km).toFixed(2))
   }
 
@@ -150,10 +150,13 @@ const HOSPITAL_REVIEW_SUMMARY_JOIN = `
 `
 
 export async function findHospitals(filters = {}) {
-  const uses_distance = filters.sort === 'distance'
-  const values = uses_distance ? [filters.lat, filters.lng] : []
+  const has_coordinates = Number.isFinite(filters.lat) && Number.isFinite(filters.lng)
+  const uses_distance_ordering = filters.sort === 'distance'
+  const values = has_coordinates ? [filters.lat, filters.lng] : []
   const conditions = []
-  if (uses_distance) conditions.push('$1::double precision IS NOT NULL', '$2::double precision IS NOT NULL')
+  if (has_coordinates) {
+    conditions.push('$1::double precision IS NOT NULL', '$2::double precision IS NOT NULL')
+  }
   add_hospital_filters(filters, values, conditions)
   const where_clause = build_where_clause(conditions)
 
@@ -176,7 +179,7 @@ export async function findHospitals(filters = {}) {
     + COS(RADIANS($1::double precision)) * COS(RADIANS(h.latitude::double precision))
     * POWER(SIN((RADIANS(h.longitude::double precision) - RADIANS($2::double precision)) / 2), 2)
   )))`
-  const distance_select = uses_distance ? `, ${distance_expression} AS distance_km` : ''
+  const distance_select = has_coordinates ? `, ${distance_expression} AS distance_km` : ''
   let order_clause = 'h.id ASC'
   if (filters.sort === 'name') {
     order_clause = 'h.city ASC, h.district ASC NULLS LAST, h.name ASC, h.id ASC'
@@ -189,7 +192,7 @@ export async function findHospitals(filters = {}) {
       WHEN h.district ILIKE '%' || $${keyword_index} || '%' THEN 2
       ELSE 3
     END ASC, h.city ASC, h.district ASC NULLS LAST, h.name ASC, h.id ASC`
-  } else if (uses_distance) {
+  } else if (uses_distance_ordering) {
     order_clause = `${distance_expression} ASC NULLS LAST, h.id ASC`
   }
   const list_values = [...values, limit, offset]
