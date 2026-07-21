@@ -43,7 +43,7 @@ function createAbortableAxiosDeferred(config = {}) {
   return deferred
 }
 
-test('Hospital list query supports filters and pagination', () => {
+test('醫院清單查詢只送出保留的篩選條件與分頁，不再送診療動物篩選', () => {
   const query = buildHospitalListQuery({
     keyword: '仁愛',
     city: '台北市',
@@ -60,18 +60,18 @@ test('Hospital list query supports filters and pagination', () => {
     keyword: '仁愛',
     city: '台北市',
     district: '大安區',
-    animal_type: 'cat',
     is_24h: true,
     favorites_only: true,
     sort: 'name',
     page: 2,
     limit: 20,
   })
+  assert.equal('animal_type' in query, false)
   assert.equal('animalType' in query, false)
   assert.equal('isOpenOnly' in query, false)
 })
 
-test('Nearby hospital query uses current or fallback location', () => {
+test('附近醫院查詢使用目前或預設位置，不再送診療動物篩選', () => {
   assert.deepEqual(
     buildNearbyHospitalQuery({
       location: { lat: 25.033964, lng: 121.564468 },
@@ -84,7 +84,6 @@ test('Nearby hospital query uses current or fallback location', () => {
       lng: 121.564468,
       radius: 10,
       limit: 12,
-      animal_type: 'dog',
     },
   )
 
@@ -96,7 +95,7 @@ test('Nearby hospital query uses current or fallback location', () => {
   })
 })
 
-test('Hospital page loads hospitals from the list API using normalized data', async () => {
+test('醫院頁透過清單 API 載入並正規化醫院資料', async () => {
   const originalGet = axios.get
   const calls = []
 
@@ -137,7 +136,6 @@ test('Hospital page loads hospitals from the list API using normalized data', as
     assert.equal(calls[0].url.endsWith('/api/v1/hospitals'), true)
     assert.deepEqual(calls[0].config.params, {
       keyword: '仁愛',
-      animal_type: 'cat',
       page: 1,
       limit: 20,
     })
@@ -538,7 +536,7 @@ test('Newer full-search nearby request supersedes stale home response, error, an
   }
 })
 
-test('Hospital store reconciles contextual sorting when real location becomes available', async () => {
+test('醫院 store 在取得真實定位後維持情境排序規則', async () => {
   const originalGet = axios.get
   const calls = []
   const location = { lat: 25.0478, lng: 121.5319 }
@@ -559,7 +557,6 @@ test('Hospital store reconciles contextual sorting when real location becomes av
     assert.equal(contextualStore.filters.sort, 'distance')
 
     await contextualStore.setLocationFilter({ city: '台北市', district: '大安區' })
-    await contextualStore.setAnimalType('cat')
     await contextualStore.set24H(true)
 
     for (const call of calls.slice(2)) {
@@ -569,8 +566,8 @@ test('Hospital store reconciles contextual sorting when real location becomes av
     }
     assert.deepEqual(calls[2].params.city, '台北市')
     assert.deepEqual(calls[2].params.district, '大安區')
-    assert.equal(calls[3].params.animal_type, 'cat')
-    assert.equal(calls[4].params.is_24h, true)
+    assert.equal(calls[3].params.is_24h, true)
+    assert.equal('animal_type' in calls[3].params, false)
 
     setActivePinia(createPinia())
     const explicitStore = useHospitalStore()
@@ -855,7 +852,7 @@ test('normalizeHospital exposes stable frontend shape', () => {
   assert.equal(normalized.isFavorite, false)
 })
 
-test('Hospital store owns query result state and filter actions', () => {
+test('醫院 store 管理查詢結果狀態與保留的篩選操作', () => {
   const store = readSource('../stores/hospital.js')
 
   assert.match(store, /defineStore\('hospital'/)
@@ -865,7 +862,7 @@ test('Hospital store owns query result state and filter actions', () => {
   assert.match(store, /keyword/)
   assert.match(store, /city/)
   assert.match(store, /district/)
-  assert.match(store, /animalType/)
+  assert.doesNotMatch(store, /animalType/)
   assert.match(store, /is24H: false/)
   assert.match(store, /const mode = ref\('list'\)/)
   assert.match(store, /const selectedHospitalId = ref\(null\)/)
@@ -876,6 +873,7 @@ test('Hospital store owns query result state and filter actions', () => {
   assert.match(store, /listRequestId/)
   assert.match(store, /mapRequestId/)
   assert.match(store, /function set24H/)
+  assert.doesNotMatch(store, /setAnimalType/)
   assert.match(store, /function retryCurrentQuery/)
   assert.match(store, /updateHospitalReviewRequest/)
   assert.match(store, /deleteHospitalReviewRequest/)
@@ -897,7 +895,7 @@ test('Hospital store separates list mode, nearby mode, pagination and Taipei fal
   assert.doesNotMatch(store, /navigator\.geolocation/)
 })
 
-test('Hospital components use store-owned data for list, map, selection, and states', () => {
+test('醫院元件使用 store 資料且搜尋列不再呈現診療動物篩選', () => {
   const hospitalView = readSource('../views/HospitalView.vue')
   const hospitalList = readSource('../components/hospital/HospitalList.vue')
   const mapView = readSource('../components/hospital/MapView.vue')
@@ -926,7 +924,9 @@ test('Hospital components use store-owned data for list, map, selection, and sta
 
   assert.match(searchBar, /hospitalStore\.setKeyword/)
   assert.match(searchBar, /hospitalStore\.setLocationFilter/)
-  assert.match(searchBar, /hospitalStore\.setAnimalType/)
+  assert.doesNotMatch(searchBar, /HOSPITAL_ANIMAL_TYPES/)
+  assert.doesNotMatch(searchBar, /hospitalStore\.setAnimalType/)
+  assert.doesNotMatch(searchBar, /診療動物/)
   assert.match(searchBar, /hospitalStore\.set24H/)
   assert.match(searchBar, /hospitalStore\.setFavoritesOnly/)
   assert.doesNotMatch(searchBar, /只顯示營業中/)

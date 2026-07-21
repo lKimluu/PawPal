@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia'
 import HospitalLocationSelects from '@/components/hospital/HospitalLocationSelects.vue'
 import HospitalSearchInput from '@/components/hospital/HospitalSearchInput.vue'
 import { useHospitalStore } from '@/stores/hospital.js'
-import { HOSPITAL_ANIMAL_TYPES, HOSPITAL_SORT_OPTIONS } from '@/constants/hospitalFilters.js'
+import { HOSPITAL_SORT_OPTIONS } from '@/constants/hospitalFilters.js'
 
 const hospitalStore = useHospitalStore()
 const {
@@ -109,26 +109,6 @@ function changeSort(event) {
           :class="filters.favoritesOnly ? 'left-[22px]' : 'left-0.5'"
         ></span>
       </button>
-    </div>
-
-    <div class="mt-5">
-      <h3 class="text-[15px] font-bold">診療動物</h3>
-      <div class="mt-3 flex gap-2 overflow-x-auto pb-2">
-        <button
-          v-for="item in HOSPITAL_ANIMAL_TYPES"
-          :key="item.value || 'all'"
-          class="shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-bold transition active:scale-95"
-          :class="
-            filters.animalType === item.value
-              ? 'border-brand-blue bg-brand-blue text-white'
-              : 'border-brand-lightblue'
-          "
-          type="button"
-          @click="hospitalStore.setAnimalType(item.value)"
-        >
-          {{ item.label }}
-        </button>
-      </div>
     </div>
 
     <label class="mt-4 block text-xs font-bold"

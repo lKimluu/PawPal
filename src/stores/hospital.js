@@ -19,7 +19,6 @@ const DEFAULT_FILTERS = {
   keyword: '',
   city: '',
   district: '',
-  animalType: '',
   is24H: false,
   favoritesOnly: false,
   sort: 'name',
@@ -67,7 +66,6 @@ export const useHospitalStore = defineStore('hospital', () => {
       keyword: filters.value.keyword,
       city: filters.value.city,
       district: filters.value.district,
-      animalType: filters.value.animalType,
       is24H: filters.value.is24H || undefined,
       favoritesOnly: filters.value.favoritesOnly || undefined,
       sort: filters.value.sort,
@@ -170,7 +168,6 @@ export const useHospitalStore = defineStore('hospital', () => {
     pagination.value.page = 1
     return loadHospitals({ page: 1 })
   }
-  async function setAnimalType(value) { filters.value.animalType = value; pagination.value.page = 1; return loadHospitals({ page: 1 }) }
   async function set24H(value) { filters.value.is24H = Boolean(value); pagination.value.page = 1; return loadHospitals({ page: 1 }) }
   async function setFavoritesOnly(value) { filters.value.favoritesOnly = Boolean(value); pagination.value.page = 1; return loadHospitals({ page: 1 }) }
   async function setSort(value) { if (value === 'distance' && !hasRealLocation.value) return; explicitSortSelection.value = value; filters.value.sort = value; pagination.value.page = 1; return loadHospitals({ page: 1 }) }
@@ -245,7 +242,7 @@ export const useHospitalStore = defineStore('hospital', () => {
     pagination, filters, mode, selectedHospitalId, selectedHospital, isLoading, mapLoading,
     regionsLoading, errorMessage, mapError, regionsError, mapTruncated, locationFallbackMessage,
     hasRealLocation, isEmpty, loadHospitals, loadNearbyHospitals, loadMapHospitals, loadRegions,
-    setKeyword, setLocationFilter, setAnimalType, set24H, setFavoritesOnly, setSort, setPage, clearFilters,
+    setKeyword, setLocationFilter, set24H, setFavoritesOnly, setSort, setPage, clearFilters,
     selectHospital, retryCurrentQuery, retryMapQuery, updateHospitalReviewSummary, getHospitalById,
     loadHospitalReviews, submitHospitalReview, updateHospitalReview, deleteHospitalReview,
     toggleFavoriteHospital,
