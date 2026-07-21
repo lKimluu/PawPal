@@ -37,15 +37,17 @@ test('醫院路由應提供清單、附近、地區、地圖與評論查詢', ()
       { path: '/:hospital_id/reviews', methods: ['post'] },
       { path: '/:hospital_id/reviews/me', methods: ['patch'] },
       { path: '/:hospital_id/reviews/me', methods: ['delete'] },
+      { path: '/:hospital_id/favorite', methods: ['post'] },
+      { path: '/:hospital_id/favorite', methods: ['delete'] },
     ],
   )
 
   assert.equal(routes.find((route) => route.path === '/regions').middleware.length, 1)
-  for (const path of ['/', '/nearby']) {
-    const middleware = routes.find((route) => route.path === path).middleware
-    assert.equal(middleware.length, 2)
-    assert.equal(typeof middleware[0].handle, 'function')
-  }
+  assert.equal(routes.find((route) => route.path === '/nearby').middleware.length, 3)
+
+  const listMiddleware = routes.find((route) => route.path === '/').middleware
+  assert.equal(listMiddleware.length, 3)
+  assert.equal(typeof listMiddleware[0].handle, 'function')
 
   const mapMiddleware = routes.find((route) => route.path === '/map').middleware
   assert.equal(mapMiddleware.length, 4)
@@ -65,7 +67,7 @@ test('應將醫院路由掛載在 /api/v1/hospitals', () => {
 
 test('醫院清單 query validation 失敗時不應進入 controller', () => {
   const listRoute = hospitalRoutes.stack.find((layer) => layer.route?.path === '/')
-  const validateQuery = listRoute.route.stack[0].handle
+  const validateQuery = listRoute.route.stack[1].handle
   const req = { query: { page: '0' } }
   const res = createResponse()
   let nextCalled = false
@@ -81,7 +83,7 @@ test('醫院清單 query validation 失敗時不應進入 controller', () => {
 
 test('醫院清單 query validation 成功時應寫入 validated_query 且不重新指定 req.query', () => {
   const listRoute = hospitalRoutes.stack.find((layer) => layer.route?.path === '/')
-  const validateQuery = listRoute.route.stack[0].handle
+  const validateQuery = listRoute.route.stack[1].handle
   const req = {}
   Object.defineProperty(req, 'query', {
     get() {
@@ -108,7 +110,7 @@ test('醫院清單 query validation 成功時應寫入 validated_query 且不重
 
 test('附近醫院 query validation 失敗時不應進入 controller', () => {
   const nearbyRoute = hospitalRoutes.stack.find((layer) => layer.route?.path === '/nearby')
-  const validateQuery = nearbyRoute.route.stack[0].handle
+  const validateQuery = nearbyRoute.route.stack[1].handle
   const req = { query: { lat: '91', lng: '121' } }
   const res = createResponse()
   let nextCalled = false
@@ -124,7 +126,7 @@ test('附近醫院 query validation 失敗時不應進入 controller', () => {
 
 test('附近醫院 query validation 成功時應寫入 validated_query 且不重新指定 req.query', () => {
   const nearbyRoute = hospitalRoutes.stack.find((layer) => layer.route?.path === '/nearby')
-  const validateQuery = nearbyRoute.route.stack[0].handle
+  const validateQuery = nearbyRoute.route.stack[1].handle
   const req = {}
   Object.defineProperty(req, 'query', {
     get() {

@@ -4,7 +4,12 @@ export function createHospitalsController(hospitalService) {
   async function listHospitals(req, res) {
     try {
       const query = req.validated_query ?? req.query
-      const result = await hospitalService.findHospitals(query)
+
+      if (query.favorites_only && !req.userId) {
+        return res.status(401).json({ message: '請先登入後查看收藏清單' })
+      }
+
+      const result = await hospitalService.findHospitals(query, { userId: req.userId })
 
       return res.status(200).json(result)
     } catch (error) {
@@ -17,7 +22,12 @@ export function createHospitalsController(hospitalService) {
   async function listNearbyHospitals(req, res) {
     try {
       const query = req.validated_query ?? req.query
-      const hospitals = await hospitalService.findNearbyHospitals(query)
+
+      if (query.favorites_only && !req.userId) {
+        return res.status(401).json({ message: '請先登入後查看收藏清單' })
+      }
+
+      const hospitals = await hospitalService.findNearbyHospitals(query, { userId: req.userId })
 
       return res.status(200).json({ hospitals })
     } catch (error) {

@@ -3,13 +3,18 @@ import { Router } from 'express'
 import { listHospitalRegions, listHospitals, listMapHospitals, listNearbyHospitals } from '../controllers/hospitals.controller.js'
 import { hospitalMapIpRateLimiter, hospitalMapRateLimiter } from '../config/rate_limit.js'
 import {
+  addHospitalFavorite,
+  removeHospitalFavorite,
+} from '../controllers/hospital_favorites.controller.js'
+import {
   createHospitalReview,
   deleteMyHospitalReview,
   listHospitalReviews,
   updateMyHospitalReview,
 } from '../controllers/hospital_reviews.controller.js'
-import { authenticateToken } from '../middlewares/auth.middleware.js'
+import { attachUserIfPresent, authenticateToken } from '../middlewares/auth.middleware.js'
 import { validate } from '../middlewares/validate.js'
+import { hospitalFavoriteParamsSchema } from '../schemas/hospital_favorites.schema.js'
 import {
   hospitalReviewBodySchema,
   hospitalReviewParamsSchema,
@@ -23,8 +28,8 @@ import {
 
 const router = Router()
 
-router.get('/', validate(hospitalsQuerySchema, 'query'), listHospitals)
-router.get('/nearby', validate(nearbyHospitalsQuerySchema, 'query'), listNearbyHospitals)
+router.get('/', attachUserIfPresent, validate(hospitalsQuerySchema, 'query'), listHospitals)
+router.get('/nearby', attachUserIfPresent, validate(nearbyHospitalsQuerySchema, 'query'), listNearbyHospitals)
 router.get('/regions', listHospitalRegions)
 router.get(
   '/map',
@@ -58,6 +63,18 @@ router.delete(
   authenticateToken,
   validate(hospitalReviewParamsSchema, 'params'),
   deleteMyHospitalReview,
+)
+router.post(
+  '/:hospital_id/favorite',
+  authenticateToken,
+  validate(hospitalFavoriteParamsSchema, 'params'),
+  addHospitalFavorite,
+)
+router.delete(
+  '/:hospital_id/favorite',
+  authenticateToken,
+  validate(hospitalFavoriteParamsSchema, 'params'),
+  removeHospitalFavorite,
 )
 
 export default router

@@ -123,11 +123,12 @@ test('setup-db：應只執行 schema 且不得刪除既有資料表', () => {
   const setupScript = readProjectFile('scripts/setup-db.js')
 
   assert.doesNotMatch(setupScript, /DROP\s+TABLE/i)
-  assert.deepEqual(TABLES_IN_ORDER.slice(-4), [
+  assert.deepEqual(TABLES_IN_ORDER.slice(-5), [
     'hospitals',
     'animal_types',
     'hospital_animal_types',
     'hospital_reviews',
+    'hospital_favorites',
   ])
   assert.deepEqual(SEED_FILES_IN_ORDER, [
     'users',

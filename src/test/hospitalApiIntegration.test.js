@@ -6,12 +6,14 @@ import { createPinia, setActivePinia } from 'pinia'
 import { buildHospitalPopupHtml } from '../utils/hospitalPopup.js'
 import { useHospitalStore } from '../stores/hospital.js'
 import {
+  addFavoriteHospital,
   buildHospitalListQuery,
   buildNearbyHospitalQuery,
   fetchHospitals,
   fetchMapHospitals,
   fetchNearbyHospitals,
   normalizeHospital,
+  removeFavoriteHospital,
   TAIPEI_CENTER,
 } from '../api/hospitals.js'
 
@@ -50,6 +52,7 @@ test('醫院清單查詢只送出保留的篩選條件與分頁，不再送診�
     page: 2,
     limit: 20,
     is24H: true,
+    favoritesOnly: true,
     sort: 'name',
   })
 
@@ -58,6 +61,7 @@ test('醫院清單查詢只送出保留的篩選條件與分頁，不再送診�
     city: '台北市',
     district: '大安區',
     is_24h: true,
+    favorites_only: true,
     sort: 'name',
     page: 2,
     limit: 20,
@@ -163,6 +167,7 @@ test('醫院頁透過清單 API 載入並正規化醫院資料', async () => {
       businessHours: '09:00 - 21:00',
       rating: 0,
       reviewCount: 0,
+      isFavorite: false,
       animal_types: [{ slug: 'cat', name: '貓' }],
       business_hours: '09:00 - 21:00',
       distance_km: '1.234',
@@ -210,6 +215,31 @@ test('Nearby API fallback result can feed list and map marker data', async () =>
     assert.equal(Number.isFinite(result.hospitals[0].longitude), true)
   } finally {
     axios.get = originalGet
+  }
+})
+
+test('Nearby API 已登入時應帶 Authorization header', async () => {
+  const originalGet = axios.get
+  const calls = []
+
+  globalThis.localStorage = {
+    getItem(key) {
+      return key === 'pawpal_token' ? 'token-123' : null
+    },
+  }
+
+  axios.get = async (url, config) => {
+    calls.push({ url, config })
+    return { data: { hospitals: [] } }
+  }
+
+  try {
+    await fetchNearbyHospitals({ radius: 5, limit: 20 })
+
+    assert.equal(calls[0].config.headers.Authorization, 'Bearer token-123')
+  } finally {
+    axios.get = originalGet
+    delete globalThis.localStorage
   }
 })
 
@@ -641,6 +671,241 @@ test('Hospital store list search sends only real coordinates across relevance, p
   }
 })
 
+test('setFavoritesOnly 觸發重新查詢並帶上 favorites_only 參數', async () => {
+  const originalGet = axios.get
+  const calls = []
+
+  axios.get = async (url, config) => {
+    calls.push({ url, config })
+    return { data: { hospitals: [], pagination: { page: 1, limit: 20, total: 0, total_pages: 0 } } }
+  }
+
+  try {
+    setActivePinia(createPinia())
+    const store = useHospitalStore()
+
+    await store.setFavoritesOnly(true)
+
+    assert.equal(store.filters.favoritesOnly, true)
+    assert.equal(calls.at(-1).config.params.favorites_only, true)
+    assert.equal(store.pagination.page, 1)
+  } finally {
+    axios.get = originalGet
+  }
+})
+
+test('toggleFavoriteHospital 成功時應就地更新該醫院的 isFavorite', async () => {
+  const originalGet = axios.get
+  const originalPost = axios.post
+  const originalDelete = axios.delete
+
+  axios.get = async () => ({
+    data: {
+      hospitals: [{ id: 1, name: '仁愛動物醫院', is_favorite: false }],
+      pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
+    },
+  })
+  axios.post = async () => ({ data: { message: '已加入收藏' } })
+  axios.delete = async () => ({ data: { message: '已取消收藏' } })
+
+  try {
+    setActivePinia(createPinia())
+    const store = useHospitalStore()
+    await store.loadHospitals()
+
+    const addResult = await store.toggleFavoriteHospital(1, false)
+    assert.equal(addResult.success, true)
+    assert.equal(store.hospitals[0].isFavorite, true)
+
+    const removeResult = await store.toggleFavoriteHospital(1, true)
+    assert.equal(removeResult.success, true)
+    assert.equal(store.hospitals[0].isFavorite, false)
+  } finally {
+    axios.get = originalGet
+    axios.post = originalPost
+    axios.delete = originalDelete
+  }
+})
+
+test('toggleFavoriteHospital 失敗時不應變更該醫院的 isFavorite', async () => {
+  const originalGet = axios.get
+  const originalPost = axios.post
+
+  axios.get = async () => ({
+    data: {
+      hospitals: [{ id: 1, name: '仁愛動物醫院', is_favorite: false }],
+      pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
+    },
+  })
+  axios.post = async () => {
+    const error = new Error('Request failed with status code 409')
+    error.response = { status: 409, data: { message: '此醫院已收藏' } }
+    throw error
+  }
+
+  try {
+    setActivePinia(createPinia())
+    const store = useHospitalStore()
+    await store.loadHospitals()
+
+    const result = await store.toggleFavoriteHospital(1, false)
+
+    assert.equal(result.success, false)
+    assert.equal(result.message, '此醫院已收藏')
+    assert.equal(store.hospitals[0].isFavorite, false)
+  } finally {
+    axios.get = originalGet
+    axios.post = originalPost
+  }
+})
+
+test('僅顯示收藏模式取消收藏後應重新查詢並同步清單與分頁', async () => {
+  const originalGet = axios.get
+  const originalDelete = axios.delete
+  let getCallCount = 0
+
+  axios.get = async () => {
+    getCallCount += 1
+    if (getCallCount === 1) {
+      return {
+        data: {
+          hospitals: [
+            { id: 1, name: '仁愛動物醫院', is_favorite: true },
+            { id: 2, name: '大安動物醫院', is_favorite: true },
+          ],
+          pagination: { page: 1, limit: 20, total: 2, total_pages: 1 },
+        },
+      }
+    }
+
+    return {
+      data: {
+        hospitals: [{ id: 2, name: '大安動物醫院', is_favorite: true }],
+        pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
+      },
+    }
+  }
+  axios.delete = async () => ({ data: { message: '已取消收藏' } })
+
+  try {
+    setActivePinia(createPinia())
+    const store = useHospitalStore()
+    await store.setFavoritesOnly(true)
+
+    assert.equal(store.hospitals.length, 2)
+    assert.equal(store.pagination.total, 2)
+
+    const result = await store.toggleFavoriteHospital(1, true)
+
+    assert.equal(result.success, true)
+    assert.equal(getCallCount, 2)
+    assert.equal(store.hospitals.length, 1)
+    assert.equal(store.hospitals[0].id, 2)
+    assert.equal(store.pagination.total, 1)
+  } finally {
+    axios.get = originalGet
+    axios.delete = originalDelete
+  }
+})
+
+test('Hospital list request passes favorites_only and normalizes is_favorite', async () => {
+  const originalGet = axios.get
+  const calls = []
+
+  axios.get = async (url, config) => {
+    calls.push({ url, config })
+    return {
+      data: {
+        hospitals: [{ id: 'h-3', name: '收藏動物醫院', is_favorite: true }],
+        pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
+      },
+    }
+  }
+
+  try {
+    const result = await fetchHospitals({ favoritesOnly: true, page: 1, limit: 20 })
+
+    assert.equal(calls[0].config.params.favorites_only, true)
+    assert.equal(result.hospitals[0].isFavorite, true)
+  } finally {
+    axios.get = originalGet
+  }
+})
+
+test('addFavoriteHospital 成功時應回傳 success 與訊息', async () => {
+  const originalPost = axios.post
+  const calls = []
+
+  axios.post = async (url, body, config) => {
+    calls.push({ url, body, config })
+    return { data: { message: '已加入收藏' } }
+  }
+
+  try {
+    const result = await addFavoriteHospital(15)
+
+    assert.equal(calls[0].url.endsWith('/api/v1/hospitals/15/favorite'), true)
+    assert.deepEqual(result, { success: true, message: '已加入收藏' })
+  } finally {
+    axios.post = originalPost
+  }
+})
+
+test('addFavoriteHospital 重複收藏時應透傳後端 409 訊息', async () => {
+  const originalPost = axios.post
+
+  axios.post = async () => {
+    const error = new Error('Request failed with status code 409')
+    error.response = { status: 409, data: { message: '此醫院已收藏' } }
+    throw error
+  }
+
+  try {
+    const result = await addFavoriteHospital(15)
+
+    assert.deepEqual(result, { success: false, message: '此醫院已收藏' })
+  } finally {
+    axios.post = originalPost
+  }
+})
+
+test('removeFavoriteHospital 成功時應回傳 success 與訊息', async () => {
+  const originalDelete = axios.delete
+  const calls = []
+
+  axios.delete = async (url, config) => {
+    calls.push({ url, config })
+    return { data: { message: '已取消收藏' } }
+  }
+
+  try {
+    const result = await removeFavoriteHospital(15)
+
+    assert.equal(calls[0].url.endsWith('/api/v1/hospitals/15/favorite'), true)
+    assert.deepEqual(result, { success: true, message: '已取消收藏' })
+  } finally {
+    axios.delete = originalDelete
+  }
+})
+
+test('removeFavoriteHospital 收藏不存在時應透傳後端 404 訊息', async () => {
+  const originalDelete = axios.delete
+
+  axios.delete = async () => {
+    const error = new Error('Request failed with status code 404')
+    error.response = { status: 404, data: { message: '此收藏不存在，請重新確認' } }
+    throw error
+  }
+
+  try {
+    const result = await removeFavoriteHospital(15)
+
+    assert.deepEqual(result, { success: false, message: '此收藏不存在，請重新確認' })
+  } finally {
+    axios.delete = originalDelete
+  }
+})
+
 test('normalizeHospital exposes stable frontend shape', () => {
   const normalized = normalizeHospital({
     id: 'h-2',
@@ -658,6 +923,7 @@ test('normalizeHospital exposes stable frontend shape', () => {
   assert.equal(normalized.is24H, true)
   assert.equal(normalized.businessHours, '24 小時營業')
   assert.deepEqual(normalized.categories, ['狗'])
+  assert.equal(normalized.isFavorite, false)
 })
 
 test('醫院 store 管理查詢結果狀態與保留的篩選操作', () => {
@@ -736,7 +1002,33 @@ test('醫院元件使用 store 資料且搜尋列不再呈現診療動物篩選'
   assert.doesNotMatch(searchBar, /hospitalStore\.setAnimalType/)
   assert.doesNotMatch(searchBar, /診療動物/)
   assert.match(searchBar, /hospitalStore\.set24H/)
+  assert.match(searchBar, /hospitalStore\.setFavoritesOnly/)
   assert.doesNotMatch(searchBar, /只顯示營業中/)
+})
+
+test('HospitalCard 收藏 Toggle 套用防重複送出 guard clause 並要求登入', () => {
+  const hospitalCard = readSource('../components/hospital/HospitalCard.vue')
+
+  assert.match(hospitalCard, /useAuthStore/)
+  assert.match(hospitalCard, /useHospitalStore/)
+  assert.match(hospitalCard, /useToastStore/)
+  assert.match(hospitalCard, /const isFavoriteToggling = ref\(false\)/)
+  assert.match(
+    hospitalCard,
+    /const toggleFavorite = async \(\) => \{\s*if \(isFavoriteToggling\.value\) return/,
+  )
+  assert.match(
+    hospitalCard,
+    /if \(!authStore\.isLoggedIn\) \{\s*toastStore\.showToast\('請先登入後再收藏醫院', 'error'\)\s*return\s*\}/,
+  )
+  assert.match(hospitalCard, /hospitalStore\.toggleFavoriteHospital\(props\.hospital\.id, isFav\.value\)/)
+  assert.match(
+    hospitalCard,
+    /if \(result\.success\) \{\s*toastStore\.showToast\(result\.message\)\s*\} else \{\s*toastStore\.showToast\(result\.message, 'error'\)\s*\}/,
+  )
+  assert.match(hospitalCard, /finally \{\s*isFavoriteToggling\.value = false\s*\}/)
+  assert.match(hospitalCard, /:disabled="isFavoriteToggling"/)
+  assert.doesNotMatch(hospitalCard, /useFavoriteHospitalStore/)
 })
 
 test('Hospital list selection issues repeatable map focus requests', () => {

@@ -1,11 +1,13 @@
 import { computed, onScopeDispose, ref } from 'vue'
 import { defineStore } from 'pinia'
 import {
+  addFavoriteHospital as addFavoriteHospitalRequest,
   fetchHospitalRegions,
   fetchHospitals,
   fetchHospitalReviews,
   fetchMapHospitals,
   fetchNearbyHospitals,
+  removeFavoriteHospital as removeFavoriteHospitalRequest,
   deleteHospitalReview as deleteHospitalReviewRequest,
   submitHospitalReview as submitHospitalReviewRequest,
   updateHospitalReview as updateHospitalReviewRequest,
@@ -13,7 +15,14 @@ import {
 } from '../api/hospitals.js'
 
 const DEFAULT_PAGINATION = { page: 1, limit: 20, total: 0, totalPages: 0 }
-const DEFAULT_FILTERS = { keyword: '', city: '', district: '', is24H: false, sort: 'name' }
+const DEFAULT_FILTERS = {
+  keyword: '',
+  city: '',
+  district: '',
+  is24H: false,
+  favoritesOnly: false,
+  sort: 'name',
+}
 
 export const useHospitalStore = defineStore('hospital', () => {
   const hospitals = ref([])
@@ -58,6 +67,7 @@ export const useHospitalStore = defineStore('hospital', () => {
       city: filters.value.city,
       district: filters.value.district,
       is24H: filters.value.is24H || undefined,
+      favoritesOnly: filters.value.favoritesOnly || undefined,
       sort: filters.value.sort,
       lat: coordinates?.lat,
       lng: coordinates?.lng,
@@ -97,7 +107,12 @@ export const useHospitalStore = defineStore('hospital', () => {
     if (gainedRealLocation && !filters.value.keyword && explicitSortSelection.value === null) {
       filters.value.sort = 'distance'
     }
-    const query = { location: valid ? location : { lat: TAIPEI_CENTER[0], lng: TAIPEI_CENTER[1] }, radius, limit }
+    const query = {
+      location: valid ? location : { lat: TAIPEI_CENTER[0], lng: TAIPEI_CENTER[1] },
+      radius,
+      limit,
+      favoritesOnly: filters.value.favoritesOnly || undefined,
+    }
     mode.value = 'nearby'
     isLoading.value = true
     errorMessage.value = ''
@@ -159,6 +174,7 @@ export const useHospitalStore = defineStore('hospital', () => {
     return loadHospitals({ page: 1 })
   }
   async function set24H(value) { filters.value.is24H = Boolean(value); pagination.value.page = 1; return loadHospitals({ page: 1 }) }
+  async function setFavoritesOnly(value) { filters.value.favoritesOnly = Boolean(value); pagination.value.page = 1; return loadHospitals({ page: 1 }) }
   async function setSort(value) { if (value === 'distance' && !hasRealLocation.value) return; explicitSortSelection.value = value; filters.value.sort = value; pagination.value.page = 1; return loadHospitals({ page: 1 }) }
   async function setPage(page) { pagination.value.page = Number(page); return loadHospitals({ page: pagination.value.page }) }
   async function clearFilters() { explicitSortSelection.value = null; filters.value = { ...DEFAULT_FILTERS, sort: hasRealLocation.value ? 'distance' : 'name' }; pagination.value.page = 1; return loadHospitals({ page: 1 }) }
@@ -175,6 +191,28 @@ export const useHospitalStore = defineStore('hospital', () => {
 
     hospitals.value = hospitals.value.map(applySummary)
     mapHospitals.value = mapHospitals.value.map(applySummary)
+  }
+  function applyFavoriteState(hospitalId, isFavorite) {
+    const applyFavorite = (item) =>
+      item.id === hospitalId || String(item.id) === String(hospitalId)
+        ? { ...item, isFavorite }
+        : item
+
+    hospitals.value = hospitals.value.map(applyFavorite)
+    mapHospitals.value = mapHospitals.value.map(applyFavorite)
+  }
+  async function toggleFavoriteHospital(hospitalId, currentIsFavorite) {
+    const result = currentIsFavorite
+      ? await removeFavoriteHospitalRequest(hospitalId)
+      : await addFavoriteHospitalRequest(hospitalId)
+    if (result.success) {
+      if (currentIsFavorite && filters.value.favoritesOnly) {
+        await retryCurrentQuery()
+      } else {
+        applyFavoriteState(hospitalId, !currentIsFavorite)
+      }
+    }
+    return result
   }
   function getHospitalById(hospitalId) {
     return (
@@ -215,8 +253,9 @@ export const useHospitalStore = defineStore('hospital', () => {
     pagination, filters, mode, selectedHospitalId, selectedHospital, isLoading, mapLoading,
     regionsLoading, errorMessage, mapError, regionsError, mapTruncated, locationFallbackMessage,
     hasRealLocation, isEmpty, loadHospitals, loadNearbyHospitals, loadMapHospitals, loadRegions,
-    setKeyword, setLocationFilter, set24H, setSort, setPage, clearFilters,
+    setKeyword, setLocationFilter, set24H, setFavoritesOnly, setSort, setPage, clearFilters,
     selectHospital, retryCurrentQuery, retryMapQuery, updateHospitalReviewSummary, getHospitalById,
     loadHospitalReviews, submitHospitalReview, updateHospitalReview, deleteHospitalReview,
+    toggleFavoriteHospital,
   }
 })

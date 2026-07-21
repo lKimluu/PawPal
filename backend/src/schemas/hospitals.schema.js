@@ -38,19 +38,22 @@ const latitude_schema = z.coerce.number({ error: '緯度格式不正確' }).min(
 const longitude_schema = z.coerce.number({ error: '經度格式不正確' }).min(-180, {
   error: '經度必須介於 -180 到 180 之間',
 }).max(180, { error: '經度必須介於 -180 到 180 之間' })
-const optional_boolean_schema = z.preprocess((value) => {
-  if (value === undefined || value === '') return undefined
-  if (value === 'true' || value === true) return true
-  if (value === 'false' || value === false) return false
-  return value
-}, z.boolean({ error: '24 小時營業格式不正確' }).optional())
+function optional_boolean_schema(message) {
+  return z.preprocess((value) => {
+    if (value === undefined || value === '') return undefined
+    if (value === 'true' || value === true) return true
+    if (value === 'false' || value === false) return false
+    return value
+  }, z.boolean({ error: message }).optional())
+}
 
 export const hospitalsQuerySchema = z.object({
   keyword: optional_trimmed_string('關鍵字格式不正確'),
   city: optional_trimmed_string('縣市格式不正確'),
   district: optional_trimmed_string('行政區格式不正確'),
   animal_type: animal_type_schema,
-  is_24h: optional_boolean_schema,
+  is_24h: optional_boolean_schema('24 小時營業格式不正確'),
+  favorites_only: optional_boolean_schema('收藏清單格式不正確'),
   sort: z.enum(['relevance', 'distance', 'name'], {
     error: '排序方式必須是 relevance、distance 或 name',
   }).optional(),
@@ -77,6 +80,7 @@ export const nearbyHospitalsQuerySchema = z.object({
     .default(5),
   limit: limit_schema,
   animal_type: animal_type_schema,
+  favorites_only: optional_boolean_schema('收藏清單格式不正確'),
 })
 
 export const hospitalMapQuerySchema = z.object({

@@ -56,6 +56,7 @@ export function buildHospitalListQuery(filters = {}) {
     city: filters.city,
     district: filters.district,
     is_24h: filters.is_24h ?? filters.is24H,
+    favorites_only: filters.favorites_only ?? filters.favoritesOnly,
     sort: filters.sort,
     lat: filters.lat,
     lng: filters.lng,
@@ -81,6 +82,7 @@ export function buildNearbyHospitalQuery(options = {}) {
     lng,
     radius: options.radius,
     limit: options.limit,
+    favorites_only: options.favorites_only ?? options.favoritesOnly,
   }
 
   return Object.fromEntries(Object.entries(query).filter(([, value]) => isPresent(value)))
@@ -117,6 +119,7 @@ export function normalizeHospital(hospital = {}) {
     businessHours,
     rating,
     reviewCount: Number(hospital.review_count ?? hospital.reviewCount ?? 0),
+    isFavorite: Boolean(hospital.is_favorite ?? hospital.isFavorite),
   }
 }
 
@@ -157,7 +160,10 @@ export async function fetchHospitals(filters = {}) {
   const params = buildHospitalListQuery(filters)
 
   try {
-    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals`, { params })
+    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals`, {
+      params,
+      headers: getAuthHeaders(),
+    })
     const normalized = normalizeHospitalResponse(response.data, {
       page: params.page,
       limit: params.limit,
@@ -186,7 +192,10 @@ export async function fetchNearbyHospitals(options = {}) {
   const params = buildNearbyHospitalQuery(options)
 
   try {
-    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/nearby`, { params })
+    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/nearby`, {
+      params,
+      headers: getAuthHeaders(),
+    })
     const normalized = normalizeHospitalResponse(response.data, {
       page: 1,
       limit: params.limit,
@@ -247,6 +256,33 @@ export async function fetchMapHospitals(bounds = {}, options = {}) {
       truncated: false,
       message: getErrorMessage(error, '取得地圖醫院失敗，請稍後再試'),
     }
+  }
+}
+
+export async function addFavoriteHospital(hospitalId) {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}${API_PREFIX}/hospitals/${hospitalId}/favorite`,
+      undefined,
+      { headers: getAuthHeaders() },
+    )
+
+    return { success: true, message: response.data?.message ?? '已加入收藏' }
+  } catch (error) {
+    return { success: false, message: getErrorMessage(error, '收藏醫院失敗，請稍後再試') }
+  }
+}
+
+export async function removeFavoriteHospital(hospitalId) {
+  try {
+    const response = await axios.delete(
+      `${API_BASE_URL}${API_PREFIX}/hospitals/${hospitalId}/favorite`,
+      { headers: getAuthHeaders() },
+    )
+
+    return { success: true, message: response.data?.message ?? '已取消收藏' }
+  } catch (error) {
+    return { success: false, message: getErrorMessage(error, '取消收藏失敗，請稍後再試') }
   }
 }
 

@@ -56,6 +56,8 @@ test('醫院評論路由應掛在 hospitals router 並區分公開讀取與登�
       { path: '/:hospital_id/reviews', methods: ['post'] },
       { path: '/:hospital_id/reviews/me', methods: ['patch'] },
       { path: '/:hospital_id/reviews/me', methods: ['delete'] },
+      { path: '/:hospital_id/favorite', methods: ['post'] },
+      { path: '/:hospital_id/favorite', methods: ['delete'] },
     ],
   )
 
