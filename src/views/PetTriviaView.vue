@@ -16,10 +16,36 @@ const leftCircleRef = ref(null)
 const rightCircleRef = ref(null)
 const nextTextRef = ref(null)
 const answerTextRef = ref(null)
+const touchStartX = ref(0)
+const touchStartY = ref(0)
 
 let mediaQuery = null
 const handleMediaChange = (e) => {
   isDesktop.value = e.matches
+}
+
+const handleTouchStart = (e) => {
+  const touch = e.touches[0]
+  touchStartX.value = touch.clientX
+  touchStartY.value = touch.clientY
+}
+
+const handleTouchEnd = (e) => {
+  if (isDesktop.value || isTransitioning.value) return
+
+  const touch = e.changedTouches[0]
+
+  const deltaX = touch.clientX - touchStartX.value
+  const deltaY = touch.clientY - touchStartY.value
+
+  if (Math.abs(deltaY) > Math.abs(deltaX)) return
+  if (Math.abs(deltaX) < 50) return
+  if (Math.abs(deltaY) > 40) return
+  if (deltaX < 0) {
+    handleLeftClick()
+  } else {
+    handleRightClick()
+  }
 }
 
 onMounted(() => {
@@ -138,7 +164,14 @@ const handleLeftClick = () => {
   cardStackRef.value?.swipeLeft()
   isFlippedState.value = false
 
-  if (nextTextRef.value) gsap.to(nextTextRef.value, { opacity: 0, duration: 0.3 })
+  if (nextTextRef.value) {
+    gsap.to(nextTextRef.value, {
+      opacity: 0.6,
+      duration: 0.3,
+      ease: 'power2.out',
+      overwrite: 'auto',
+    })
+  }
   if (!leftCircleRef.value || !rightCircleRef.value) {
     isTransitioning.value = false
     return
@@ -167,8 +200,14 @@ const handleLeftClick = () => {
         clipPath: 'ellipse(0% 120% at 0% 50%)',
         backgroundColor: 'rgba(0, 0, 0, 0.15)',
       })
-
-      if (nextTextRef.value) gsap.set(nextTextRef.value, { x: 0, opacity: 0.6 })
+      if (nextTextRef.value) {
+        gsap.to(nextTextRef.value, {
+          opacity: 0.6,
+          duration: 0.3,
+          ease: 'power2.out',
+          overwrite: 'auto',
+        })
+      }
 
       setTimeout(() => {
         isTransitioning.value = false
@@ -303,6 +342,8 @@ const handleCardFlipBack = () => {
     <div
       class="z-30 relative w-full max-w-[350px] flex justify-center"
       @mouseenter.stop="handleLeaveReset"
+      @touchstart.passive="handleTouchStart"
+      @touchend.passive="handleTouchEnd"
     >
       <div
         ref="nextTextRef"
