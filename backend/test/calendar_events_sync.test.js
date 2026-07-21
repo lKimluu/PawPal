@@ -215,6 +215,103 @@ test('syncUpdated：沒有 google_event_id 應改走 insert 補同步', async ()
   assert.equal(result.google_event_id, 'google-event-new')
 })
 
+test('syncUpdated：patch 遇 404 應 fallback 建立新事件並寫回新 google_event_id', async () => {
+  const insertCalls = []
+  const stateCalls = []
+  const { syncUpdatedEvent } = createSync({
+    getConnectionByUserId: async () => connection,
+    patchGoogleCalendarEvent: async () => {
+      throw Object.assign(new Error('Not Found'), { status: 404 })
+    },
+    insertGoogleCalendarEvent: async (conn, event) => {
+      insertCalls.push(event.id)
+      return 'google-event-new'
+    },
+    setSyncState: async (eventId, state) => {
+      stateCalls.push([eventId, state])
+      return { id: eventId, google_event_id: state.googleEventId, google_sync_failed: state.syncFailed }
+    },
+  })
+
+  const result = await syncUpdatedEvent(42, { id: 7, google_event_id: 'old-abc', title: '複診' })
+
+  assert.deepEqual(insertCalls, [7])
+  assert.deepEqual(stateCalls, [[7, { googleEventId: 'google-event-new', syncFailed: false }]])
+  assert.equal(result.google_event_id, 'google-event-new')
+})
+
+test('syncUpdated：patch 遇 410 應 fallback 建立新事件並寫回新 google_event_id', async () => {
+  const insertCalls = []
+  const { syncUpdatedEvent } = createSync({
+    getConnectionByUserId: async () => connection,
+    patchGoogleCalendarEvent: async () => {
+      throw Object.assign(new Error('Gone'), { status: 410 })
+    },
+    insertGoogleCalendarEvent: async (conn, event) => {
+      insertCalls.push(event.id)
+      return 'google-event-new'
+    },
+    setSyncState: async (eventId, state) => ({
+      id: eventId,
+      google_event_id: state.googleEventId,
+      google_sync_failed: state.syncFailed,
+    }),
+  })
+
+  const result = await syncUpdatedEvent(42, { id: 7, google_event_id: 'old-abc', title: '複診' })
+
+  assert.deepEqual(insertCalls, [7])
+  assert.equal(result.google_event_id, 'google-event-new')
+})
+
+test('syncUpdated：patch 成功但事件為 cancelled（Google 端已被刪除）應 fallback 建立新事件', async () => {
+  const insertCalls = []
+  const { syncUpdatedEvent } = createSync({
+    getConnectionByUserId: async () => connection,
+    patchGoogleCalendarEvent: async () => 'cancelled',
+    insertGoogleCalendarEvent: async (conn, event) => {
+      insertCalls.push(event.id)
+      return 'google-event-new'
+    },
+    setSyncState: async (eventId, state) => ({
+      id: eventId,
+      google_event_id: state.googleEventId,
+      google_sync_failed: state.syncFailed,
+    }),
+  })
+
+  const result = await syncUpdatedEvent(42, { id: 7, google_event_id: 'old-abc', title: '複診' })
+
+  assert.deepEqual(insertCalls, [7])
+  assert.equal(result.google_event_id, 'google-event-new')
+})
+
+test('syncUpdated：patch 遇 500 應維持原行為，標記失敗且不改動 google_event_id', async (t) => {
+  t.mock.method(console, 'error', () => {})
+  const insertCalls = []
+  const stateCalls = []
+  const { syncUpdatedEvent } = createSync({
+    getConnectionByUserId: async () => connection,
+    patchGoogleCalendarEvent: async () => {
+      throw Object.assign(new Error('Server Error'), { status: 500 })
+    },
+    insertGoogleCalendarEvent: async (conn, event) => {
+      insertCalls.push(event.id)
+      return 'should-not-be-called'
+    },
+    setSyncState: async (eventId, state) => {
+      stateCalls.push([eventId, state])
+      return { id: eventId, google_sync_failed: true }
+    },
+  })
+
+  const result = await syncUpdatedEvent(42, { id: 7, google_event_id: 'old-abc', title: '複診' })
+
+  assert.deepEqual(insertCalls, [])
+  assert.deepEqual(stateCalls, [[7, { syncFailed: true }]])
+  assert.equal(result.google_sync_failed, true)
+})
+
 // --- syncDeletedEvent ---
 
 test('syncDeleted：有 google_event_id 且已連接應刪除 Google 事件', async () => {
@@ -284,6 +381,32 @@ test('resync：成功應回 synced 與更新後行程', async () => {
 
   assert.equal(result.status, 'synced')
   assert.equal(result.event.google_event_id, 'google-event-9')
+})
+
+test('resync：google_event_id 已失效（404）應 fallback 建立新事件並回 synced', async () => {
+  const insertCalls = []
+  const { resyncEvent } = createSync({
+    getEventByIdAndUserId: async () => ({ id: 7, google_event_id: 'old-abc', title: '打疫苗' }),
+    getConnectionByUserId: async () => connection,
+    patchGoogleCalendarEvent: async () => {
+      throw Object.assign(new Error('Not Found'), { status: 404 })
+    },
+    insertGoogleCalendarEvent: async (conn, event) => {
+      insertCalls.push(event.id)
+      return 'google-event-new'
+    },
+    setSyncState: async (eventId, state) => ({
+      id: eventId,
+      google_event_id: state.googleEventId,
+      google_sync_failed: state.syncFailed,
+    }),
+  })
+
+  const result = await resyncEvent(42, '7')
+
+  assert.deepEqual(insertCalls, [7])
+  assert.equal(result.status, 'synced')
+  assert.equal(result.event.google_event_id, 'google-event-new')
 })
 
 test('resync：Google 失敗應回 failed 並標記行程', async (t) => {

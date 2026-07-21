@@ -15,6 +15,12 @@ function isInvalidGrantError(error) {
   return String(message).includes('invalid_grant')
 }
 
+// Google 對已刪除或不存在的事件回傳 404/410；此時舊的 google_event_id 已失效，需改建新事件
+function isEventGoneError(error) {
+  const status = error?.status ?? error?.response?.status
+  return status === 404 || status === 410
+}
+
 async function setSyncState(eventId, { googleEventId, syncFailed }) {
   const result = await pool.query(
     `
@@ -49,8 +55,13 @@ export function createCalendarEventsSync({
 
   async function pushEventToGoogle(connection, event) {
     if (event.google_event_id) {
-      await patchGoogleCalendarEvent(connection, event.google_event_id, event)
-      return event.google_event_id
+      try {
+        const status = await patchGoogleCalendarEvent(connection, event.google_event_id, event)
+        // 使用者手動刪除的事件在 Google 端是 cancelled 墓碑，patch 不會報錯但也不會讓事件復活
+        if (status !== 'cancelled') return event.google_event_id
+      } catch (error) {
+        if (!isEventGoneError(error)) throw error
+      }
     }
 
     return insertGoogleCalendarEvent(connection, event)

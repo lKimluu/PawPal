@@ -113,13 +113,17 @@ export async function insertGoogleCalendarEvent(connection, event) {
   return response.data.id
 }
 
+// 使用者手動刪除的事件在 Google 端只是標記為 cancelled 的墓碑記錄，patch 對它不會報錯而是直接回 200，
+// 所以呼叫端必須另外檢查回傳的 status 是否為 cancelled，藉此判斷這顆 google_event_id 是否已經失效
 export async function patchGoogleCalendarEvent(connection, googleEventId, event) {
   const calendar = createCalendarClient(connection)
-  await calendar.events.patch({
+  const response = await calendar.events.patch({
     calendarId: 'primary',
     eventId: googleEventId,
     requestBody: buildGoogleEventPayload(event),
   })
+
+  return response.data.status
 }
 
 export async function deleteGoogleCalendarEvent(connection, googleEventId) {
