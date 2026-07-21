@@ -263,10 +263,14 @@ const handleCreatePet = async (payload) => {
       />
       <div class="absolute inset-0 flex items-center">
         <div class="mx-auto md:ml-[22%] md:translate-x-0 text-center md:text-left">
-          <h1 class="text-lg md:text-2xl font-bold text-[var(--color-brand-navy)]">
+          <h1
+            class="mb-2 text-xl md:text-2xl font-bold tracking-wider text-[var(--color-brand-navy)]"
+          >
             Hi，{{ userName }}！
           </h1>
-          <p class="text-xs md:text-sm text-[var(--color-brand-gray)]">毛孩的一切都在這裡</p>
+          <p class="text-xs tracking-wider md:text-sm text-[var(--color-brand-gray)]">
+            毛孩的一切都在這裡
+          </p>
         </div>
       </div>
     </section>

@@ -6,7 +6,6 @@ import AiAssistantPanel from '@/components/ai/AiAssistantPanel.vue'
 <template>
   <router-view />
 
-  <!-- 吐司提示 -->
   <ToastNotification />
   <AiAssistantPanel />
 </template>
