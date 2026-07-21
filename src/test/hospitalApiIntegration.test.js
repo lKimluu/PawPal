@@ -1022,7 +1022,10 @@ test('HospitalCard 收藏 Toggle 套用防重複送出 guard clause 並要求登
     /if \(!authStore\.isLoggedIn\) \{\s*toastStore\.showToast\('請先登入後再收藏醫院', 'error'\)\s*return\s*\}/,
   )
   assert.match(hospitalCard, /hospitalStore\.toggleFavoriteHospital\(props\.hospital\.id, isFav\.value\)/)
-  assert.match(hospitalCard, /if \(!result\.success\) toastStore\.showToast\(result\.message, 'error'\)/)
+  assert.match(
+    hospitalCard,
+    /if \(result\.success\) \{\s*toastStore\.showToast\(result\.message\)\s*\} else \{\s*toastStore\.showToast\(result\.message, 'error'\)\s*\}/,
+  )
   assert.match(hospitalCard, /finally \{\s*isFavoriteToggling\.value = false\s*\}/)
   assert.match(hospitalCard, /:disabled="isFavoriteToggling"/)
   assert.doesNotMatch(hospitalCard, /useFavoriteHospitalStore/)

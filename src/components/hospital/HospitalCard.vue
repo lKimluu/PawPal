@@ -41,7 +41,11 @@ const toggleFavorite = async () => {
   isFavoriteToggling.value = true
   try {
     const result = await hospitalStore.toggleFavoriteHospital(props.hospital.id, isFav.value)
-    if (!result.success) toastStore.showToast(result.message, 'error')
+    if (result.success) {
+      toastStore.showToast(result.message)
+    } else {
+      toastStore.showToast(result.message, 'error')
+    }
   } finally {
     isFavoriteToggling.value = false
   }
