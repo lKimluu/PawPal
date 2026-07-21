@@ -55,7 +55,6 @@ export function buildHospitalListQuery(filters = {}) {
     keyword: filters.keyword,
     city: filters.city,
     district: filters.district,
-    animal_type: filters.animal_type ?? filters.animalType,
     is_24h: filters.is_24h ?? filters.is24H,
     sort: filters.sort,
     lat: filters.lat,
@@ -82,7 +81,6 @@ export function buildNearbyHospitalQuery(options = {}) {
     lng,
     radius: options.radius,
     limit: options.limit,
-    animal_type: options.animal_type ?? options.animalType,
   }
 
   return Object.fromEntries(Object.entries(query).filter(([, value]) => isPresent(value)))
