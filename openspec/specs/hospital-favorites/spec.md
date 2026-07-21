@@ -39,7 +39,6 @@ source: hospital-favorites
 updated: 2026-07-20
 code:
   - backend/database/schema/hospital_favorites.sql
-  - src/stores/favoriteHospital.js
   - backend/scripts/setup-db.js
   - backend/src/controllers/hospitals.controller.js
   - backend/src/schemas/hospitals.schema.js
@@ -47,6 +46,8 @@ code:
   - src/components/hospital/SearchBar.vue
   - src/api/hospitals.js
   - src/components/hospital/HospitalCard.vue
+  - src/components/hospital/HospitalList.vue
+  - src/views/HospitalView.vue
   - backend/src/services/hospitals.service.js
   - src/stores/hospital.js
   - backend/src/services/hospital_favorites.service.js
@@ -56,6 +57,7 @@ code:
 tests:
   - backend/test/hospitals.controller.test.js
   - backend/test/hospitals.service.test.js
+  - backend/test/hospitals.schema.test.js
   - backend/test/hospital_favorites.route.test.js
   - backend/test/auth.middleware.test.js
   - backend/test/hospital_favorites.controller.test.js
@@ -100,7 +102,6 @@ source: hospital-favorites
 updated: 2026-07-20
 code:
   - backend/database/schema/hospital_favorites.sql
-  - src/stores/favoriteHospital.js
   - backend/scripts/setup-db.js
   - backend/src/controllers/hospitals.controller.js
   - backend/src/schemas/hospitals.schema.js
@@ -108,6 +109,8 @@ code:
   - src/components/hospital/SearchBar.vue
   - src/api/hospitals.js
   - src/components/hospital/HospitalCard.vue
+  - src/components/hospital/HospitalList.vue
+  - src/views/HospitalView.vue
   - backend/src/services/hospitals.service.js
   - src/stores/hospital.js
   - backend/src/services/hospital_favorites.service.js
@@ -117,6 +120,7 @@ code:
 tests:
   - backend/test/hospitals.controller.test.js
   - backend/test/hospitals.service.test.js
+  - backend/test/hospitals.schema.test.js
   - backend/test/hospital_favorites.route.test.js
   - backend/test/auth.middleware.test.js
   - backend/test/hospital_favorites.controller.test.js
