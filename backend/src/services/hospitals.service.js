@@ -258,15 +258,42 @@ export async function findHospitals(filters = {}, { userId } = {}) {
   }
 }
 
-export async function findNearbyHospitals(filters = {}) {
+export async function findNearbyHospitals(filters = {}, { userId } = {}) {
   const values = [filters.lat, filters.lng]
   const conditions = ['h.latitude IS NOT NULL', 'h.longitude IS NOT NULL']
   add_hospital_filters(filters, values, conditions)
+
+  let favorite_param_index = null
+  if (filters.favorites_only) {
+    values.push(userId)
+    favorite_param_index = values.length
+    conditions.push(`
+      EXISTS (
+        SELECT 1
+        FROM hospital_favorites hf_filter
+        WHERE hf_filter.hospital_id = h.id
+          AND hf_filter.user_id = $${favorite_param_index}
+      )
+    `)
+  }
 
   values.push(filters.radius)
   const radius_index = values.length
   values.push(filters.limit)
   const limit_index = values.length
+
+  if (userId && favorite_param_index === null) {
+    values.push(userId)
+    favorite_param_index = values.length
+  }
+  const favorite_select = favorite_param_index
+    ? `, EXISTS (
+        SELECT 1
+        FROM hospital_favorites hf
+        WHERE hf.hospital_id = nearby.id
+          AND hf.user_id = $${favorite_param_index}
+      ) AS is_favorite`
+    : ''
 
   const distance_expression = `
     ${EARTH_RADIUS_KM} * 2 * ASIN(
@@ -313,7 +340,7 @@ export async function findNearbyHospitals(filters = {}) {
             ORDER BY at.id
           ) FILTER (WHERE at.id IS NOT NULL),
           '[]'
-        ) AS animal_types
+        ) AS animal_types${favorite_select}
       FROM nearby
       LEFT JOIN LATERAL (
         SELECT

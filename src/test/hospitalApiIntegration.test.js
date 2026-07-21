@@ -218,6 +218,31 @@ test('Nearby API fallback result can feed list and map marker data', async () =>
   }
 })
 
+test('Nearby API 已登入時應帶 Authorization header', async () => {
+  const originalGet = axios.get
+  const calls = []
+
+  globalThis.localStorage = {
+    getItem(key) {
+      return key === 'pawpal_token' ? 'token-123' : null
+    },
+  }
+
+  axios.get = async (url, config) => {
+    calls.push({ url, config })
+    return { data: { hospitals: [] } }
+  }
+
+  try {
+    await fetchNearbyHospitals({ radius: 5, limit: 20 })
+
+    assert.equal(calls[0].config.headers.Authorization, 'Bearer token-123')
+  } finally {
+    axios.get = originalGet
+    delete globalThis.localStorage
+  }
+})
+
 test('Map API passes AbortSignal and distinguishes cancellation from failures', async () => {
   const originalGet = axios.get
   const calls = []
@@ -731,6 +756,55 @@ test('toggleFavoriteHospital 失敗時不應變更該醫院的 isFavorite', asyn
   } finally {
     axios.get = originalGet
     axios.post = originalPost
+  }
+})
+
+test('僅顯示收藏模式取消收藏後應重新查詢並同步清單與分頁', async () => {
+  const originalGet = axios.get
+  const originalDelete = axios.delete
+  let getCallCount = 0
+
+  axios.get = async () => {
+    getCallCount += 1
+    if (getCallCount === 1) {
+      return {
+        data: {
+          hospitals: [
+            { id: 1, name: '仁愛動物醫院', is_favorite: true },
+            { id: 2, name: '大安動物醫院', is_favorite: true },
+          ],
+          pagination: { page: 1, limit: 20, total: 2, total_pages: 1 },
+        },
+      }
+    }
+
+    return {
+      data: {
+        hospitals: [{ id: 2, name: '大安動物醫院', is_favorite: true }],
+        pagination: { page: 1, limit: 20, total: 1, total_pages: 1 },
+      },
+    }
+  }
+  axios.delete = async () => ({ data: { message: '已取消收藏' } })
+
+  try {
+    setActivePinia(createPinia())
+    const store = useHospitalStore()
+    await store.setFavoritesOnly(true)
+
+    assert.equal(store.hospitals.length, 2)
+    assert.equal(store.pagination.total, 2)
+
+    const result = await store.toggleFavoriteHospital(1, true)
+
+    assert.equal(result.success, true)
+    assert.equal(getCallCount, 2)
+    assert.equal(store.hospitals.length, 1)
+    assert.equal(store.hospitals[0].id, 2)
+    assert.equal(store.pagination.total, 1)
+  } finally {
+    axios.get = originalGet
+    axios.delete = originalDelete
   }
 })
 

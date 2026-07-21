@@ -80,6 +80,7 @@ export const nearbyHospitalsQuerySchema = z.object({
     .default(5),
   limit: limit_schema,
   animal_type: animal_type_schema,
+  favorites_only: optional_boolean_schema('收藏清單格式不正確'),
 })
 
 export const hospitalMapQuerySchema = z.object({

@@ -67,6 +67,46 @@ test('listNearbyHospitals 成功時應回傳 hospitals', async () => {
   assert.deepEqual(res.body, { hospitals })
 })
 
+test('listNearbyHospitals 已登入時應把 userId 傳入 service', async () => {
+  const hospitals = [{ id: 1, name: '仁愛動物醫院', is_favorite: true }]
+  const { listNearbyHospitals } = createHospitalsController({
+    findNearbyHospitals: async (query, options) => {
+      assert.deepEqual(query, { lat: 25, lng: 121, radius: 5, limit: 20 })
+      assert.deepEqual(options, { userId: 7 })
+      return hospitals
+    },
+  })
+  const res = createResponse()
+
+  await listNearbyHospitals(
+    { validated_query: { lat: 25, lng: 121, radius: 5, limit: 20 }, userId: 7 },
+    res,
+  )
+
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(res.body, { hospitals })
+})
+
+test('listNearbyHospitals 帶 favorites_only 但未登入時應回傳 401 且不呼叫 service', async () => {
+  let serviceCalled = false
+  const { listNearbyHospitals } = createHospitalsController({
+    findNearbyHospitals: async () => {
+      serviceCalled = true
+      return []
+    },
+  })
+  const res = createResponse()
+
+  await listNearbyHospitals(
+    { validated_query: { lat: 25, lng: 121, radius: 5, limit: 20, favorites_only: true } },
+    res,
+  )
+
+  assert.equal(res.statusCode, 401)
+  assert.deepEqual(res.body, { message: '請先登入後查看收藏清單' })
+  assert.equal(serviceCalled, false)
+})
+
 test('listHospitals 已登入時應把 userId 傳入 service', async () => {
   const payload = {
     hospitals: [{ id: 1, name: '仁愛動物醫院', is_favorite: true }],

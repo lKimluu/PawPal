@@ -96,6 +96,19 @@ test('附近醫院 query schema 應要求並轉換 lat 與 lng', () => {
   })
 })
 
+test('附近醫院 query schema 應轉換 favorites_only 為布林值', () => {
+  const trueResult = nearbyHospitalsQuerySchema.safeParse({
+    lat: '25',
+    lng: '121',
+    favorites_only: 'true',
+  })
+  const absentResult = nearbyHospitalsQuerySchema.safeParse({ lat: '25', lng: '121' })
+
+  assert.equal(trueResult.success, true)
+  assert.equal(trueResult.data.favorites_only, true)
+  assert.equal('favorites_only' in absentResult.data, false)
+})
+
 test('附近醫院 query schema 應套用 radius 與 limit 上限', () => {
   const radiusResult = nearbyHospitalsQuerySchema.safeParse({
     lat: '25',

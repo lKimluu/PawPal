@@ -82,6 +82,7 @@ export function buildNearbyHospitalQuery(options = {}) {
     lng,
     radius: options.radius,
     limit: options.limit,
+    favorites_only: options.favorites_only ?? options.favoritesOnly,
   }
 
   return Object.fromEntries(Object.entries(query).filter(([, value]) => isPresent(value)))
@@ -191,7 +192,10 @@ export async function fetchNearbyHospitals(options = {}) {
   const params = buildNearbyHospitalQuery(options)
 
   try {
-    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/nearby`, { params })
+    const response = await axios.get(`${API_BASE_URL}${API_PREFIX}/hospitals/nearby`, {
+      params,
+      headers: getAuthHeaders(),
+    })
     const normalized = normalizeHospitalResponse(response.data, {
       page: 1,
       limit: params.limit,

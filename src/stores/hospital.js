@@ -107,7 +107,12 @@ export const useHospitalStore = defineStore('hospital', () => {
     if (gainedRealLocation && !filters.value.keyword && explicitSortSelection.value === null) {
       filters.value.sort = 'distance'
     }
-    const query = { location: valid ? location : { lat: TAIPEI_CENTER[0], lng: TAIPEI_CENTER[1] }, radius, limit }
+    const query = {
+      location: valid ? location : { lat: TAIPEI_CENTER[0], lng: TAIPEI_CENTER[1] },
+      radius,
+      limit,
+      favoritesOnly: filters.value.favoritesOnly || undefined,
+    }
     mode.value = 'nearby'
     isLoading.value = true
     errorMessage.value = ''
@@ -200,7 +205,13 @@ export const useHospitalStore = defineStore('hospital', () => {
     const result = currentIsFavorite
       ? await removeFavoriteHospitalRequest(hospitalId)
       : await addFavoriteHospitalRequest(hospitalId)
-    if (result.success) applyFavoriteState(hospitalId, !currentIsFavorite)
+    if (result.success) {
+      if (currentIsFavorite && filters.value.favoritesOnly) {
+        await retryCurrentQuery()
+      } else {
+        applyFavoriteState(hospitalId, !currentIsFavorite)
+      }
+    }
     return result
   }
   function getHospitalById(hospitalId) {

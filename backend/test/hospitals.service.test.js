@@ -602,6 +602,81 @@ test('findNearbyHospitals 應支援 nearby animal_type slug 篩選', async (t) =
   assert.deepEqual(hospitals, [])
 })
 
+test('findNearbyHospitals 已登入時應在每筆醫院附上 is_favorite', async (t) => {
+  const rows = [
+    {
+      id: 1,
+      name: 'A 動物醫院',
+      city: '台北市',
+      district: '大安區',
+      address: '台北市大安區',
+      phone: '02-1111-1111',
+      latitude: '25.0330000',
+      longitude: '121.5654000',
+      distance_km: '1.234',
+      rating_average: '4.0',
+      review_count: 2,
+      animal_types: [],
+      is_favorite: true,
+    },
+  ]
+  t.mock.method(pool, 'query', async (text, values) => {
+    assert.match(
+      text,
+      /EXISTS \(\s*SELECT 1\s*FROM hospital_favorites hf\s*WHERE hf\.hospital_id = nearby\.id\s*AND hf\.user_id = \$5\s*\) AS is_favorite/,
+    )
+    assert.deepEqual(values, [25, 121, 5, 20, 7])
+    return { rows }
+  })
+
+  const hospitals = await findNearbyHospitals(
+    { lat: 25, lng: 121, radius: 5, limit: 20 },
+    { userId: 7 },
+  )
+
+  assert.equal(hospitals[0].is_favorite, true)
+})
+
+test('findNearbyHospitals favorites_only 應只回傳目前使用者已收藏的醫院', async (t) => {
+  const rows = [
+    {
+      id: 1,
+      name: 'A 動物醫院',
+      city: '台北市',
+      district: '大安區',
+      address: '台北市大安區',
+      phone: '02-1111-1111',
+      latitude: '25.0330000',
+      longitude: '121.5654000',
+      distance_km: '1.234',
+      rating_average: '4.0',
+      review_count: 2,
+      animal_types: [],
+      is_favorite: true,
+    },
+  ]
+  t.mock.method(pool, 'query', async (text, values) => {
+    assert.match(
+      text,
+      /EXISTS \(\s*SELECT 1\s*FROM hospital_favorites hf_filter\s*WHERE hf_filter\.hospital_id = h\.id\s*AND hf_filter\.user_id = \$3\s*\)/,
+    )
+    assert.match(
+      text,
+      /EXISTS \(\s*SELECT 1\s*FROM hospital_favorites hf\s*WHERE hf\.hospital_id = nearby\.id\s*AND hf\.user_id = \$3\s*\) AS is_favorite/,
+    )
+    assert.deepEqual(values, [25, 121, 7, 5, 20])
+    return { rows }
+  })
+
+  const hospitals = await findNearbyHospitals(
+    { lat: 25, lng: 121, radius: 5, limit: 20, favorites_only: true },
+    { userId: 7 },
+  )
+
+  assert.deepEqual(hospitals.map((hospital) => hospital.id), [1])
+  assert.equal(hospitals[0].is_favorite, true)
+})
+
 test('findHospitalRegions 應回傳穩定地區 shape', async (t) => {
   t.mock.method(pool, 'query', async (text) => {
     assert.match(text, /array_agg\(DISTINCT district ORDER BY district\)/)

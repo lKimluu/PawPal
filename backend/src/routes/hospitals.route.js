@@ -29,7 +29,7 @@ import {
 const router = Router()
 
 router.get('/', attachUserIfPresent, validate(hospitalsQuerySchema, 'query'), listHospitals)
-router.get('/nearby', validate(nearbyHospitalsQuerySchema, 'query'), listNearbyHospitals)
+router.get('/nearby', attachUserIfPresent, validate(nearbyHospitalsQuerySchema, 'query'), listNearbyHospitals)
 router.get('/regions', listHospitalRegions)
 router.get(
   '/map',
