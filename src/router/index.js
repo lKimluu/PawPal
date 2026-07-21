@@ -67,6 +67,11 @@ const router = createRouter({
       component: () => import('@/views/HospitalView.vue'),
     },
     {
+      path: '/pet-trivia',
+      name: 'PetTrivia',
+      component: () => import('@/views/PetTriviaView.vue'),
+    },
+    {
       path: '/privacy-policy',
       name: 'PrivacyPolicy',
       component: () => import('@/views/PrivacyPolicyView.vue'),
