@@ -20,6 +20,16 @@ test('Dashboard 寵物列改為水平捲動的圓形頭像列，桌機頭像逐�
   assert.doesNotMatch(dashboardView, /md:min-w-\[142px\] md:flex-1/)
 })
 
+test('Dashboard 新增寵物按鈕與寵物頭像在桌機版使用相同垂直間距', () => {
+  assert.match(addPetButton, /md:gap-1 lg:gap-2/)
+  assert.match(petCard, /md:gap-1 lg:gap-2/)
+})
+
+test('Dashboard 寵物頭像圖片可視尺寸不會被內縮邊框吃掉', () => {
+  assert.doesNotMatch(petCard, /border-2 border-white/)
+  assert.match(addPetButton, /border-2 border-dashed border-brand-orange/)
+})
+
 test('Dashboard 寵物列與 Google 行事曆同步按鈕在桌機／平板同一列、按鈕不被擠壓', () => {
   assert.match(dashboardView, /<div class="mb-3 flex flex-col gap-3 md:flex-row md:items-center">/)
   assert.match(dashboardView, /<GoogleCalendarSyncButton class="self-end shrink-0 md:self-auto" \/>/)
