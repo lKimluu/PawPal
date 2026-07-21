@@ -20,7 +20,7 @@ const hasPetImage = computed(() => props.pet?.hasCustomPhoto !== false && Boolea
     @click="emit('click')"
   >
     <div
-      class="h-10 w-10 overflow-hidden rounded-full border-2 border-white bg-brand-lightblue transition md:h-12 md:w-12 lg:h-14 lg:w-14"
+      class="h-10 w-10 overflow-hidden rounded-full bg-brand-lightblue transition md:h-12 md:w-12 lg:h-14 lg:w-14"
     >
       <img
         v-if="hasPetImage"

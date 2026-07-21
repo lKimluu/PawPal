@@ -5,7 +5,7 @@ const emit = defineEmits(['click'])
 <template>
   <button
     type="button"
-    class="flex shrink-0 flex-col items-center gap-1 rounded-2xl px-2 py-1 transition cursor-pointer active:scale-95 lg:hover:bg-brand-orange/10"
+    class="flex shrink-0 flex-col items-center gap-1 rounded-2xl px-2 py-1 transition cursor-pointer active:scale-95 lg:hover:bg-brand-orange/10 md:gap-1 lg:gap-2"
     aria-label="新增寵物"
     @click="emit('click')"
   >
