@@ -250,7 +250,7 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
             >
               <img
                 :src="getImageUrl('PawPal_mark_p.webp')"
-                class="h-15 md:h-45 object-contain"
+                class="h-15 md:h-40 object-contain"
                 alt="PawPal Mark"
               />
               <img
@@ -418,7 +418,7 @@ const getIconUrl = (name) => new URL(`../assets/icons/${name}`, import.meta.url)
             />
           </button>
         </div>
-        <div class="mt-8 flex justify-center gap-2">
+        <div class="mt-12 md:mt-18 flex justify-center gap-2">
           <button
             v-for="(m, i) in members"
             :key="m.id"

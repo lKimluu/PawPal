@@ -102,7 +102,9 @@ const handleGoogleLoginCallback = async (response) => {
 }
 
 function handleGoogleAuthClick() {
-  googleTokenLogin().then(handleGoogleLoginCallback).catch(() => {})
+  googleTokenLogin()
+    .then(handleGoogleLoginCallback)
+    .catch(() => {})
 }
 
 const loginWithLine = () => {
@@ -126,14 +128,14 @@ const loginWithLine = () => {
     >
       <header class="mb-7 flex flex-col items-center text-center">
         <h1 class="text-[22px] font-bold leading-tight text-brand-navy">建立新帳號</h1>
-        <p class="mt-2 text-[13px] font-normal leading-relaxed text-brand-gray">
+        <p class="mt-2 text-xs lg:text-sm font-normal leading-relaxed text-brand-gray">
           加入 PawPal 開始記錄毛孩成長
         </p>
       </header>
 
       <div class="space-y-4">
         <label class="block">
-          <span class="mb-2 block text-[13px] font-bold text-brand-navy">姓名</span>
+          <span class="mb-2 block text-sm font-bold text-brand-navy">姓名</span>
           <input
             class="h-11 w-full rounded-xl border-0 bg-[#F3F4F8] px-4 text-[14px] font-medium text-brand-navy outline-none transition placeholder:text-brand-gray/50 focus:ring-2 focus:ring-brand-blue"
             type="text"
@@ -145,7 +147,7 @@ const loginWithLine = () => {
         </label>
 
         <label class="block">
-          <span class="mb-2 block text-[13px] font-bold text-brand-navy">Email</span>
+          <span class="mb-2 block text-sm font-bold text-brand-navy">Email</span>
           <input
             class="h-11 w-full rounded-xl border-0 bg-[#F3F4F8] px-4 text-[14px] font-medium text-brand-navy outline-none transition placeholder:text-brand-gray/50 focus:ring-2 focus:ring-brand-blue"
             type="email"
@@ -157,7 +159,7 @@ const loginWithLine = () => {
         </label>
 
         <label class="block">
-          <span class="mb-2 block text-[13px] font-bold text-brand-navy">密碼</span>
+          <span class="mb-2 block text-sm font-bold text-brand-navy">密碼</span>
           <input
             class="h-11 w-full rounded-xl border-0 bg-[#F3F4F8] px-4 text-[14px] font-medium text-brand-navy outline-none transition placeholder:text-brand-gray/50 focus:ring-2 focus:ring-brand-blue"
             type="password"
@@ -169,7 +171,7 @@ const loginWithLine = () => {
         </label>
 
         <label class="block">
-          <span class="mb-2 block text-[13px] font-bold text-brand-navy">再次確認密碼</span>
+          <span class="mb-2 block text-sm font-bold text-brand-navy">再次確認密碼</span>
           <input
             class="h-11 w-full rounded-xl border-0 bg-[#F3F4F8] px-4 text-[14px] font-medium text-brand-navy outline-none transition placeholder:text-brand-gray/50 focus:ring-2 focus:ring-brand-blue"
             type="password"
@@ -190,7 +192,7 @@ const loginWithLine = () => {
       </p>
 
       <button
-        class="mt-5 h-11 w-full rounded-xl bg-brand-orange text-[14px] font-bold text-brand-white shadow-[0_4px_18px_rgba(255,160,2,0.32)] transition hover:bg-[#e89000] focus:outline-none focus:ring-2 focus:ring-brand-orange focus:ring-offset-2 cursor-pointer"
+        class="mt-5 h-11 w-full rounded-xl bg-brand-orange text-sm font-bold text-brand-white shadow-[0_4px_18px_rgba(255,160,2,0.32)] transition hover:bg-[#e89000] focus:outline-none focus:ring-2 focus:ring-brand-orange focus:ring-offset-2 cursor-pointer"
         type="submit"
         :disabled="isSubmitting"
       >
@@ -199,13 +201,13 @@ const loginWithLine = () => {
 
       <div class="my-6 flex items-center gap-3">
         <span class="h-px flex-1 bg-[#DDE5FC]"></span>
-        <span class="text-[12px] font-medium text-brand-gray">或使用以下方式註冊</span>
+        <span class="text-xs lg:text-sm font-medium text-brand-gray">或使用以下方式註冊</span>
         <span class="h-px flex-1 bg-[#DDE5FC]"></span>
       </div>
 
       <div class="w-full">
         <button
-          class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer"
+          class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-sm font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer"
           type="button"
           @click="handleGoogleAuthClick"
         >
@@ -214,14 +216,14 @@ const loginWithLine = () => {
         </button>
 
         <button
-          class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-[14px] font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer mt-3"
+          class="flex h-11 w-full items-center justify-center gap-3 rounded-xl bg-white text-sm font-semibold text-brand-navy shadow-[0_4px_14px_rgba(31,41,55,0.13)] ring-1 ring-[#DDE5FC] transition active:scale-[0.98] hover:bg-[#F3F4F8] cursor-pointer mt-3"
           type="button"
           @click="loginWithLine"
         >
           <img src="@/assets/icons/line.svg" alt="LINE" class="w-5 h-5" /> 使用 LINE 帳戶註冊
         </button>
       </div>
-      <p class="mt-6 text-center text-[11px] font-medium leading-relaxed text-brand-gray/75">
+      <p class="mt-6 text-center text-xs lg:text-sm font-medium leading-relaxed text-brand-gray/75">
         點擊註冊，即表示您已閱讀並同意 PawPal 之
         <br />
         <button
@@ -241,7 +243,7 @@ const loginWithLine = () => {
         </button>
       </p>
 
-      <ul class="mt-7 flex items-center justify-center gap-1 text-[13px] font-bold">
+      <ul class="mt-7 flex items-center justify-center gap-1 text-sm font-bold">
         <li class="text-brand-gray">已經有帳號？</li>
         <li>
           <RouterLink
