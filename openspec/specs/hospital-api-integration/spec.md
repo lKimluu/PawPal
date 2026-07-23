@@ -326,7 +326,7 @@ tests:
 
 The list API SHALL support `sort` values `relevance`, `distance`, and `name`, and SHALL return stable paginated results. Keyword searches SHALL default to relevance, searches without a keyword and with a real user location SHALL default to distance, and searches without a real user location SHALL default to name with distance disabled.
 
-When real user location becomes available after the list was initialized without it, the frontend SHALL change a system-selected contextual default from name to distance for searches without a keyword. A location-state change MUST NOT overwrite a sorting option explicitly selected by the user.
+When real user location becomes available after the list was initialized without it, the frontend SHALL change a system-selected contextual default from name to distance for searches without a keyword. A location-state change MUST NOT overwrite a sorting option explicitly selected by the user. Whenever a real user location is available, frontend hospital list requests SHALL include that latitude and longitude regardless of the selected sort, so distance can be displayed independently from ordering. Fallback coordinates MUST NOT be sent as real user coordinates in general list searches.
 
 #### Scenario: relevance ordering
 
@@ -334,11 +334,19 @@ When real user location becomes available after the list was initialized without
 - **THEN** the name match ranks before the address match
 - **AND** ties use city, district, name, and id as stable ordering keys
 
+#### Scenario: keyword relevance search displays distance from real location
+
+- **GIVEN** a valid real user location is stored
+- **WHEN** the user submits a keyword search
+- **THEN** the list request includes the keyword, `sort=relevance`, latitude, and longitude
+- **AND** result cards display returned distances without changing relevance ordering
+
 #### Scenario: distance requires real user location
 
 - **WHEN** no real user location is available
 - **THEN** general search defaults to name sorting
 - **AND** the distance sorting option is disabled
+- **AND** keyword searches do not send fallback coordinates as user coordinates
 
 #### Scenario: real location replaces the no-location contextual default
 
@@ -354,47 +362,98 @@ When real user location becomes available after the list was initialized without
 - **WHEN** a valid real user location becomes available or changes
 - **THEN** name sorting remains selected
 - **AND** subsequent filter queries preserve name sorting
+- **AND** those queries include the real user coordinates for distance display
 
 #### Scenario: page changes preserve search state
 
 - **WHEN** a user moves from page 1 to page 2
-- **THEN** the list request preserves committed filters and sorting
+- **THEN** the list request preserves committed filters, sorting, and any real user coordinates
 - **AND** the result count displays the API total rather than the current page length
 
 
 <!-- @trace
-source: integrate-hospital-api-list-map
-updated: 2026-07-12
+source: fix-hospital-search-distance
+updated: 2026-07-23
 code:
-  - src/utils/hospitalPopup.js
-  - src/utils/hospitalMapMarkers.js
-  - src/components/hospital/HospitalList.vue
-  - src/constants/hospitalFilters.js
-  - backend/src/schemas/hospitals.schema.js
-  - src/components/hospital/MapStatusOverlay.vue
-  - src/api/hospitals.js
-  - src/assets/hospital-map.css
-  - src/components/hospital/HospitalListState.vue
-  - src/components/hospital/HospitalLocationSelects.vue
-  - src/main.js
-  - src/stores/hospital.js
-  - backend/src/routes/hospitals.route.js
-  - src/views/HospitalView.vue
+  - src/components/pet/AddPetModal.vue
+  - src/assets/images/dog.webp
   - backend/src/controllers/hospitals.controller.js
-  - backend/src/services/hospitals.service.js
+  - src/components/ai/AiAssistantInput.vue
+  - src/components/pet/PetProfileModal.vue
+  - .github/workflows/ci.yml
+  - src/components/pet/PetCard.vue
+  - src/assets/images/rabbit.webp
   - package.json
-  - src/components/hospital/HospitalCard.vue
-  - src/components/hospital/SearchBar.vue
-  - src/components/hospital/HospitalMarker.vue
+  - src/router/index.js
+  - backend/.env.example
+  - backend/src/services/hospitals.service.js
+  - src/assets/images/turtle.webp
+  - src/stores/hospital.js
+  - backend/database/schema/hospitals.sql
+  - backend/src/controllers/hospital_favorites.controller.js
   - src/components/hospital/MapView.vue
-  - src/components/hospital/HospitalSearchInput.vue
+  - src/constants/hospitalFilters.js
+  - src/views/GrowthView.vue
+  - src/components/medical/MedicalRecordModal.vue
+  - backend/src/middlewares/auth.middleware.js
+  - src/components/auth/RegisterForm.vue
+  - backend/scripts/setup-db.js
+  - src/assets/images/hamster.webp
+  - src/components/hospital/SearchBar.vue
+  - src/components/hospital/HospitalCard.vue
+  - src/views/PetTriviaView.vue
+  - backend/database/scripts/import_hospitals.js
+  - src/components/layout/PublicSidebar.vue
+  - src/components/trivia/TriviaCardStack.vue
+  - src/App.vue
+  - backend/package.json
+  - src/assets/images/cat.webp
+  - src/views/HospitalView.vue
+  - backend/src/routes/hospitals.route.js
+  - backend/src/services/hospital_favorites.service.js
+  - src/assets/images/hedgehog.webp
+  - src/components/growth/GrowthHistoryModal.vue
+  - src/components/layout/AppHeader.vue
+  - src/views/MedicalView.vue
+  - backend/src/services/calendar_events_sync.service.js
+  - index.html
+  - backend/src/schemas/hospital_favorites.schema.js
+  - backend/src/schemas/hospitals.schema.js
+  - src/utils/hospitalMapSelection.js
+  - src/assets/images/goldfish.webp
+  - backend/src/services/google_calendar.service.js
+  - src/components/growth/GrowthRecordModal.vue
+  - src/components/auth/LoginForm.vue
+  - src/stores/favoriteHospital.js
+  - src/views/HomeView.vue
+  - src/views/DashboardView.vue
+  - src/components/layout/DashboardSidebar.vue
+  - src/components/pet/AddPetButton.vue
+  - src/views/AboutView.vue
+  - backend/database/scripts/enrich_hospital_24h.js
+  - src/components/common/DeleteConfirmModal.vue
+  - src/components/hospital/HospitalList.vue
+  - src/api/hospitals.js
+  - backend/database/schema/hospital_favorites.sql
 tests:
-  - backend/test/hospitals.schema.test.js
-  - backend/test/hospitals.service.test.js
-  - backend/test/hospitals.route.test.js
-  - backend/test/hospitals.controller.test.js
   - src/test/hospitalGpsView.test.js
+  - backend/test/auth.middleware.test.js
   - src/test/hospitalApiIntegration.test.js
+  - backend/test/calendar_events_sync.test.js
+  - src/test/petCardWidth.test.js
+  - backend/test/hospital_favorites.service.test.js
+  - backend/test/enrich_hospital_24h.test.js
+  - backend/test/import_hospitals.test.js
+  - backend/test/hospital_reviews.route.test.js
+  - backend/test/hospitals.service.test.js
+  - backend/test/hospitals.controller.test.js
+  - src/test/AddPetModal.test.js
+  - backend/test/hospital_favorites.schema.test.js
+  - backend/test/hospitals.schema.test.js
+  - backend/test/hospital_favorites.controller.test.js
+  - src/test/hospitalMapSelection.test.js
+  - backend/test/hospitals.route.test.js
+  - backend/test/hospital_favorites.route.test.js
 -->
 
 ---
@@ -550,12 +609,24 @@ tests:
 ---
 ### Requirement: Hospital APIs expose reliable 24-hour and map data
 
-`GET /api/v1/hospitals` SHALL accept `is_24h`, `sort`, and valid coordinates for distance sorting. Hospital responses SHALL expose `is_24h` and `emergency_available`, and distance-sorted responses SHALL expose `distance_km`. The API and full hospital search SHALL NOT infer current-open status without business-hours data. The home summary SHALL retain its product-approved static `營業中` presentation label as a scoped exception, but that label MUST NOT be derived from API fields and MUST NOT affect queries, ordering, filtering, map summaries, or full-search cards.
+`GET /api/v1/hospitals` SHALL accept `is_24h`, `sort`, and an optional valid latitude and longitude pair. Hospital responses SHALL expose `is_24h` and `emergency_available`. List responses with a valid coordinate pair SHALL expose `distance_km` for hospitals with stored coordinates regardless of sort, while hospitals without stored coordinates SHALL keep distance unknown. The API and full hospital search SHALL NOT infer current-open status without business-hours data. The home summary SHALL retain its product-approved static `營業中` presentation label as a scoped exception, but that label MUST NOT be derived from API fields and MUST NOT affect queries, ordering, filtering, map summaries, or full-search cards.
 
 #### Scenario: 24-hour filtering
 
 - **WHEN** a caller requests `GET /api/v1/hospitals?is_24h=true`
 - **THEN** every returned hospital has `is_24h` equal to true
+
+#### Scenario: relevance response includes distance when coordinates are provided
+
+- **WHEN** a caller requests a keyword with `sort=relevance` and a valid latitude and longitude pair
+- **THEN** hospitals with stored coordinates include numeric `distance_km`
+- **AND** the response remains ordered by relevance rather than distance
+
+#### Scenario: hospital without coordinates keeps distance unknown
+
+- **WHEN** a coordinate-bearing list query returns a hospital whose latitude or longitude is null
+- **THEN** that hospital does not expose a numeric zero distance
+- **AND** the frontend displays distance as unknown
 
 #### Scenario: distance sorting without coordinates
 
@@ -571,18 +642,88 @@ tests:
 
 
 <!-- @trace
-source: connect-home-nearby-hospitals
-updated: 2026-07-14
+source: fix-hospital-search-distance
+updated: 2026-07-23
 code:
-  - src/components/hospital/MapStatusOverlay.vue
+  - src/components/pet/AddPetModal.vue
+  - src/assets/images/dog.webp
+  - backend/src/controllers/hospitals.controller.js
+  - src/components/ai/AiAssistantInput.vue
+  - src/components/pet/PetProfileModal.vue
+  - .github/workflows/ci.yml
+  - src/components/pet/PetCard.vue
+  - src/assets/images/rabbit.webp
+  - package.json
+  - src/router/index.js
+  - backend/.env.example
+  - backend/src/services/hospitals.service.js
+  - src/assets/images/turtle.webp
+  - src/stores/hospital.js
+  - backend/database/schema/hospitals.sql
+  - backend/src/controllers/hospital_favorites.controller.js
   - src/components/hospital/MapView.vue
-  - src/views/HomeView.vue
-  - src/utils/hospitalMapSelection.js
+  - src/constants/hospitalFilters.js
+  - src/views/GrowthView.vue
+  - src/components/medical/MedicalRecordModal.vue
+  - backend/src/middlewares/auth.middleware.js
+  - src/components/auth/RegisterForm.vue
+  - backend/scripts/setup-db.js
+  - src/assets/images/hamster.webp
+  - src/components/hospital/SearchBar.vue
+  - src/components/hospital/HospitalCard.vue
+  - src/views/PetTriviaView.vue
+  - backend/database/scripts/import_hospitals.js
+  - src/components/layout/PublicSidebar.vue
+  - src/components/trivia/TriviaCardStack.vue
+  - src/App.vue
+  - backend/package.json
+  - src/assets/images/cat.webp
   - src/views/HospitalView.vue
+  - backend/src/routes/hospitals.route.js
+  - backend/src/services/hospital_favorites.service.js
+  - src/assets/images/hedgehog.webp
+  - src/components/growth/GrowthHistoryModal.vue
+  - src/components/layout/AppHeader.vue
+  - src/views/MedicalView.vue
+  - backend/src/services/calendar_events_sync.service.js
+  - index.html
+  - backend/src/schemas/hospital_favorites.schema.js
+  - backend/src/schemas/hospitals.schema.js
+  - src/utils/hospitalMapSelection.js
+  - src/assets/images/goldfish.webp
+  - backend/src/services/google_calendar.service.js
+  - src/components/growth/GrowthRecordModal.vue
+  - src/components/auth/LoginForm.vue
+  - src/stores/favoriteHospital.js
+  - src/views/HomeView.vue
+  - src/views/DashboardView.vue
+  - src/components/layout/DashboardSidebar.vue
+  - src/components/pet/AddPetButton.vue
+  - src/views/AboutView.vue
+  - backend/database/scripts/enrich_hospital_24h.js
+  - src/components/common/DeleteConfirmModal.vue
+  - src/components/hospital/HospitalList.vue
+  - src/api/hospitals.js
+  - backend/database/schema/hospital_favorites.sql
 tests:
-  - src/test/hospitalMapSelection.test.js
   - src/test/hospitalGpsView.test.js
+  - backend/test/auth.middleware.test.js
   - src/test/hospitalApiIntegration.test.js
+  - backend/test/calendar_events_sync.test.js
+  - src/test/petCardWidth.test.js
+  - backend/test/hospital_favorites.service.test.js
+  - backend/test/enrich_hospital_24h.test.js
+  - backend/test/import_hospitals.test.js
+  - backend/test/hospital_reviews.route.test.js
+  - backend/test/hospitals.service.test.js
+  - backend/test/hospitals.controller.test.js
+  - src/test/AddPetModal.test.js
+  - backend/test/hospital_favorites.schema.test.js
+  - backend/test/hospitals.schema.test.js
+  - backend/test/hospital_favorites.controller.test.js
+  - src/test/hospitalMapSelection.test.js
+  - backend/test/hospitals.route.test.js
+  - backend/test/hospital_favorites.route.test.js
 -->
 
 ---
