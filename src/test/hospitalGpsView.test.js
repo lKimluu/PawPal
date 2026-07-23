@@ -44,15 +44,15 @@ test('HomeView 以 API 資料呈現三張摘要與 loading、empty、error、fal
   assert.doesNotMatch(homeView, /勝勝動物醫院/)
 })
 
-test('HomeView 保留展示用營業中且卡片先選取再導頁', () => {
+test('HomeView 保留展示用營業中且卡片先佇列完整醫院再導頁', () => {
   const homeView = readSource('../views/HomeView.vue')
 
   assert.match(homeView, /營業中/)
   assert.match(
     homeView,
-    /const openHospital = \(hospitalId\) => \{\s*hospitalStore\.selectHospital\(hospitalId\)\s*router\.push\('\/hospital'\)/,
+    /const openHospital = \(hospital\) => \{\s*hospitalStore\.queueHospitalEntrySelection\(hospital\)\s*router\.push\('\/hospital'\)/,
   )
-  assert.match(homeView, /@click="openHospital\(hospital\.id\)"/)
+  assert.match(homeView, /@click="openHospital\(hospital\)"/)
   assert.match(homeView, /<RouterLink\s+to="\/hospital"[\s\S]*?>\s*立即搜尋醫院/)
   assert.doesNotMatch(homeView, /loadNearbyHospitals\([\s\S]{0,180}(is_24h|isOpen|is24H)/)
 })
@@ -67,6 +67,7 @@ test('HospitalView 使用共享 location store 並將 userLocation 傳給 MapVie
   assert.match(hospitalView, /locationStore\.requestCurrentLocation\(\)/)
   assert.match(hospitalView, /:user-location="userLocation"/)
   assert.match(hospitalView, /hospitalStore\.loadNearbyHospitals/)
+  assert.match(hospitalView, /onBeforeMount\(\(\) => \{\s*hospitalStore\.enterHospitalPage\(\)\s*\}\)/)
   assert.match(hospitalView, /loadNearbyHospitals\(\{ requestLocation: false \}\)/)
   assert.match(
     router,

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeMount, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
@@ -244,6 +244,10 @@ async function deleteHospitalReview() {
   if (!isCurrentReviewRequest(hospitalId, requestToken)) return
   toastStore.showToast(result.message || '評論已刪除')
 }
+
+onBeforeMount(() => {
+  hospitalStore.enterHospitalPage()
+})
 
 onMounted(() => {
   hospitalStore.loadRegions()

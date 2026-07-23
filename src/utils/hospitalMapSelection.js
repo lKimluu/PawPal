@@ -190,7 +190,7 @@ export function createHospitalMapSelectionCoordinator({
     if (!hasFocusTarget) {
       if (hasPendingMovement) map?.stop?.()
       if (shouldFlushQueuedSync) syncClusters({ restoreOpenPopup: true })
-      return
+      return false
     }
 
     map.stop?.()
@@ -201,7 +201,7 @@ export function createHospitalMapSelectionCoordinator({
     const targetZoom = Math.max(map.getZoom(), MIN_HOSPITAL_ZOOM)
     if (isAtTarget(map, hospital, targetZoom)) {
       revealSelection(hospital.id, requestGeneration)
-      return
+      return false
     }
 
     pendingMoveEnd = () => {
@@ -210,6 +210,7 @@ export function createHospitalMapSelectionCoordinator({
     }
     map.once('moveend', pendingMoveEnd)
     map.flyTo([hospital.latitude, hospital.longitude], targetZoom)
+    return true
   }
 
   function requestClusterSync() {

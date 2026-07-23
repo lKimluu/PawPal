@@ -189,6 +189,81 @@ test('stop 觸發的 moveend 不留下 bounds timer，只有 flyTo 完成後重�
   assert.equal(boundsRequestCount, 1)
 })
 
+test('初始聚焦移動期間不排程 bounds，最終 moveend 後只查詢一次', () => {
+  const timers = new Map()
+  let nextTimerId = 0
+  let boundsRequestCount = 0
+  const scheduler = createMapBoundsScheduler({
+    onBounds: () => {
+      boundsRequestCount += 1
+    },
+    setTimer(callback) {
+      nextTimerId += 1
+      timers.set(nextTimerId, callback)
+      return nextTimerId
+    },
+    clearTimer(timerId) {
+      timers.delete(timerId)
+    },
+  })
+  const map = createMap({ onMoveEnd: scheduler.schedule })
+  const coordinator = createHospitalMapSelectionCoordinator({
+    getMap: () => map,
+    isAtTarget: () => false,
+    syncClusters: () => {},
+    revealMarker: () => {},
+    beforeProgrammaticMove: scheduler.cancel,
+  })
+
+  const didMove = coordinator.focus(hospitals.first)
+  if (!didMove) scheduler.schedule()
+
+  assert.equal(didMove, true)
+  assert.equal(timers.size, 0)
+  assert.equal(boundsRequestCount, 0)
+
+  map.fire('moveend')
+  assert.equal(timers.size, 1)
+  timers.values().next().value()
+  assert.equal(boundsRequestCount, 1)
+})
+
+test('初始聚焦無須移動時直接排程 bounds', () => {
+  const timers = new Map()
+  let nextTimerId = 0
+  let boundsRequestCount = 0
+  const scheduler = createMapBoundsScheduler({
+    onBounds: () => {
+      boundsRequestCount += 1
+    },
+    setTimer(callback) {
+      nextTimerId += 1
+      timers.set(nextTimerId, callback)
+      return nextTimerId
+    },
+    clearTimer(timerId) {
+      timers.delete(timerId)
+    },
+  })
+  const map = createMap({ atTarget: true, zoom: 15, onMoveEnd: scheduler.schedule })
+  const coordinator = createHospitalMapSelectionCoordinator({
+    getMap: () => map,
+    isAtTarget: (currentMap) => currentMap.isAtTarget(),
+    syncClusters: () => {},
+    revealMarker: () => {},
+    beforeProgrammaticMove: scheduler.cancel,
+  })
+
+  const didMove = coordinator.focus(hospitals.first)
+  if (!didMove) scheduler.schedule()
+
+  assert.equal(didMove, false)
+  assert.equal(timers.size, 1)
+  timers.values().next().value()
+  assert.equal(boundsRequestCount, 1)
+  assert.equal(map.calls.some(([name]) => name === 'flyTo'), false)
+})
+
 test('清除醫院選取時保留 pending bounds request', () => {
   const timers = new Map()
   let nextTimerId = 0

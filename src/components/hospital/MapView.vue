@@ -164,7 +164,7 @@ const selectionCoordinator = createHospitalMapSelectionCoordinator({
 
 function focusSelectedHospital() {
   const hospital = selectedHospital.value
-  selectionCoordinator.focus(hospital ?? null)
+  return selectionCoordinator.focus(hospital ?? null)
 }
 function panToPendingLocation() {
   if (!mapObject.value || !pendingLocationPosition || props.selectedHospitalId !== null) return
@@ -185,12 +185,9 @@ function handleMapClick(event) {
 function onMapReady(map) {
   mapObject.value = map
   map.getContainer().addEventListener('click', handleMapClick)
-  if (selectedHospital.value) {
-    focusSelectedHospital()
-  } else {
-    syncClusters()
-    scheduleBounds()
-  }
+  const didMoveForInitialFocus = selectedHospital.value ? focusSelectedHospital() : false
+  if (!selectedHospital.value) syncClusters()
+  if (!didMoveForInitialFocus) scheduleBounds()
 }
 watch(validHospitals, () => nextTick(selectionCoordinator.requestClusterSync), { deep: true })
 watch(
