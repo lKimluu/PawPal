@@ -419,6 +419,264 @@ test('Hospital store disposal aborts the active map request without committing s
   }
 })
 
+test('enterHospitalPage 同步清除搜尋與地圖暫存並保留 regions 快取', () => {
+  setActivePinia(createPinia())
+  const store = useHospitalStore()
+
+  store.hospitals = [{ id: 'old-list' }]
+  store.mapHospitals = [{ id: 'old-marker' }]
+  store.regions = [{ city: '台北市', districts: ['大安區'] }]
+  store.filters = {
+    keyword: '仁愛',
+    city: '台北市',
+    district: '大安區',
+    is24H: true,
+    favoritesOnly: true,
+    sort: 'relevance',
+  }
+  store.pagination = { page: 3, limit: 20, total: 45, totalPages: 3 }
+  store.mode = 'nearby'
+  store.selectedHospitalId = 'old-list'
+  store.isLoading = true
+  store.mapLoading = true
+  store.errorMessage = '舊清單錯誤'
+  store.mapError = '舊地圖錯誤'
+  store.mapTruncated = true
+  store.locationFallbackMessage = '舊定位提示'
+  store.hasRealLocation = true
+
+  store.enterHospitalPage()
+
+  assert.deepEqual(store.filters, {
+    keyword: '',
+    city: '',
+    district: '',
+    is24H: false,
+    favoritesOnly: false,
+    sort: 'name',
+  })
+  assert.deepEqual(store.pagination, { page: 1, limit: 20, total: 0, totalPages: 0 })
+  assert.deepEqual(store.hospitals, [])
+  assert.deepEqual(store.mapHospitals, [])
+  assert.deepEqual(store.regions, [{ city: '台北市', districts: ['大安區'] }])
+  assert.equal(store.mode, 'list')
+  assert.equal(store.selectedHospitalId, null)
+  assert.equal(store.isLoading, false)
+  assert.equal(store.mapLoading, false)
+  assert.equal(store.errorMessage, '')
+  assert.equal(store.mapError, '')
+  assert.equal(store.mapTruncated, false)
+  assert.equal(store.locationFallbackMessage, '')
+  assert.equal(store.hasRealLocation, false)
+})
+
+test('enterHospitalPage 使舊清單成功與失敗回應失效', async () => {
+  const originalGet = axios.get
+  const requests = []
+
+  axios.get = (url, config) => {
+    const deferred = createDeferred()
+    requests.push({ url, config, deferred })
+    return deferred.promise
+  }
+
+  try {
+    setActivePinia(createPinia())
+    const successStore = useHospitalStore()
+    const staleSuccess = successStore.loadHospitals({ keyword: '舊查詢' })
+    successStore.enterHospitalPage()
+    requests[0].deferred.resolve({
+      data: {
+        hospitals: [{ id: 'stale-list' }],
+        pagination: { page: 2, limit: 20, total: 21, total_pages: 2 },
+      },
+    })
+    await staleSuccess
+
+    assert.deepEqual(successStore.hospitals, [])
+    assert.deepEqual(successStore.pagination, { page: 1, limit: 20, total: 0, totalPages: 0 })
+    assert.equal(successStore.errorMessage, '')
+    assert.equal(successStore.isLoading, false)
+
+    setActivePinia(createPinia())
+    const failureStore = useHospitalStore()
+    const staleFailure = failureStore.loadHospitals({ keyword: '舊失敗' })
+    failureStore.enterHospitalPage()
+    requests[1].deferred.reject(new Error('舊清單錯誤'))
+    await staleFailure
+
+    assert.deepEqual(failureStore.hospitals, [])
+    assert.equal(failureStore.errorMessage, '')
+    assert.equal(failureStore.isLoading, false)
+  } finally {
+    axios.get = originalGet
+  }
+})
+
+test('enterHospitalPage 中止舊地圖請求且不允許回填', async () => {
+  const originalGet = axios.get
+  const requests = []
+
+  axios.get = (url, config) => {
+    const deferred = createAbortableAxiosDeferred(config)
+    requests.push({ url, config, deferred })
+    return deferred.promise
+  }
+
+  try {
+    setActivePinia(createPinia())
+    const store = useHospitalStore()
+    const request = store.loadMapHospitals({ north: 25.1, south: 25, east: 121.6, west: 121.5 })
+    const signal = requests[0].config.signal
+
+    store.enterHospitalPage()
+
+    assert.equal(signal.aborted, true)
+    assert.equal((await request).canceled, true)
+    assert.deepEqual(store.mapHospitals, [])
+    assert.equal(store.mapError, '')
+    assert.equal(store.mapLoading, false)
+    assert.equal(store.mapTruncated, false)
+  } finally {
+    axios.get = originalGet
+  }
+})
+
+test('首頁入口醫院快照只在下一次 enterHospitalPage 被消耗一次', () => {
+  setActivePinia(createPinia())
+  const store = useHospitalStore()
+  const entryHospital = {
+    id: 'home-hospital',
+    name: '首頁動物醫院',
+    latitude: 25.033,
+    longitude: 121.5654,
+  }
+
+  store.queueHospitalEntrySelection(entryHospital)
+  store.enterHospitalPage()
+
+  assert.equal(store.selectedHospitalId, entryHospital.id)
+  assert.deepEqual(store.selectedHospital, entryHospital)
+  assert.deepEqual(store.hospitals, [])
+  assert.deepEqual(store.mapHospitals, [])
+
+  store.enterHospitalPage()
+
+  assert.equal(store.selectedHospitalId, null)
+  assert.equal(store.selectedHospital, null)
+})
+
+test('入口醫院快照會讓位給最新結果，頁內改選則清除 fallback', () => {
+  setActivePinia(createPinia())
+  const store = useHospitalStore()
+
+  store.queueHospitalEntrySelection({ id: 7, name: '首頁舊名稱', latitude: 25, longitude: 121 })
+  store.enterHospitalPage()
+  store.hospitals = [{ id: 7, name: '清單最新名稱', latitude: 25, longitude: 121 }]
+
+  assert.equal(store.selectedHospital.name, '清單最新名稱')
+
+  store.hospitals = []
+  store.selectHospital(9)
+
+  assert.equal(store.selectedHospitalId, 9)
+  assert.equal(store.selectedHospital, null)
+})
+
+test('評論載入與成功 CRUD 會同步僅存在於入口快照的醫院摘要', async () => {
+  const originalGet = axios.get
+  const originalPost = axios.post
+  const originalPatch = axios.patch
+  const originalDelete = axios.delete
+  const summaries = [
+    { average_rating: 4.2, review_count: 8 },
+    { average_rating: 4.4, review_count: 9 },
+    { average_rating: 4.1, review_count: 9 },
+    { average_rating: 4.0, review_count: 8 },
+  ]
+
+  axios.get = async () => ({ data: { summary: summaries[0], reviews: [] } })
+  axios.post = async () => ({ data: { summary: summaries[1] } })
+  axios.patch = async () => ({ data: { summary: summaries[2] } })
+  axios.delete = async () => ({ data: { summary: summaries[3] } })
+
+  setActivePinia(createPinia())
+  const store = useHospitalStore()
+  const entryHospital = {
+    id: 'entry-only',
+    name: '入口限定動物醫院',
+    latitude: 25.033,
+    longitude: 121.5654,
+    rating: 3.5,
+    reviewCount: 5,
+  }
+
+  try {
+    store.queueHospitalEntrySelection(entryHospital)
+    store.enterHospitalPage()
+    store.isLoading = true
+    store.mapLoading = true
+
+    await store.loadHospitalReviews(entryHospital.id)
+    assert.deepEqual(store.hospitals, [])
+    assert.deepEqual(store.mapHospitals, [])
+    assert.deepEqual(store.getHospitalById(entryHospital.id), {
+      ...entryHospital,
+      rating: 4.2,
+      reviewCount: 8,
+      average_rating: 4.2,
+      review_count: 8,
+    })
+
+    store.isLoading = false
+    store.mapLoading = false
+    store.errorMessage = '清單載入失敗'
+    store.mapError = '地圖載入失敗'
+
+    await store.submitHospitalReview(entryHospital.id, { rating: 5, comment: '值得推薦' })
+    assert.equal(store.getHospitalById(entryHospital.id).rating, 4.4)
+    assert.equal(store.getHospitalById(entryHospital.id).reviewCount, 9)
+
+    await store.updateHospitalReview(entryHospital.id, 1, { rating: 4, comment: '更新內容' })
+    assert.equal(store.getHospitalById(entryHospital.id).rating, 4.1)
+    assert.equal(store.getHospitalById(entryHospital.id).reviewCount, 9)
+
+    await store.deleteHospitalReview(entryHospital.id, 1)
+    assert.deepEqual(store.getHospitalById(entryHospital.id), {
+      ...entryHospital,
+      rating: 4,
+      reviewCount: 8,
+      average_rating: 4,
+      review_count: 8,
+    })
+    assert.equal(store.selectedHospital, store.getHospitalById(entryHospital.id))
+    assert.equal(store.errorMessage, '清單載入失敗')
+    assert.equal(store.mapError, '地圖載入失敗')
+  } finally {
+    store.$dispose()
+    axios.get = originalGet
+    axios.post = originalPost
+    axios.patch = originalPatch
+    axios.delete = originalDelete
+  }
+})
+
+test('無效入口醫院不會建立 pending selection', () => {
+  setActivePinia(createPinia())
+  const store = useHospitalStore()
+
+  store.queueHospitalEntrySelection({ id: 'valid', name: '先前候選' })
+  store.queueHospitalEntrySelection(null)
+  store.enterHospitalPage()
+  assert.equal(store.selectedHospitalId, null)
+  assert.equal(store.selectedHospital, null)
+
+  store.queueHospitalEntrySelection({ name: '缺少 id' })
+  store.enterHospitalPage()
+  assert.equal(store.selectedHospitalId, null)
+  assert.equal(store.selectedHospital, null)
+})
+
 test('Current map failures remain visible and retry the last bounds', async () => {
   const originalGet = axios.get
   const calls = []
@@ -978,6 +1236,7 @@ test('醫院元件使用 store 資料且搜尋列不再呈現診療動物篩選'
 
   assert.match(hospitalView, /useHospitalStore/)
   assert.match(hospitalView, /hospitalStore\.loadNearbyHospitals/)
+  assert.match(hospitalView, /onBeforeMount\(\(\) => \{\s*hospitalStore\.enterHospitalPage\(\)\s*\}\)/)
   assert.match(hospitalView, /loadNearbyHospitals\(\{ requestLocation: false \}\)/)
   assert.match(hospitalView, /:hospitals="visibleHospitals"/)
   assert.match(hospitalView, /@select-hospital="selectHospital"/)
@@ -1077,7 +1336,10 @@ test('Map selection delegates move completion and popup lifecycle to the coordin
     mapView,
     /\[props\.selectedHospitalId, props\.selectionRequestId, props\.selectedHospital\]/,
   )
-  assert.match(mapView, /if \(selectedHospital\.value\) \{\s*focusSelectedHospital\(\)/)
+  assert.match(
+    mapView,
+    /selectedHospital\.value \? focusSelectedHospital\(\) : false/,
+  )
   assert.match(coordinator, /map\.once\('moveend', pendingMoveEnd\)/)
   assert.match(coordinator, /map\.flyTo\(\[hospital\.latitude, hospital\.longitude\], targetZoom\)/)
   assert.match(coordinator, /clusterLayer\._inZoomAnimation > 0/)
@@ -1088,7 +1350,7 @@ test('Map selection delegates move completion and popup lifecycle to the coordin
   assert.match(coordinator, /syncClusters\(\{ restoreOpenPopup: true \}\)/)
 })
 
-test('Map ready and bounds refresh do not issue duplicate viewport requests', () => {
+test('Map ready 等待初始聚焦移動完成，無移動時直接排程 bounds refresh', () => {
   const mapView = readSource('../components/hospital/MapView.vue')
 
   assert.match(mapView, /createMapBoundsScheduler/)
@@ -1098,11 +1360,11 @@ test('Map ready and bounds refresh do not issue duplicate viewport requests', ()
   )
   assert.match(
     mapView,
-    /function focusSelectedHospital\(\) \{\s*const hospital = selectedHospital\.value\s*selectionCoordinator\.focus\(hospital \?\? null\)\s*\}/,
+    /function focusSelectedHospital\(\) \{\s*const hospital = selectedHospital\.value\s*return selectionCoordinator\.focus\(hospital \?\? null\)\s*\}/,
   )
   assert.match(
     mapView,
-    /if \(selectedHospital\.value\) \{\s*focusSelectedHospital\(\)\s*\} else \{\s*syncClusters\(\)\s*scheduleBounds\(\)/,
+    /const didMoveForInitialFocus = selectedHospital\.value \? focusSelectedHospital\(\) : false\s*if \(!selectedHospital\.value\) syncClusters\(\)\s*if \(!didMoveForInitialFocus\) scheduleBounds\(\)/,
   )
   assert.match(mapView, /@moveend="scheduleBounds"/)
   assert.match(mapView, /@zoomend="scheduleBounds"/)

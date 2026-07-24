@@ -326,7 +326,7 @@ tests:
 
 The list API SHALL support `sort` values `relevance`, `distance`, and `name`, and SHALL return stable paginated results. Keyword searches SHALL default to relevance, searches without a keyword and with a real user location SHALL default to distance, and searches without a real user location SHALL default to name with distance disabled.
 
-When real user location becomes available after the list was initialized without it, the frontend SHALL change a system-selected contextual default from name to distance for searches without a keyword. A location-state change MUST NOT overwrite a sorting option explicitly selected by the user.
+When real user location becomes available after the list was initialized without it, the frontend SHALL change a system-selected contextual default from name to distance for searches without a keyword. A location-state change MUST NOT overwrite a sorting option explicitly selected by the user. Whenever a real user location is available, frontend hospital list requests SHALL include that latitude and longitude regardless of the selected sort, so distance can be displayed independently from ordering. Fallback coordinates MUST NOT be sent as real user coordinates in general list searches.
 
 #### Scenario: relevance ordering
 
@@ -334,11 +334,19 @@ When real user location becomes available after the list was initialized without
 - **THEN** the name match ranks before the address match
 - **AND** ties use city, district, name, and id as stable ordering keys
 
+#### Scenario: keyword relevance search displays distance from real location
+
+- **GIVEN** a valid real user location is stored
+- **WHEN** the user submits a keyword search
+- **THEN** the list request includes the keyword, `sort=relevance`, latitude, and longitude
+- **AND** result cards display returned distances without changing relevance ordering
+
 #### Scenario: distance requires real user location
 
 - **WHEN** no real user location is available
 - **THEN** general search defaults to name sorting
 - **AND** the distance sorting option is disabled
+- **AND** keyword searches do not send fallback coordinates as user coordinates
 
 #### Scenario: real location replaces the no-location contextual default
 
@@ -354,47 +362,98 @@ When real user location becomes available after the list was initialized without
 - **WHEN** a valid real user location becomes available or changes
 - **THEN** name sorting remains selected
 - **AND** subsequent filter queries preserve name sorting
+- **AND** those queries include the real user coordinates for distance display
 
 #### Scenario: page changes preserve search state
 
 - **WHEN** a user moves from page 1 to page 2
-- **THEN** the list request preserves committed filters and sorting
+- **THEN** the list request preserves committed filters, sorting, and any real user coordinates
 - **AND** the result count displays the API total rather than the current page length
 
 
 <!-- @trace
-source: integrate-hospital-api-list-map
-updated: 2026-07-12
+source: fix-hospital-search-distance
+updated: 2026-07-23
 code:
-  - src/utils/hospitalPopup.js
-  - src/utils/hospitalMapMarkers.js
-  - src/components/hospital/HospitalList.vue
-  - src/constants/hospitalFilters.js
-  - backend/src/schemas/hospitals.schema.js
-  - src/components/hospital/MapStatusOverlay.vue
-  - src/api/hospitals.js
-  - src/assets/hospital-map.css
-  - src/components/hospital/HospitalListState.vue
-  - src/components/hospital/HospitalLocationSelects.vue
-  - src/main.js
-  - src/stores/hospital.js
-  - backend/src/routes/hospitals.route.js
-  - src/views/HospitalView.vue
+  - src/components/pet/AddPetModal.vue
+  - src/assets/images/dog.webp
   - backend/src/controllers/hospitals.controller.js
-  - backend/src/services/hospitals.service.js
+  - src/components/ai/AiAssistantInput.vue
+  - src/components/pet/PetProfileModal.vue
+  - .github/workflows/ci.yml
+  - src/components/pet/PetCard.vue
+  - src/assets/images/rabbit.webp
   - package.json
-  - src/components/hospital/HospitalCard.vue
-  - src/components/hospital/SearchBar.vue
-  - src/components/hospital/HospitalMarker.vue
+  - src/router/index.js
+  - backend/.env.example
+  - backend/src/services/hospitals.service.js
+  - src/assets/images/turtle.webp
+  - src/stores/hospital.js
+  - backend/database/schema/hospitals.sql
+  - backend/src/controllers/hospital_favorites.controller.js
   - src/components/hospital/MapView.vue
-  - src/components/hospital/HospitalSearchInput.vue
+  - src/constants/hospitalFilters.js
+  - src/views/GrowthView.vue
+  - src/components/medical/MedicalRecordModal.vue
+  - backend/src/middlewares/auth.middleware.js
+  - src/components/auth/RegisterForm.vue
+  - backend/scripts/setup-db.js
+  - src/assets/images/hamster.webp
+  - src/components/hospital/SearchBar.vue
+  - src/components/hospital/HospitalCard.vue
+  - src/views/PetTriviaView.vue
+  - backend/database/scripts/import_hospitals.js
+  - src/components/layout/PublicSidebar.vue
+  - src/components/trivia/TriviaCardStack.vue
+  - src/App.vue
+  - backend/package.json
+  - src/assets/images/cat.webp
+  - src/views/HospitalView.vue
+  - backend/src/routes/hospitals.route.js
+  - backend/src/services/hospital_favorites.service.js
+  - src/assets/images/hedgehog.webp
+  - src/components/growth/GrowthHistoryModal.vue
+  - src/components/layout/AppHeader.vue
+  - src/views/MedicalView.vue
+  - backend/src/services/calendar_events_sync.service.js
+  - index.html
+  - backend/src/schemas/hospital_favorites.schema.js
+  - backend/src/schemas/hospitals.schema.js
+  - src/utils/hospitalMapSelection.js
+  - src/assets/images/goldfish.webp
+  - backend/src/services/google_calendar.service.js
+  - src/components/growth/GrowthRecordModal.vue
+  - src/components/auth/LoginForm.vue
+  - src/stores/favoriteHospital.js
+  - src/views/HomeView.vue
+  - src/views/DashboardView.vue
+  - src/components/layout/DashboardSidebar.vue
+  - src/components/pet/AddPetButton.vue
+  - src/views/AboutView.vue
+  - backend/database/scripts/enrich_hospital_24h.js
+  - src/components/common/DeleteConfirmModal.vue
+  - src/components/hospital/HospitalList.vue
+  - src/api/hospitals.js
+  - backend/database/schema/hospital_favorites.sql
 tests:
-  - backend/test/hospitals.schema.test.js
-  - backend/test/hospitals.service.test.js
-  - backend/test/hospitals.route.test.js
-  - backend/test/hospitals.controller.test.js
   - src/test/hospitalGpsView.test.js
+  - backend/test/auth.middleware.test.js
   - src/test/hospitalApiIntegration.test.js
+  - backend/test/calendar_events_sync.test.js
+  - src/test/petCardWidth.test.js
+  - backend/test/hospital_favorites.service.test.js
+  - backend/test/enrich_hospital_24h.test.js
+  - backend/test/import_hospitals.test.js
+  - backend/test/hospital_reviews.route.test.js
+  - backend/test/hospitals.service.test.js
+  - backend/test/hospitals.controller.test.js
+  - src/test/AddPetModal.test.js
+  - backend/test/hospital_favorites.schema.test.js
+  - backend/test/hospitals.schema.test.js
+  - backend/test/hospital_favorites.controller.test.js
+  - src/test/hospitalMapSelection.test.js
+  - backend/test/hospitals.route.test.js
+  - backend/test/hospital_favorites.route.test.js
 -->
 
 ---
@@ -550,12 +609,24 @@ tests:
 ---
 ### Requirement: Hospital APIs expose reliable 24-hour and map data
 
-`GET /api/v1/hospitals` SHALL accept `is_24h`, `sort`, and valid coordinates for distance sorting. Hospital responses SHALL expose `is_24h` and `emergency_available`, and distance-sorted responses SHALL expose `distance_km`. The API and full hospital search SHALL NOT infer current-open status without business-hours data. The home summary SHALL retain its product-approved static `營業中` presentation label as a scoped exception, but that label MUST NOT be derived from API fields and MUST NOT affect queries, ordering, filtering, map summaries, or full-search cards.
+`GET /api/v1/hospitals` SHALL accept `is_24h`, `sort`, and an optional valid latitude and longitude pair. Hospital responses SHALL expose `is_24h` and `emergency_available`. List responses with a valid coordinate pair SHALL expose `distance_km` for hospitals with stored coordinates regardless of sort, while hospitals without stored coordinates SHALL keep distance unknown. The API and full hospital search SHALL NOT infer current-open status without business-hours data. The home summary SHALL retain its product-approved static `營業中` presentation label as a scoped exception, but that label MUST NOT be derived from API fields and MUST NOT affect queries, ordering, filtering, map summaries, or full-search cards.
 
 #### Scenario: 24-hour filtering
 
 - **WHEN** a caller requests `GET /api/v1/hospitals?is_24h=true`
 - **THEN** every returned hospital has `is_24h` equal to true
+
+#### Scenario: relevance response includes distance when coordinates are provided
+
+- **WHEN** a caller requests a keyword with `sort=relevance` and a valid latitude and longitude pair
+- **THEN** hospitals with stored coordinates include numeric `distance_km`
+- **AND** the response remains ordered by relevance rather than distance
+
+#### Scenario: hospital without coordinates keeps distance unknown
+
+- **WHEN** a coordinate-bearing list query returns a hospital whose latitude or longitude is null
+- **THEN** that hospital does not expose a numeric zero distance
+- **AND** the frontend displays distance as unknown
 
 #### Scenario: distance sorting without coordinates
 
@@ -571,18 +642,88 @@ tests:
 
 
 <!-- @trace
-source: connect-home-nearby-hospitals
-updated: 2026-07-14
+source: fix-hospital-search-distance
+updated: 2026-07-23
 code:
-  - src/components/hospital/MapStatusOverlay.vue
+  - src/components/pet/AddPetModal.vue
+  - src/assets/images/dog.webp
+  - backend/src/controllers/hospitals.controller.js
+  - src/components/ai/AiAssistantInput.vue
+  - src/components/pet/PetProfileModal.vue
+  - .github/workflows/ci.yml
+  - src/components/pet/PetCard.vue
+  - src/assets/images/rabbit.webp
+  - package.json
+  - src/router/index.js
+  - backend/.env.example
+  - backend/src/services/hospitals.service.js
+  - src/assets/images/turtle.webp
+  - src/stores/hospital.js
+  - backend/database/schema/hospitals.sql
+  - backend/src/controllers/hospital_favorites.controller.js
   - src/components/hospital/MapView.vue
-  - src/views/HomeView.vue
-  - src/utils/hospitalMapSelection.js
+  - src/constants/hospitalFilters.js
+  - src/views/GrowthView.vue
+  - src/components/medical/MedicalRecordModal.vue
+  - backend/src/middlewares/auth.middleware.js
+  - src/components/auth/RegisterForm.vue
+  - backend/scripts/setup-db.js
+  - src/assets/images/hamster.webp
+  - src/components/hospital/SearchBar.vue
+  - src/components/hospital/HospitalCard.vue
+  - src/views/PetTriviaView.vue
+  - backend/database/scripts/import_hospitals.js
+  - src/components/layout/PublicSidebar.vue
+  - src/components/trivia/TriviaCardStack.vue
+  - src/App.vue
+  - backend/package.json
+  - src/assets/images/cat.webp
   - src/views/HospitalView.vue
+  - backend/src/routes/hospitals.route.js
+  - backend/src/services/hospital_favorites.service.js
+  - src/assets/images/hedgehog.webp
+  - src/components/growth/GrowthHistoryModal.vue
+  - src/components/layout/AppHeader.vue
+  - src/views/MedicalView.vue
+  - backend/src/services/calendar_events_sync.service.js
+  - index.html
+  - backend/src/schemas/hospital_favorites.schema.js
+  - backend/src/schemas/hospitals.schema.js
+  - src/utils/hospitalMapSelection.js
+  - src/assets/images/goldfish.webp
+  - backend/src/services/google_calendar.service.js
+  - src/components/growth/GrowthRecordModal.vue
+  - src/components/auth/LoginForm.vue
+  - src/stores/favoriteHospital.js
+  - src/views/HomeView.vue
+  - src/views/DashboardView.vue
+  - src/components/layout/DashboardSidebar.vue
+  - src/components/pet/AddPetButton.vue
+  - src/views/AboutView.vue
+  - backend/database/scripts/enrich_hospital_24h.js
+  - src/components/common/DeleteConfirmModal.vue
+  - src/components/hospital/HospitalList.vue
+  - src/api/hospitals.js
+  - backend/database/schema/hospital_favorites.sql
 tests:
-  - src/test/hospitalMapSelection.test.js
   - src/test/hospitalGpsView.test.js
+  - backend/test/auth.middleware.test.js
   - src/test/hospitalApiIntegration.test.js
+  - backend/test/calendar_events_sync.test.js
+  - src/test/petCardWidth.test.js
+  - backend/test/hospital_favorites.service.test.js
+  - backend/test/enrich_hospital_24h.test.js
+  - backend/test/import_hospitals.test.js
+  - backend/test/hospital_reviews.route.test.js
+  - backend/test/hospitals.service.test.js
+  - backend/test/hospitals.controller.test.js
+  - src/test/AddPetModal.test.js
+  - backend/test/hospital_favorites.schema.test.js
+  - backend/test/hospitals.schema.test.js
+  - backend/test/hospital_favorites.controller.test.js
+  - src/test/hospitalMapSelection.test.js
+  - backend/test/hospitals.route.test.js
+  - backend/test/hospital_favorites.route.test.js
 -->
 
 ---
@@ -784,4 +925,153 @@ tests:
   - src/test/registerAutoLogin.test.js
   - backend/test/hospitals.service.test.js
   - backend/test/hospital_reviews.route.test.js
+-->
+
+---
+### Requirement: Hospital page entry resets transient search state
+
+The frontend SHALL synchronously reset hospital page search state before each newly created Hospital page renders. The reset MUST clear the committed keyword, city, district, 24-hour filter, favorites-only filter, explicit sort selection, pagination, list results, list errors, retry context, map results, map errors, map truncation, and prior page selection. The frontend MUST retain cached region reference data and location-store state. After the reset, the page SHALL load the default nearby hospital list with a limit of 20; a valid real location SHALL produce the contextual distance sort, while unavailable real location SHALL use the existing Taipei City center fallback and name sort.
+
+#### Scenario: User returns after a filtered search
+
+- **GIVEN** the user previously searched with a keyword, city, district, 24-hour filter, favorites-only filter, explicit sorting, and a later page
+- **WHEN** the user leaves the Hospital page and later enters it again
+- **THEN** the page first contains empty search conditions, page 1, no prior list or map results, no prior errors, and no prior selection
+- **AND** it loads the default nearby hospital list with a limit of 20
+
+#### Scenario: Entry uses the existing real location
+
+- **GIVEN** the location store contains a valid real latitude and longitude
+- **WHEN** the user enters the Hospital page
+- **THEN** the default nearby request uses that location
+- **AND** the contextual sort becomes distance without requesting location permission again
+
+#### Scenario: Entry uses the fallback location
+
+- **GIVEN** the location store does not contain a valid real location
+- **WHEN** the user enters the Hospital page
+- **THEN** the default nearby request uses the existing Taipei City center fallback
+- **AND** the search sort remains name
+
+
+<!-- @trace
+source: reset-hospital-search-on-reentry
+updated: 2026-07-23
+code:
+  - src/utils/hospitalMapSelection.js
+  - src/views/HomeView.vue
+  - src/views/HospitalView.vue
+  - src/components/hospital/MapView.vue
+  - src/stores/hospital.js
+tests:
+  - src/test/hospitalMapSelection.test.js
+  - src/test/hospitalApiIntegration.test.js
+  - src/test/hospitalGpsView.test.js
+-->
+
+---
+### Requirement: Hospital page reset invalidates stale requests
+
+The hospital page entry reset MUST invalidate every list and map request started before the reset. A stale success, failure, or completion MUST NOT update list results, map results, pagination, errors, truncation, or loading state after reset. An active map request SHALL be aborted when cancellation is available.
+
+#### Scenario: Old list request completes after re-entry
+
+- **WHEN** a list request starts, the Hospital page entry reset occurs, and the old request resolves or rejects afterward
+- **THEN** the old request does not update any current Hospital page state
+
+#### Scenario: Old map request completes after re-entry
+
+- **WHEN** a map request starts, the Hospital page entry reset occurs, and the old request resolves or rejects afterward
+- **THEN** the map request is aborted when possible
+- **AND** the old request does not update any current Hospital page state
+
+
+<!-- @trace
+source: reset-hospital-search-on-reentry
+updated: 2026-07-23
+code:
+  - src/utils/hospitalMapSelection.js
+  - src/views/HomeView.vue
+  - src/views/HospitalView.vue
+  - src/components/hospital/MapView.vue
+  - src/stores/hospital.js
+tests:
+  - src/test/hospitalMapSelection.test.js
+  - src/test/hospitalApiIntegration.test.js
+  - src/test/hospitalGpsView.test.js
+-->
+
+---
+### Requirement: Hospital entry selection is explicit and single-use
+
+The frontend SHALL allow the Home page to queue one normalized hospital as an entry selection before navigating to the Hospital page. The next Hospital page entry SHALL consume that selection exactly once, preserve its hospital identifier and snapshot for map focus, and still reset and reload the default list and map query streams. A Hospital page entry without a queued selection MUST clear every prior hospital selection. Selecting another hospital inside the Hospital page SHALL replace the entry selection fallback. Whenever review loading or a successful review create, update, or delete refreshes a hospital's rating and review count, the frontend MUST apply that summary to a matching entry selection snapshot as well as matching list and map records.
+
+#### Scenario: Home hospital card opens the Hospital page
+
+- **WHEN** the user selects a hospital card on the Home page
+- **THEN** the Home page queues the complete normalized hospital and navigates to the Hospital page
+- **AND** the Hospital page focuses that hospital while independently loading the default list and current map bounds
+
+#### Scenario: Queued selection is consumed once
+
+- **GIVEN** a Home page hospital was consumed as the Hospital page entry selection
+- **WHEN** the user later enters the Hospital page without queuing another hospital
+- **THEN** the previous entry selection is not restored
+
+#### Scenario: Review summary refreshes an entry-only hospital
+
+- **GIVEN** the selected hospital exists only in the entry selection snapshot because list and map requests are pending or have failed
+- **WHEN** review loading or a successful review create, update, or delete refreshes that hospital's rating and review count
+- **THEN** the entry selection snapshot contains the refreshed rating and review count
+- **AND** hospital lookup returns the refreshed snapshot to the review modal and map popup
+
+
+<!-- @trace
+source: reset-hospital-search-on-reentry
+updated: 2026-07-23
+code:
+  - src/utils/hospitalMapSelection.js
+  - src/views/HomeView.vue
+  - src/views/HospitalView.vue
+  - src/components/hospital/MapView.vue
+  - src/stores/hospital.js
+tests:
+  - src/test/hospitalMapSelection.test.js
+  - src/test/hospitalApiIntegration.test.js
+  - src/test/hospitalGpsView.test.js
+-->
+
+---
+### Requirement: Hospital map refreshes on every page entry
+
+The hospital map SHALL schedule a visible-bounds query whenever the map becomes ready, including when an entry hospital is selected for initial focus. When initial focus moves the map, the frontend MUST defer that query until focus movement completes or the final `moveend`; it MUST NOT send an intermediate visible-bounds query during the movement. When initial focus does not move the map, the frontend SHALL schedule the query directly. The map query SHALL remain independent from the default hospital list request.
+
+#### Scenario: Selected hospital is focused during map initialization
+
+- **GIVEN** the Hospital page has a queued entry selection
+- **AND** focusing that hospital starts a map movement longer than the bounds-query debounce interval
+- **WHEN** the map becomes ready and focuses the selected hospital
+- **THEN** the map does not send a visible-bounds query while the movement is in progress
+- **AND** it schedules the query after focus movement completes or the final `moveend`
+- **AND** no map markers from the previous Hospital page visit are reused
+
+#### Scenario: Map initialization does not move the map
+
+- **GIVEN** the Hospital page has no selected hospital or focusing the selected hospital does not move the map
+- **WHEN** the map becomes ready
+- **THEN** the map directly schedules a query for its current visible bounds
+
+<!-- @trace
+source: reset-hospital-search-on-reentry
+updated: 2026-07-23
+code:
+  - src/utils/hospitalMapSelection.js
+  - src/views/HomeView.vue
+  - src/views/HospitalView.vue
+  - src/components/hospital/MapView.vue
+  - src/stores/hospital.js
+tests:
+  - src/test/hospitalMapSelection.test.js
+  - src/test/hospitalApiIntegration.test.js
+  - src/test/hospitalGpsView.test.js
 -->

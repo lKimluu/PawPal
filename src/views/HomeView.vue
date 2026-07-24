@@ -64,8 +64,8 @@ const formatDistance = (distance) => {
   return Number.isFinite(numericDistance) ? `${numericDistance.toFixed(1)} km` : '距離資訊未提供'
 }
 
-const openHospital = (hospitalId) => {
-  hospitalStore.selectHospital(hospitalId)
+const openHospital = (hospital) => {
+  hospitalStore.queueHospitalEntrySelection(hospital)
   router.push('/hospital')
 }
 
@@ -149,7 +149,7 @@ onBeforeUnmount(() => {
               :key="hospital.id"
               type="button"
               class="bg-white/30 backdrop-blur-md p-5 rounded-2xl border border-[#E2E8F0] text-left transition-all duration-300 shadow-[0_2px_10px_rgba(255,160,2,0.2)] lg:hover:-translate-y-1 lg:hover:shadow-[0_10px_30px_rgba(255,160,2,0.4)] cursor-pointer active:scale-[0.99]"
-              @click="openHospital(hospital.id)"
+              @click="openHospital(hospital)"
             >
               <p class="text-sm font-medium tracking-wide text-brand-gray">最近醫院</p>
 
@@ -224,7 +224,7 @@ onBeforeUnmount(() => {
               :key="hospital.id"
               type="button"
               class="bg-white p-4 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex items-center justify-between text-left transition-all duration-150 active:scale-[0.99] active:bg-[#f8fafc] active:shadow-sm"
-              @click="openHospital(hospital.id)"
+              @click="openHospital(hospital)"
             >
               <div class="flex items-center gap-3">
                 <div class="flex items-center justify-center">

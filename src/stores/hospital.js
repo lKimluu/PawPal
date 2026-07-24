@@ -32,6 +32,8 @@ export const useHospitalStore = defineStore('hospital', () => {
   const filters = ref({ ...DEFAULT_FILTERS })
   const mode = ref('list')
   const selectedHospitalId = ref(null)
+  const pendingEntryHospital = ref(null)
+  const entrySelectedHospital = ref(null)
   const isLoading = ref(false)
   const mapLoading = ref(false)
   const regionsLoading = ref(false)
@@ -52,9 +54,53 @@ export const useHospitalStore = defineStore('hospital', () => {
 
   const visibleHospitals = computed(() => hospitals.value)
   const markerHospitals = computed(() => mapHospitals.value)
-  const selectedHospital = computed(() => hospitals.value.find((item) => item.id === selectedHospitalId.value) ?? null)
+  const selectedHospital = computed(() => {
+    const selectedId = selectedHospitalId.value
+    if (selectedId === null || selectedId === undefined) return null
+
+    return (
+      hospitals.value.find((item) => String(item.id) === String(selectedId)) ??
+      mapHospitals.value.find((item) => String(item.id) === String(selectedId)) ??
+      (String(entrySelectedHospital.value?.id) === String(selectedId)
+        ? entrySelectedHospital.value
+        : null)
+    )
+  })
   const isEmpty = computed(() => !isLoading.value && !errorMessage.value && hospitals.value.length === 0)
   const availableDistricts = computed(() => regions.value.find((item) => item.city === filters.value.city)?.districts ?? [])
+
+  function enterHospitalPage() {
+    const queuedHospital = pendingEntryHospital.value
+    pendingEntryHospital.value = null
+    listRequestId += 1
+    mapRequestId += 1
+    mapRequestController?.abort()
+    mapRequestController = null
+
+    hospitals.value = []
+    mapHospitals.value = []
+    pagination.value = { ...DEFAULT_PAGINATION }
+    filters.value = { ...DEFAULT_FILTERS }
+    mode.value = 'list'
+    entrySelectedHospital.value = queuedHospital
+    selectedHospitalId.value = queuedHospital?.id ?? null
+    isLoading.value = false
+    mapLoading.value = false
+    errorMessage.value = ''
+    mapError.value = ''
+    mapTruncated.value = false
+    locationFallbackMessage.value = ''
+    hasRealLocation.value = false
+    userCoordinates.value = null
+    explicitSortSelection.value = null
+    lastQuery.value = { type: 'list', query: {} }
+    lastMapQuery.value = null
+  }
+
+  function queueHospitalEntrySelection(hospital) {
+    pendingEntryHospital.value =
+      hospital && hospital.id !== null && hospital.id !== undefined ? { ...hospital } : null
+  }
 
   function listQuery(overrides = {}) {
     const coordinates = hasRealLocation.value
@@ -178,7 +224,12 @@ export const useHospitalStore = defineStore('hospital', () => {
   async function setSort(value) { if (value === 'distance' && !hasRealLocation.value) return; explicitSortSelection.value = value; filters.value.sort = value; pagination.value.page = 1; return loadHospitals({ page: 1 }) }
   async function setPage(page) { pagination.value.page = Number(page); return loadHospitals({ page: pagination.value.page }) }
   async function clearFilters() { explicitSortSelection.value = null; filters.value = { ...DEFAULT_FILTERS, sort: hasRealLocation.value ? 'distance' : 'name' }; pagination.value.page = 1; return loadHospitals({ page: 1 }) }
-  function selectHospital(id) { selectedHospitalId.value = id }
+  function selectHospital(id) {
+    selectedHospitalId.value = id
+    if (String(entrySelectedHospital.value?.id) !== String(id)) {
+      entrySelectedHospital.value = null
+    }
+  }
   function retryCurrentQuery() { return lastQuery.value.type === 'nearby' ? loadNearbyHospitals(lastQuery.value.query) : loadHospitals(lastQuery.value.query) }
   function retryMapQuery() { return lastMapQuery.value ? loadMapHospitals(lastMapQuery.value) : Promise.resolve() }
   function updateHospitalReviewSummary(hospitalId, summary = {}) {
@@ -191,6 +242,9 @@ export const useHospitalStore = defineStore('hospital', () => {
 
     hospitals.value = hospitals.value.map(applySummary)
     mapHospitals.value = mapHospitals.value.map(applySummary)
+    if (entrySelectedHospital.value) {
+      entrySelectedHospital.value = applySummary(entrySelectedHospital.value)
+    }
   }
   function applyFavoriteState(hospitalId, isFavorite) {
     const applyFavorite = (item) =>
@@ -218,6 +272,9 @@ export const useHospitalStore = defineStore('hospital', () => {
     return (
       hospitals.value.find((item) => String(item.id) === String(hospitalId)) ??
       mapHospitals.value.find((item) => String(item.id) === String(hospitalId)) ??
+      (String(entrySelectedHospital.value?.id) === String(hospitalId)
+        ? entrySelectedHospital.value
+        : null) ??
       null
     )
   }
@@ -252,7 +309,8 @@ export const useHospitalStore = defineStore('hospital', () => {
     hospitals, visibleHospitals, mapHospitals, markerHospitals, regions, availableDistricts,
     pagination, filters, mode, selectedHospitalId, selectedHospital, isLoading, mapLoading,
     regionsLoading, errorMessage, mapError, regionsError, mapTruncated, locationFallbackMessage,
-    hasRealLocation, isEmpty, loadHospitals, loadNearbyHospitals, loadMapHospitals, loadRegions,
+    hasRealLocation, isEmpty, enterHospitalPage, queueHospitalEntrySelection,
+    loadHospitals, loadNearbyHospitals, loadMapHospitals, loadRegions,
     setKeyword, setLocationFilter, set24H, setFavoritesOnly, setSort, setPage, clearFilters,
     selectHospital, retryCurrentQuery, retryMapQuery, updateHospitalReviewSummary, getHospitalById,
     loadHospitalReviews, submitHospitalReview, updateHospitalReview, deleteHospitalReview,

@@ -439,3 +439,120 @@ tests:
   - src/test/petProfileEditMode.test.js
   - backend/test/hospitals.schema.test.js
 -->
+
+---
+### Requirement: Hospital list distance projection is independent from ordering
+
+`GET /api/v1/hospitals` SHALL accept an optional valid `lat` and `lng` pair with `relevance`, `name`, or `distance` sorting. When the pair is present, the service SHALL calculate `distance_km` with the existing hospital distance formula for every returned hospital that has stored coordinates. The selected `sort` SHALL remain the sole control for ordering. When the pair is absent, the service SHALL omit distance projection. A hospital with a null latitude or longitude MUST NOT expose zero as its distance.
+
+#### Scenario: relevance sorting also projects distance
+
+- **GIVEN** hospital A matches the keyword in its name and is 3.2 kilometers away
+- **AND** hospital B matches the keyword only in its address and is 1.1 kilometers away
+- **WHEN** the caller requests the keyword with `sort=relevance` and a valid `lat` and `lng` pair
+- **THEN** hospital A remains ordered before hospital B
+- **AND** hospital A has `distance_km` 3.2
+- **AND** hospital B has `distance_km` 1.1
+
+#### Scenario: name sorting also projects distance
+
+- **WHEN** the caller requests `sort=name` with a valid `lat` and `lng` pair
+- **THEN** hospitals remain ordered by the existing name ordering keys
+- **AND** hospitals with stored coordinates include numeric `distance_km`
+
+#### Scenario: query without coordinates omits distance projection
+
+- **WHEN** the caller requests relevance or name sorting without `lat` and `lng`
+- **THEN** the response ordering follows the selected sort
+- **AND** hospitals do not expose calculated `distance_km`
+
+#### Scenario: partial coordinate pair is rejected
+
+- **WHEN** the caller supplies only `lat` or only `lng`
+- **THEN** the API returns HTTP 400 with a message string
+- **AND** service query logic is not executed
+
+<!-- @trace
+source: fix-hospital-search-distance
+updated: 2026-07-23
+code:
+  - src/components/pet/AddPetModal.vue
+  - src/assets/images/dog.webp
+  - backend/src/controllers/hospitals.controller.js
+  - src/components/ai/AiAssistantInput.vue
+  - src/components/pet/PetProfileModal.vue
+  - .github/workflows/ci.yml
+  - src/components/pet/PetCard.vue
+  - src/assets/images/rabbit.webp
+  - package.json
+  - src/router/index.js
+  - backend/.env.example
+  - backend/src/services/hospitals.service.js
+  - src/assets/images/turtle.webp
+  - src/stores/hospital.js
+  - backend/database/schema/hospitals.sql
+  - backend/src/controllers/hospital_favorites.controller.js
+  - src/components/hospital/MapView.vue
+  - src/constants/hospitalFilters.js
+  - src/views/GrowthView.vue
+  - src/components/medical/MedicalRecordModal.vue
+  - backend/src/middlewares/auth.middleware.js
+  - src/components/auth/RegisterForm.vue
+  - backend/scripts/setup-db.js
+  - src/assets/images/hamster.webp
+  - src/components/hospital/SearchBar.vue
+  - src/components/hospital/HospitalCard.vue
+  - src/views/PetTriviaView.vue
+  - backend/database/scripts/import_hospitals.js
+  - src/components/layout/PublicSidebar.vue
+  - src/components/trivia/TriviaCardStack.vue
+  - src/App.vue
+  - backend/package.json
+  - src/assets/images/cat.webp
+  - src/views/HospitalView.vue
+  - backend/src/routes/hospitals.route.js
+  - backend/src/services/hospital_favorites.service.js
+  - src/assets/images/hedgehog.webp
+  - src/components/growth/GrowthHistoryModal.vue
+  - src/components/layout/AppHeader.vue
+  - src/views/MedicalView.vue
+  - backend/src/services/calendar_events_sync.service.js
+  - index.html
+  - backend/src/schemas/hospital_favorites.schema.js
+  - backend/src/schemas/hospitals.schema.js
+  - src/utils/hospitalMapSelection.js
+  - src/assets/images/goldfish.webp
+  - backend/src/services/google_calendar.service.js
+  - src/components/growth/GrowthRecordModal.vue
+  - src/components/auth/LoginForm.vue
+  - src/stores/favoriteHospital.js
+  - src/views/HomeView.vue
+  - src/views/DashboardView.vue
+  - src/components/layout/DashboardSidebar.vue
+  - src/components/pet/AddPetButton.vue
+  - src/views/AboutView.vue
+  - backend/database/scripts/enrich_hospital_24h.js
+  - src/components/common/DeleteConfirmModal.vue
+  - src/components/hospital/HospitalList.vue
+  - src/api/hospitals.js
+  - backend/database/schema/hospital_favorites.sql
+tests:
+  - src/test/hospitalGpsView.test.js
+  - backend/test/auth.middleware.test.js
+  - src/test/hospitalApiIntegration.test.js
+  - backend/test/calendar_events_sync.test.js
+  - src/test/petCardWidth.test.js
+  - backend/test/hospital_favorites.service.test.js
+  - backend/test/enrich_hospital_24h.test.js
+  - backend/test/import_hospitals.test.js
+  - backend/test/hospital_reviews.route.test.js
+  - backend/test/hospitals.service.test.js
+  - backend/test/hospitals.controller.test.js
+  - src/test/AddPetModal.test.js
+  - backend/test/hospital_favorites.schema.test.js
+  - backend/test/hospitals.schema.test.js
+  - backend/test/hospital_favorites.controller.test.js
+  - src/test/hospitalMapSelection.test.js
+  - backend/test/hospitals.route.test.js
+  - backend/test/hospital_favorites.route.test.js
+-->
